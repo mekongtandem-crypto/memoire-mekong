@@ -503,4 +503,427 @@
                     )}
 
                     <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                        
+                        {currentPage === 1 && !showFullPage && (
+                            <div className="space-y-8">
+                                
+                                {!selectedMode && (
+                                    <div className="max-w-md mx-auto space-y-3">
+                                        <h3 className="text-lg font-semibold text-amber-900 text-center">Choisissez votre mode de session</h3>
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={() => handleModeSelection('duo')}
+                                                className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                            >
+                                                <Users className="w-6 h-6 text-amber-600" />
+                                                <div>
+                                                    <span className="font-medium text-lg">Duo</span>
+                                                    <p className="text-sm text-gray-600">Session intensive à deux (présentiel)</p>
+                                                </div>
+                                            </button>
+                                            <button
+                                                onClick={() => handleModeSelection('solo')}
+                                                className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                            >
+                                                <User className="w-6 h-6 text-amber-600" />
+                                                <div>
+                                                    <span className="font-medium text-lg">Solo</span>
+                                                    <p className="text-sm text-gray-600">Lancer un ping-pong (asynchrone)</p>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedMode === 'solo' && showUserSelection && !showFullPage && (
+                                    <div className="max-w-md mx-auto space-y-3">
+                                        <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={() => handleUserSelection('Tom')}
+                                                className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                            >
+                                                <span className="text-3xl">🐘</span>
+                                                <span className="font-medium text-lg">Tom l'éléphanteau</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleUserSelection('Lambert')}
+                                                className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                            >
+                                                <span className="text-3xl">🐘</span>
+                                                <span className="font-medium text-lg">Lambert, le Vieil éléphant</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {currentPage === 1 && showFullPage && (
+                            <div className="space-y-6">
+                                <div className="space-y-3">
+                                    <h3 className="text-lg font-semibold text-amber-900">Sessions précédentes</h3>
+                                    {sessions.length === 0 ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-500 mb-4">Aucune session enregistrée</p>
+                                            <button
+                                                onClick={() => setCurrentPage(2)}
+                                                className="px-6 py-3 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg font-medium"
+                                            >
+                                                Créer votre première session
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <span className="text-sm text-gray-600">{sessions.length} session(s)</span>
+                                                <button
+                                                    onClick={() => setCurrentPage(2)}
+                                                    className="px-4 py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg font-medium"
+                                                >
+                                                    Nouvelle session
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {sessions.map((session, index) => (
+                                                    <div 
+                                                        key={session.id}
+                                                        className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                                                    >
+                                                        <div 
+                                                            onClick={() => openSession(session)}
+                                                            className="flex items-center space-x-3 flex-1 cursor-pointer"
+                                                        >
+                                                            {getStatusIcon(session.status)}
+                                                            <div>
+                                                                <span className="font-medium">{getSessionDisplayName(session)}</span>
+                                                                <p className="text-sm text-gray-600">
+                                                                    {session.mode} • {session.user} • {new Date(session.date).toLocaleDateString('fr-FR')}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <button
+                                                                onClick={exportToGoogleDocs}
+                                                                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
+                                                                title="Export Google Docs"
+                                                            >
+                                                                ⬇️
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {currentPage === 2 && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-semibold text-amber-900">
+                                        Jeux {selectedMode === 'duo' ? 'présentiel' : 'distanciel'} disponibles
+                                    </h3>
+                                    <button
+                                        onClick={() => {
+                                            const games = selectedMode === 'duo' ? presentielGames : distancielGames;
+                                            const randomGame = games[Math.floor(Math.random() * games.length)];
+                                            selectGame(randomGame);
+                                        }}
+                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg"
+                                    >
+                                        <Shuffle className="w-4 h-4" />
+                                        <span>Au hasard</span>
+                                    </button>
+                                </div>
+                                
+                                <div className="grid gap-4">
+                                    {(selectedMode === 'duo' ? presentielGames : distancielGames).map(game => {
+                                        const IconComponent = game.icon;
+                                        return (
+                                            <button 
+                                                key={game.id}
+                                                onClick={() => selectGame(game)}
+                                                className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all hover:border-amber-300 hover:bg-amber-50 text-left w-full"
+                                            >
+                                                <div className="flex items-start space-x-3">
+                                                    <IconComponent className="w-6 h-6 text-amber-600 mt-1 flex-shrink-0" />
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h4 className="font-medium text-amber-900">{game.title}</h4>
+                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                                {game.duration}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-600">{game.description}</p>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {currentPage === 3 && currentSession && (
+                            <div className="space-y-6">
+                                <div className="bg-amber-50 p-4 rounded-lg">
+                                    <div className="flex items-start space-x-3">
+                                        {React.createElement(currentSession.game.icon || BookOpen, { 
+                                            className: "w-8 h-8 text-amber-600 mt-1 flex-shrink-0" 
+                                        })}
+                                        <div className="flex-1">
+                                            <div className="flex items-center space-x-2 mb-2">
+                                                {isEditingSessionName ? (
+                                                    <div className="flex items-center space-x-2 flex-1">
+                                                        <input 
+                                                            type="text"
+                                                            defaultValue={getSessionDisplayName(currentSession)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    updateSessionName(e.target.value);
+                                                                } else if (e.key === 'Escape') {
+                                                                    setIsEditingSessionName(false);
+                                                                }
+                                                            }}
+                                                            className="flex-1 px-2 py-1 border rounded text-lg font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                            autoFocus
+                                                        />
+                                                        <button 
+                                                            onClick={() => {
+                                                                const input = document.querySelector('input[type="text"]');
+                                                                if (input) updateSessionName(input.value);
+                                                            }}
+                                                            className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setIsEditingSessionName(false)}
+                                                            className="px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center space-x-2 flex-1">
+                                                        <h3 className="text-lg font-semibold text-amber-900 flex-1">
+                                                            {getSessionDisplayName(currentSession)}
+                                                        </h3>
+                                                        <button 
+                                                            onClick={() => setIsEditingSessionName(true)}
+                                                            className="text-amber-600 hover:text-amber-800 p-1 rounded hover:bg-amber-200"
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-amber-700 mb-2">
+                                                {currentSession.game?.description || 'Aucune description disponible'}
+                                            </p>
+                                            <div className="flex items-center space-x-4 text-sm text-amber-600">
+                                                <span>Mode: {currentSession.mode}</span>
+                                                <span>Durée: {currentSession.game?.duration}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="font-medium text-amber-900">Notes et souvenirs</h4>
+                                    
+                                    <div className="space-y-3">
+                                        {currentSession.notes && currentSession.notes.length > 0 ? (
+                                            currentSession.notes.map((note, index) => (
+                                                <div key={note.id} className={`border rounded-lg p-3 ${note.isEditing ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 cursor-pointer hover:bg-gray-100'} transition-colors`}>
+                                                    {note.isEditing ? (
+                                                        <div className="space-y-2">
+                                                            <textarea 
+                                                                value={note.content || ''}
+                                                                onChange={(e) => {
+                                                                    setCurrentSession({
+                                                                        ...currentSession,
+                                                                        notes: currentSession.notes.map(n => 
+                                                                            n.id === note.id ? { ...n, content: e.target.value } : n
+                                                                        )
+                                                                    });
+                                                                }}
+                                                                className="w-full h-32 p-3 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                                placeholder="Notez ici vos souvenirs, réflexions, détails..."
+                                                                autoFocus
+                                                            />
+                                                            <div className="flex space-x-2">
+                                                                <button 
+                                                                    onClick={() => updateNote(note.id, note.content || '')}
+                                                                    className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                                                                >
+                                                                    Sauvegarder
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => deleteNote(note.id)}
+                                                                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                                                                >
+                                                                    Supprimer
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div 
+                                                            onClick={() => editNote(note.id)}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <span className="text-xs text-gray-500">
+                                                                    Note #{index + 1} • {selectedUser || 'Utilisateur'} • {note.timestamp ? new Date(note.timestamp).toLocaleString('fr-FR') : 'Date inconnue'}
+                                                                </span>
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        deleteNote(note.id);
+                                                                    }}
+                                                                    className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-100"
+                                                                    title="Supprimer la note"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                            <p className="text-gray-700 whitespace-pre-wrap">{note.content || 'Note vide - cliquez pour éditer'}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-gray-500 text-center py-4">Aucune note pour le moment. Cliquez sur "Écrire" pour commencer.</p>
+                                        )}
+                                        
+                                        <div className="flex justify-center pt-2">
+                                            <button 
+                                                onClick={addNote}
+                                                className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                                            >
+                                                <BookOpen className="w-4 h-4" />
+                                                <span>Écrire</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-center space-x-4 pt-4 border-t">
+                                    {selectedMode === 'solo' ? (
+                                        <>
+                                            <button 
+                                                onClick={inviteOtherUser}
+                                                className="flex items-center space-x-2 px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
+                                            >
+                                                <ArrowUpRight className="w-4 h-4" />
+                                                <span>Ping-pong</span>
+                                            </button>
+                                            <button 
+                                                onClick={closeSession}
+                                                className="flex items-center space-x-2 px-4 py-2 bg-red-200 hover:bg-red-300 text-red-800 rounded-lg"
+                                            >
+                                                <Lock className="w-4 h-4" />
+                                                <span>Clore l'échange</span>
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <button 
+                                                onClick={pauseSession}
+                                                className="flex items-center space-x-2 px-4 py-2 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-lg"
+                                            >
+                                                <Pause className="w-4 h-4" />
+                                                <span>Pause</span>
+                                            </button>
+                                            <button 
+                                                onClick={closeSession}
+                                                className="flex items-center space-x-2 px-4 py-2 bg-red-200 hover:bg-red-300 text-red-800 rounded-lg"
+                                            >
+                                                <Lock className="w-4 h-4" />
+                                                <span>Terminer</span>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {currentPage === 4 && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-semibold text-blue-900 flex items-center space-x-2">
+                                        <Cloud className="w-6 h-6" />
+                                        <span>Souvenirs Mastodon</span>
+                                    </h3>
+                                    <button
+                                        onClick={getRandomPost}
+                                        className="flex items-center space-x-2 px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        <span>Autre post</span>
+                                    </button>
+                                </div>
+
+                                {currentMastodonPost && (
+                                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                                        <div className="mb-4">
+                                            <div 
+                                                className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm select-text mb-4"
+                                                style={{ userSelect: 'text' }}
+                                            >
+                                                <p className="text-gray-800 leading-relaxed text-base whitespace-pre-line">
+                                                    {currentMastodonPost.text}
+                                                </p>
+                                            </div>
+                                            
+                                            <div className="text-center">
+                                                <p className="text-sm text-blue-600 mb-2">
+                                                    💡 Vous pouvez sélectionner et copier le texte ci-dessus
+                                                </p>
+                                                <a 
+                                                    href="https://mastodon.in.th/@mekongtandem"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-blue-500 hover:text-blue-700 underline"
+                                                >
+                                                    Voir le compte Mastodon complet (275 posts)
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!currentMastodonPost && (
+                                    <div className="text-center py-8">
+                                        <p className="text-gray-500 mb-4">Cliquez sur "Autre post" pour découvrir un souvenir</p>
+                                        <button
+                                            onClick={getRandomPost}
+                                            className="px-6 py-3 bg-blue-200 hover:bg-blue-300 text-blue-900 rounded-lg font-medium"
+                                        >
+                                            Découvrir un souvenir
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="text-center mt-6 text-amber-700 text-sm">
+                        <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
+                        <p className="text-xs mt-1 opacity-75">✅ Version GitHub Pages déployée • 📱 Multi-appareils</p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Rendu de l'application
+    ReactDOM.render(React.createElement(MemoireMekong), document.getElementById('root'));
+</script>
 ```
+
+</body>
+</html>
