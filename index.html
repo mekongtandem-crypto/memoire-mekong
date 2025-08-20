@@ -339,7 +339,11 @@
             const closeSession = () => {
                 if (!currentSession) return;
                 
-                const savedSession = { ...currentSession, status: 'closed' };
+                const savedSession = { 
+                    ...currentSession, 
+                    status: 'closed',
+                    lastModifiedBy: selectedUser || 'Utilisateur'
+                };
                 const updatedSessions = [savedSession, ...sessions.filter(s => s.id !== currentSession.id)];
                 saveSessions(updatedSessions);
                 setCurrentSession(null);
@@ -350,7 +354,11 @@
             const pauseSession = () => {
                 if (!currentSession) return;
                 
-                const pausedSession = { ...currentSession, status: 'paused' };
+                const pausedSession = { 
+                    ...currentSession, 
+                    status: 'paused',
+                    lastModifiedBy: selectedUser || 'Utilisateur'
+                };
                 const updatedSessions = [pausedSession, ...sessions.filter(s => s.id !== currentSession.id)];
                 saveSessions(updatedSessions);
                 setCurrentSession(null);
@@ -364,7 +372,12 @@
                 const otherUser = selectedUser === 'Tom' ? 'Lambert' : 'Tom';
                 
                 // Sauvegarder la session avec statut "en attente"
-                const sessionWithPending = { ...currentSession, status: 'pending', lastPingBy: selectedUser };
+                const sessionWithPending = { 
+                    ...currentSession, 
+                    status: 'pending', 
+                    lastPingBy: selectedUser,
+                    lastModifiedBy: selectedUser || 'Utilisateur'
+                };
                 const updatedSessions = [sessionWithPending, ...sessions.filter(s => s.id !== currentSession.id)];
                 saveSessions(updatedSessions);
                 
@@ -715,7 +728,7 @@
                                                                 <div>
                                                                     <span className="font-medium">{getSessionDisplayName(session)}</span>
                                                                     <p className="text-sm text-gray-600">
-                                                                        {session.mode} • {session.user} • {new Date(session.date).toLocaleDateString('fr-FR')}
+                                                                        {session.mode} • {session.lastModifiedBy || session.user} • {new Date(session.date).toLocaleDateString('fr-FR')}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -895,7 +908,7 @@
                                                             >
                                                                 <div className="flex justify-between items-start mb-2">
                                                                     <span className="text-xs text-gray-500">
-                                                                        Note #{index + 1} • {note.author || selectedUser || 'Utilisateur'} • {note.timestamp ? new Date(note.timestamp).toLocaleString('fr-FR') : 'Date inconnue'}
+                                                                        Note #{index + 1} • {note.author || 'Auteur inconnu'} • {note.timestamp ? new Date(note.timestamp).toLocaleString('fr-FR') : 'Date inconnue'}
                                                                     </span>
                                                                     <button 
                                                                         onClick={(e) => {
@@ -1032,7 +1045,7 @@
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
-                                <span>✅ Version 3.4d • 📱 Multi-appareils</span>
+                                <span>✅ Version 3.4e • 📱 Multi-appareils</span>
                                 <button
                                     onClick={() => {
                                         if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées.\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
