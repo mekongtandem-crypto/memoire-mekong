@@ -8,292 +8,23 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .lucide {
-            width: 1em;
-            height: 1em;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-    </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // Icônes Lucide simplifiées
-        const ChevronLeft = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="m15 18-6-6 6-6"/>
-            </svg>
-        );
-
-        const ChevronRight = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="m9 18 6-6-6-6"/>
-            </svg>
-        );
-
-        const Home = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9,22 9,12 15,12 15,22"/>
-            </svg>
-        );
-
-        const Play = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <polygon points="5,3 19,12 5,21"/>
-            </svg>
-        );
-
-        const Users = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="m22 21-2-2"/>
-                <path d="m16 17 2 2"/>
-                <path d="m14 15 2 2"/>
-            </svg>
-        );
-
-        const User = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-            </svg>
-        );
-
-        const Camera = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                <circle cx="12" cy="13" r="3"/>
-            </svg>
-        );
-
-        const Clock = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-            </svg>
-        );
-
-        const Mic = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" x2="12" y1="19" y2="22"/>
-                <line x1="8" x2="16" y1="22" y2="22"/>
-            </svg>
-        );
-
-        const Zap = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
-            </svg>
-        );
-
-        const MapPin = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                <circle cx="12" cy="10" r="3"/>
-            </svg>
-        );
-
-        const BookOpen = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-            </svg>
-        );
-
-        const Edit = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/>
-            </svg>
-        );
-
-        const Trash2 = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/>
-                <line x1="10" x2="10" y1="11" y2="17"/>
-                <line x1="14" x2="14" y1="11" y2="17"/>
-            </svg>
-        );
-
-        const Lock = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                <path d="m7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-        );
-
-        const Pause = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <rect width="4" height="16" x="6" y="4"/>
-                <rect width="4" height="16" x="14" y="4"/>
-            </svg>
-        );
-
-        const Shuffle = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <polyline points="16,3 21,3 21,8"/>
-                <line x1="4" x2="21" y1="20" y2="3"/>
-                <polyline points="21,16 21,21 16,21"/>
-                <line x1="15" x2="21" y1="15" y2="21"/>
-                <line x1="4" x2="9" y1="4" y2="9"/>
-            </svg>
-        );
-
-        const ArrowUpRight = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <line x1="7" x2="17" y1="17" y2="7"/>
-                <polyline points="7,7 17,7 17,17"/>
-            </svg>
-        );
-
-        const Cloud = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-            </svg>
-        );
-
-        const RefreshCw = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M8 16l-5 5v-5h5"/>
-            </svg>
-        );
-
-        // Application principale
         const MemoireMekong = () => {
             const [currentPage, setCurrentPage] = React.useState(1);
             const [selectedMode, setSelectedMode] = React.useState('');
             const [selectedUser, setSelectedUser] = React.useState('');
             const [sessions, setSessions] = React.useState([]);
-            const [currentSession, setCurrentSession] = React.useState(null);
-            const [selectedGame, setSelectedGame] = React.useState(null);
-            const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
-            const [notifications, setNotifications] = React.useState([]);
-            const [showUserSelection, setShowUserSelection] = React.useState(false);
             const [showFullPage, setShowFullPage] = React.useState(false);
-            const [isEditingSessionName, setIsEditingSessionName] = React.useState(false);
-            const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
-
-            const presentielGames = [
-                { 
-                    id: 1, 
-                    title: "Photo roulette", 
-                    duration: "15 min", 
-                    icon: Camera, 
-                    description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient" 
-                },
-                { 
-                    id: 2, 
-                    title: "Timeline aveugle", 
-                    duration: "20 min", 
-                    icon: Clock, 
-                    description: "Reconstituez la chronologie d'une étape sans regarder les dates" 
-                },
-                { 
-                    id: 3, 
-                    title: "Interview journaliste", 
-                    duration: "25 min", 
-                    icon: Mic, 
-                    description: "L'un interviewe l'autre sur une étape précise du voyage" 
-                }
-            ];
-
-            const distancielGames = [
-                { 
-                    id: 4, 
-                    title: "Photo sans légende", 
-                    duration: "async", 
-                    icon: Camera, 
-                    description: "Envoyez une photo, l'autre devine le contexte et ses souvenirs" 
-                },
-                { 
-                    id: 5, 
-                    title: "Mot déclencheur", 
-                    duration: "async", 
-                    icon: Zap, 
-                    description: "Un mot-clé pour déclencher un souvenir chez l'autre" 
-                },
-                { 
-                    id: 6, 
-                    title: "Géolocalisation mystère", 
-                    duration: "async", 
-                    icon: MapPin, 
-                    description: "Partagez une position GPS, l'autre raconte ce lieu" 
-                }
-            ];
-
-            const mastodonPosts = [
-                {
-                    id: 1,
-                    text: "J131: D'arbres en cascades\nMais qu'y a t-il donc sur cette île, à part ces plages parfaites et cette jungle sans chemins ? Lambert part pour une traversée de l'ile à vélo. Avec une succession de pentes jusqu'a 28% en pein cagnard, il est vite calmé...\nOn loue 2 scoot, et on part à la recherche de fameuses cascades. Un peu plus loin, on rend visite à des arbres multi centenaires, donc sacrés.",
-                    images: []
-                },
-                {
-                    id: 2,
-                    text: "J102 : Gérer les chiens\nA 5h du mat, il manque un élément essentiel de nos bagages : une tongue ! Les talents de pisteurs de Tom nous mènerons chez le chien du voisin.\nTracer la route au lever du soleil est un plaisir particulier. Jusqu'à 11h, la chaleur est supportable mais les chiens qui nous courent après le long des pistes pas toujours faciles a gérer : chute de Tom quelques km avant l'arrivée. Séance infirmerie qui justifie le transport de notre trousse qui a peu servi jusque là.",
-                    images: []
-                }
-            ];
-
-            React.useEffect(() => {
-                console.log('=== État actuel ===');
-                console.log('User:', selectedUser);
-                console.log('Mode:', selectedMode); 
-                console.log('ShowFullPage:', showFullPage);
-                console.log('ShowUserSelection:', showUserSelection);
-                console.log('==================');
-                
-                setNotifications([]);
-                
-                const savedSessions = localStorage.getItem('mekong-sessions');
-                if (savedSessions) {
-                    try {
-                        const parsedSessions = JSON.parse(savedSessions);
-                        setSessions(Array.isArray(parsedSessions) ? parsedSessions : []);
-                    } catch (error) {
-                        console.error('Erreur parsing sessions:', error);
-                        setSessions([]);
-                    }
-                }
-                
-                if (selectedUser === 'Lambert') {
-                    setTimeout(() => {
-                        setNotifications(['Tom vous a envoyé un ping sur la session']);
-                    }, 100);
-                } else if (selectedUser === 'Tom') {
-                    setTimeout(() => {
-                        setNotifications(['Lambert vous a envoyé un ping sur la session']);
-                    }, 100);
-                }
-            }, [selectedUser, selectedMode, showFullPage, showUserSelection]);
-
-            const saveSessions = (newSessions) => {
-                const validSessions = Array.isArray(newSessions) ? newSessions : [];
-                setSessions(validSessions);
-                localStorage.setItem('mekong-sessions', JSON.stringify(validSessions));
-            };
 
             const handleModeSelection = (mode) => {
                 setSelectedMode(mode);
                 if (mode === 'duo') {
                     setSelectedUser('Duo');
                     setShowFullPage(true);
-                } else {
-                    setShowUserSelection(true);
                 }
             };
 
@@ -305,310 +36,138 @@
             const resetOnboarding = () => {
                 setSelectedMode('');
                 setSelectedUser('');
-                setShowUserSelection(false);
                 setShowFullPage(false);
                 setCurrentPage(1);
-                setCurrentSession(null);
-                setSelectedGame(null);
-                setHasUnsavedChanges(false);
-                setNotifications([]);
-                setIsEditingSessionName(false);
-                setCurrentMastodonPost(null);
-            };
-
-            const selectGame = (game) => {
-                setSelectedGame(game);
-                const newSession = {
-                    id: Date.now(),
-                    mode: selectedMode,
-                    user: selectedUser,
-                    game: game,
-                    date: new Date().toISOString(),
-                    status: 'active',
-                    participants: [],
-                    notes: [],
-                    photo: null
-                };
-                
-                setCurrentSession(newSession);
-                setCurrentPage(3);
-            };
-
-            const closeSession = () => {
-                if (!currentSession) return;
-                
-                const savedSession = { ...currentSession, status: 'closed' };
-                const updatedSessions = [savedSession, ...sessions.filter(s => s.id !== currentSession.id)];
-                saveSessions(updatedSessions);
-                setCurrentSession(null);
-                setCurrentPage(1);
-                setHasUnsavedChanges(false);
-            };
-
-            const pauseSession = () => {
-                if (!currentSession) return;
-                
-                const pausedSession = { ...currentSession, status: 'paused' };
-                const updatedSessions = [pausedSession, ...sessions.filter(s => s.id !== currentSession.id)];
-                saveSessions(updatedSessions);
-                setCurrentSession(null);
-                setCurrentPage(1);
-                setHasUnsavedChanges(false);
-            };
-
-            const inviteOtherUser = () => {
-                if (!currentSession) return;
-                
-                const otherUser = selectedUser === 'Tom' ? 'Lambert' : 'Tom';
-                
-                const sessionWithPending = { ...currentSession, status: 'pending', lastPingBy: selectedUser };
-                const updatedSessions = [sessionWithPending, ...sessions.filter(s => s.id !== currentSession.id)];
-                saveSessions(updatedSessions);
-                
-                setCurrentSession(null);
-                setCurrentPage(1);
-                setHasUnsavedChanges(false);
-                
-                alert('🔨 Invitation envoyée à ' + otherUser + ' !');
-            };
-
-            const handleNavigation = (targetPage) => {
-                setCurrentPage(targetPage);
-            };
-
-            const addNote = () => {
-                if (!currentSession) return;
-                const newNote = {
-                    id: Date.now(),
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    isEditing: true
-                };
-                setCurrentSession({
-                    ...currentSession,
-                    notes: [...(currentSession.notes || []), newNote]
-                });
-                setHasUnsavedChanges(true);
-            };
-
-            const updateNote = (noteId, content) => {
-                if (!currentSession) return;
-                setCurrentSession({
-                    ...currentSession,
-                    notes: (currentSession.notes || []).map(note => 
-                        note.id === noteId ? { ...note, content, isEditing: false } : note
-                    )
-                });
-                setHasUnsavedChanges(true);
-            };
-
-            const editNote = (noteId) => {
-                if (!currentSession) return;
-                setCurrentSession({
-                    ...currentSession,
-                    notes: (currentSession.notes || []).map(note => 
-                        note.id === noteId ? { ...note, isEditing: true, originalContent: note.content } : note
-                    )
-                });
-            };
-
-            const cancelEditNote = (noteId) => {
-                if (!currentSession) return;
-                setCurrentSession({
-                    ...currentSession,
-                    notes: (currentSession.notes || []).map(note => 
-                        note.id === noteId ? { ...note, content: note.originalContent || note.content, isEditing: false, originalContent: undefined } : note
-                    )
-                });
-            };
-
-            const deleteNote = (noteId) => {
-                if (!currentSession) return;
-                
-                const updatedNotes = (currentSession.notes || []).filter(n => n.id !== noteId);
-                setCurrentSession({
-                    ...currentSession,
-                    notes: updatedNotes
-                });
-                setHasUnsavedChanges(true);
-            };
-
-            const updateSessionName = (newName) => {
-                if (!currentSession) return;
-                
-                setCurrentSession({
-                    ...currentSession,
-                    customName: newName
-                });
-                setHasUnsavedChanges(true);
-                setIsEditingSessionName(false);
-            };
-
-            const getSessionDisplayName = (session) => {
-                return session.customName || session.game?.title || 'Session sans nom';
-            };
-
-            const openSession = (session) => {
-                setShowFullPage(true);
-                setSelectedMode(session.mode);
-                setSelectedUser(session.user);
-                setSelectedGame(session.game);
-                setCurrentSession(session);
-                setHasUnsavedChanges(false);
-                setCurrentPage(3);
-            };
-
-            const exportToGoogleDocs = () => {
-                alert('🚧 Export vers Google Docs - À venir dans la prochaine version !');
-            };
-
-            const openMemoryPage = () => {
-                setCurrentPage(4);
-                const randomPost = mastodonPosts[Math.floor(Math.random() * mastodonPosts.length)];
-                setCurrentMastodonPost(randomPost);
-            };
-
-            const getRandomPost = () => {
-                const availablePosts = mastodonPosts.filter(post => 
-                    !currentMastodonPost || post.id !== currentMastodonPost.id
-                );
-                
-                const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : mastodonPosts;
-                
-                const randomPost = postsToChooseFrom[Math.floor(Math.random() * postsToChooseFrom.length)];
-                setCurrentMastodonPost(randomPost);
-            };
-
-            const getPageTitle = () => {
-                switch(currentPage) {
-                    case 1: 
-                        return "Accueil & Sessions";
-                    case 2: 
-                        return "Choix du jeu";
-                    case 3: 
-                        return currentSession?.game?.title || '';
-                    case 4:
-                        return "Mémoire Mastodon";
-                    default: 
-                        return "Navigation";
-                }
-            };
-
-            const getStatusIcon = (status) => {
-                switch(status) {
-                    case 'active':
-                        return React.createElement(Play, { className: "w-5 h-5 text-green-600" });
-                    case 'paused':
-                        return React.createElement(Pause, { className: "w-5 h-5 text-orange-600" });
-                    case 'pending':
-                        return React.createElement('span', { className: "text-lg" }, '⏳');
-                    case 'closed':
-                        return React.createElement(Lock, { className: "w-5 h-5 text-gray-600" });
-                    default:
-                        return React.createElement(Play, { className: "w-5 h-5 text-green-600" });
-                }
             };
 
             return (
-                React.createElement('div', { className: "min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4" },
-                    React.createElement('div', { className: "max-w-4xl mx-auto" },
+                <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
+                    <div className="max-w-4xl mx-auto">
                         
-                        React.createElement('div', { className: "text-center mb-6" },
-                            React.createElement('div', { className: "flex justify-center items-center space-x-4 mb-2" },
-                                React.createElement('button', {
-                                    onClick: resetOnboarding,
-                                    className: "text-amber-600 hover:text-amber-800 p-2 rounded-full hover:bg-amber-100 transition-colors flex flex-col items-center",
-                                    title: "Changer d'utilisateur ou de mode"
-                                },
-                                    React.createElement('span', { className: "text-2xl" }, '🐘'),
-                                    React.createElement('span', { className: "text-xs text-amber-700 font-medium" },
-                                        !showFullPage ? 'Choisir' : 
-                                        selectedMode === 'duo' ? 'Duo' : 
-                                        selectedUser || 'Solo'
-                                    )
-                                ),
-                                React.createElement('h1', { className: "text-4xl font-bold text-amber-900" }, 'Mémoire du Mékong'),
-                                React.createElement('button', {
-                                    onClick: openMemoryPage,
-                                    className: "text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition-colors flex flex-col items-center",
-                                    title: "Accéder aux souvenirs Mastodon"
-                                },
-                                    React.createElement(Cloud, { className: "w-6 h-6" }),
-                                    React.createElement('span', { className: "text-xs text-blue-700 font-medium" }, 'Souvenirs')
-                                )
-                            ),
+                        <div className="text-center mb-6">
+                            <div className="flex justify-center items-center space-x-4 mb-2">
+                                <button
+                                    onClick={resetOnboarding}
+                                    className="text-amber-600 hover:text-amber-800 p-2 rounded-full hover:bg-amber-100 transition-colors flex flex-col items-center"
+                                >
+                                    <span className="text-2xl">🐘</span>
+                                    <span className="text-xs text-amber-700 font-medium">
+                                        {!showFullPage ? 'Choisir' : 
+                                         selectedMode === 'duo' ? 'Duo' : 
+                                         selectedUser || 'Solo'}
+                                    </span>
+                                </button>
+                                <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
+                                <button className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition-colors flex flex-col items-center">
+                                    <span className="text-2xl">☁️</span>
+                                    <span className="text-xs text-blue-700 font-medium">Souvenirs</span>
+                                </button>
+                            </div>
                             
-                            React.createElement('div', { className: "mb-2 flex space-x-2 justify-center" },
-                                React.createElement('button', {
-                                    onClick: () => {
+                            <div className="mb-2 flex space-x-2 justify-center">
+                                <button
+                                    onClick={() => {
                                         localStorage.removeItem('mekong-sessions');
                                         setSessions([]);
                                         resetOnboarding();
                                         alert('Données effacées !');
-                                    },
-                                    className: "px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-bold"
-                                }, '🚨 RESET'),
-                                React.createElement('span', { className: "px-3 py-1 bg-green-500 text-white rounded text-xs font-bold" },
-                                    '✅ Version 2.0 - CLEAN - GitHub Pages'
-                                )
-                            ),
+                                    }}
+                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-bold"
+                                >
+                                    🚨 RESET
+                                </button>
+                                <span className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold">
+                                    ✅ Version 2.1 - SIMPLE - GitHub Pages
+                                </span>
+                            </div>
                             
-                            React.createElement('p', { className: "text-lg text-amber-700 font-medium" }, getPageTitle())
-                        ),
+                            <p className="text-lg text-amber-700 font-medium">Accueil & Sessions</p>
+                        </div>
 
-                        (showFullPage || currentPage === 4) && React.createElement('div', { className: "flex justify-center items-center space-x-4 mb-6 bg-white/50 backdrop-blur rounded-lg p-3" },
-                            React.createElement('button', {
-                                onClick: () => currentPage > 1 && handleNavigation(currentPage - 1),
-                                disabled: currentPage <= 1,
-                                className: currentPage > 1 ? 'flex items-center space-x-1 px-3 py-2 rounded-md bg-amber-200 hover:bg-amber-300 text-amber-800' : 'flex items-center space-x-1 px-3 py-2 rounded-md bg-gray-200 text-gray-500 cursor-not-allowed'
-                            },
-                                React.createElement(ChevronLeft, { className: "w-4 h-4" }),
-                                React.createElement('span', null, 'Précédent')
-                            ),
+                        <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
                             
-                            React.createElement('button', {
-                                onClick: () => handleNavigation(1),
-                                className: "flex items-center space-x-1 px-3 py-2 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-md"
-                            },
-                                React.createElement(Home, { className: "w-4 h-4" }),
-                                React.createElement('span', null, 'Accueil')
-                            ),
-                            
-                            React.createElement('button', {
-                                onClick: () => currentPage < 4 && handleNavigation(currentPage + 1),
-                                disabled: currentPage >= 4,
-                                className: currentPage < 4 ? 'flex items-center space-x-1 px-3 py-2 rounded-md bg-amber-200 hover:bg-amber-300 text-amber-800' : 'flex items-center space-x-1 px-3 py-2 rounded-md bg-gray-200 text-gray-500 cursor-not-allowed'
-                            },
-                                React.createElement('span', null, 'Suivant'),
-                                React.createElement(ChevronRight, { className: "w-4 h-4" })
-                            )
-                        ),
+                            {currentPage === 1 && !showFullPage && (
+                                <div className="space-y-8">
+                                    
+                                    {!selectedMode && (
+                                        <div className="max-w-md mx-auto space-y-3">
+                                            <h3 className="text-lg font-semibold text-amber-900 text-center">Choisissez votre mode de session</h3>
+                                            <div className="space-y-3">
+                                                <button
+                                                    onClick={() => handleModeSelection('duo')}
+                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                                >
+                                                    <span className="text-2xl">👥</span>
+                                                    <div>
+                                                        <span className="font-medium text-lg">Duo</span>
+                                                        <p className="text-sm text-gray-600">Session intensive à deux (présentiel)</p>
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleModeSelection('solo')}
+                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                                >
+                                                    <span className="text-2xl">👤</span>
+                                                    <div>
+                                                        <span className="font-medium text-lg">Solo</span>
+                                                        <p className="text-sm text-gray-600">Lancer un ping-pong (asynchrone)</p>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
 
-                        currentPage === 1 && showFullPage && notifications.length > 0 && React.createElement('div', { className: "mb-4" },
-                            notifications.map((notif, idx) =>
-                                React.createElement('div', { key: idx, className: "bg-blue-100 border-l-4 border-blue-500 p-3 rounded" },
-                                    React.createElement('p', { className: "text-blue-800" }, '🔔 ' + notif)
-                                )
-                            )
-                        ),
+                                    {selectedMode === 'solo' && !showFullPage && (
+                                        <div className="max-w-md mx-auto space-y-6 bg-yellow-100 p-6 border-4 border-red-500 rounded-lg">
+                                            <h3 className="text-xl font-bold text-center text-red-800">QUI ÊTES-VOUS ?</h3>
+                                            
+                                            <button 
+                                                onClick={() => handleUserSelection('Tom')}
+                                                className="w-full p-6 bg-blue-500 text-white text-xl font-bold border-4 border-blue-700 rounded-lg hover:bg-blue-600"
+                                            >
+                                                🐘 TOM L'ÉLÉPHANTEAU
+                                            </button>
+                                            
+                                            <button 
+                                                onClick={() => handleUserSelection('Lambert')}
+                                                className="w-full p-6 bg-green-500 text-white text-xl font-bold border-4 border-green-700 rounded-lg hover:bg-green-600"
+                                            >
+                                                🐘 LAMBERT LE VIEIL ÉLÉPHANT
+                                            </button>
+                                            
+                                            <div className="text-center text-lg font-bold bg-red-200 p-4 rounded">
+                                                DEBUG: Mode={selectedMode}, ShowFull={String(showFullPage)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                        React.createElement('div', { className: "bg-white/80 backdrop-blur rounded-xl shadow-lg p-6" },
-                            
-                            currentPage === 1 && !showFullPage && React.createElement('div', { className: "space-y-8" },
-                                
-                                !selectedMode && React.createElement('div', { className: "max-w-md mx-auto space-y-3" },
-                                    React.createElement('h3', { className: "text-lg font-semibold text-amber-900 text-center" }, 'Choisissez votre mode de session'),
-                                    React.createElement('div', { className: "space-y-3" },
-                                        React.createElement('button', {
-                                            onClick: () => handleModeSelection('duo'),
-                                            className: "flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
-                                        },
-                                            React.createElement(Users, { className: "w-6 h-6 text-amber-600" }),
-                                            React.createElement('div', null,
-                                                React.createElement('span', { className: "font-medium text-lg" }, 'Duo'),
-                                                React.createElement('p', { className: "text-sm text-gray-600" }, 'Session intensive à deux (présentiel)')
-                                            )
-                                        ),
-                                        React.createElement('button', {
-                                            onClick: () => handleModeSelection('solo'),
-                                            className: "flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                            {currentPage === 1 && showFullPage && (
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-semibold text-amber-900">Sessions précédentes</h3>
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-500 mb-4">Interface simplifiée pour test</p>
+                                            <p className="text-green-600 font-bold">✅ Sélection utilisateur fonctionne !</p>
+                                            <p className="text-blue-600 mt-2">Utilisateur sélectionné : {selectedUser}</p>
+                                            <p className="text-purple-600">Mode sélectionné : {selectedMode}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="text-center mt-6 text-amber-700 text-sm">
+                            <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
+                            <p className="text-xs mt-1 opacity-75">✅ Version test simplifiée • 📱 Multi-appareils</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<MemoireMekong />, document.getElementById('root'));
+    </script>
+</body>
+</html>
