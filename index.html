@@ -250,6 +250,9 @@
             ];
 
             React.useEffect(() => {
+                // Debug: log des changements d'état
+                console.log('User changed:', selectedUser, 'Mode:', selectedMode, 'ShowFullPage:', showFullPage);
+                
                 setNotifications([]);
                 
                 const savedSessions = localStorage.getItem('mekong-sessions');
@@ -272,7 +275,7 @@
                         setNotifications(['Lambert vous a envoyé un ping sur la session']);
                     }, 100);
                 }
-            }, [selectedUser]);
+            }, [selectedUser, selectedMode]);
 
             const saveSessions = (newSessions) => {
                 const validSessions = Array.isArray(newSessions) ? newSessions : [];
@@ -517,7 +520,7 @@
                                 >
                                     <span className="text-2xl">🐘</span>
                                     <span className="text-xs text-amber-700 font-medium">
-                                        {selectedMode === 'duo' ? 'Duo' : selectedUser || 'Utilisateur'}
+                                        {showFullPage ? (selectedMode === 'duo' ? 'Duo' : selectedUser || 'Solo') : 'Choisir'}
                                     </span>
                                 </button>
                                 <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
@@ -544,7 +547,7 @@
                                     🚨 RESET
                                 </button>
                                 <span className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold">
-                                    ✅ Version 1.2 - GitHub Pages
+                                    ✅ Version 1.3 - GitHub Pages
                                 </span>
                             </div>
                             
