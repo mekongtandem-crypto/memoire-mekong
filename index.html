@@ -544,29 +544,8 @@
                     <div className="max-w-4xl mx-auto">
                         
                         <div className="text-center mb-6">
-                            <div className="flex justify-center items-center space-x-4 mb-2">
-                                <button
-                                    onClick={resetOnboarding}
-                                    className={`${selectedUser ? getUserColors(selectedUser).icon : 'text-amber-600'} hover:text-amber-800 p-2 rounded-full ${selectedUser ? getUserColors(selectedUser).bg : 'hover:bg-amber-100'} transition-colors flex flex-col items-center`}
-                                    title="Changer d'utilisateur ou de mode"
-                                >
-                                    <span className="text-2xl">🐘</span>
-                                    <span className={`text-xs font-medium ${selectedUser ? getUserColors(selectedUser).text : 'text-amber-700'}`}>
-                                        {selectedMode === 'duo' ? 'Duo' : selectedUser || 'Utilisateur'}
-                                    </span>
-                                </button>
-                                <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                                <button
-                                    onClick={openMemoryPage}
-                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition-colors flex flex-col items-center"
-                                    title="Accéder aux souvenirs Mastodon"
-                                >
-                                    <Cloud className="w-6 h-6" />
-                                    <span className="text-xs text-blue-700 font-medium">Souvenirs</span>
-                                </button>
-                            </div>
-                            
-                            <div className="mb-2 flex space-x-2 justify-center">
+                            {/* Ligne supérieure : Reset et Version */}
+                            <div className="flex space-x-2 justify-center mb-4">
                                 <button
                                     onClick={() => {
                                         localStorage.removeItem('mekong-sessions');
@@ -582,57 +561,68 @@
                                     ✅ Version 3.3
                                 </span>
                             </div>
-                            
-                            {showFullPage && (
-                                <div className="flex justify-center mb-3 space-x-4">
-                                    <div className="flex items-center space-x-2 text-amber-700 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full shadow-sm">
-                                        <span className="text-sm font-medium">Mode: {selectedMode === 'duo' ? 'Duo' : 'Solo'}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 text-amber-700 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full shadow-sm">
-                                        <span className="text-lg">🐘</span>
-                                        <span className="text-sm font-medium">{selectedUser}</span>
-                                        <button 
-                                            onClick={resetOnboarding}
-                                            className="ml-2 text-amber-600 hover:text-amber-800 hover:bg-amber-200 rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
+
+                            {/* Ligne centrale : Utilisateur, Titre, Souvenirs */}
+                            <div className="flex justify-center items-center space-x-8 mb-4">
+                                <button
+                                    onClick={resetOnboarding}
+                                    className={`${selectedUser ? getUserColors(selectedUser).icon : 'text-amber-600'} hover:text-amber-800 p-2 rounded-full ${selectedUser ? getUserColors(selectedUser).bg : 'hover:bg-amber-100'} transition-colors flex flex-col items-center`}
+                                    title="Changer d'utilisateur ou de mode"
+                                >
+                                    <span className="text-2xl">🐘</span>
+                                    <span className={`text-xs font-medium ${selectedUser ? getUserColors(selectedUser).text : 'text-amber-700'}`}>
+                                        {selectedMode === 'duo' ? 'Duo' : selectedUser || 'Utilisateur'}
+                                    </span>
+                                </button>
+                                
+                                <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
+                                
+                                <button
+                                    onClick={openMemoryPage}
+                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition-colors flex flex-col items-center"
+                                    title="Accéder aux souvenirs Mastodon"
+                                >
+                                    <Cloud className="w-6 h-6" />
+                                    <span className="text-xs text-blue-700 font-medium">Souvenirs</span>
+                                </button>
+                            </div>
+
+                            {/* Ligne inférieure : Navigation sous le titre */}
+                            {(showFullPage || currentPage === 4) && (
+                                <div className="flex justify-center items-center space-x-8 mb-2">
+                                    <button 
+                                        onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
+                                        disabled={currentPage <= 1}
+                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage > 1 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
+                                        title="Page précédente"
+                                    >
+                                        <ChevronLeft className="w-6 h-6" />
+                                        <span className="text-xs font-medium">Précédent</span>
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => handleNavigation(1)}
+                                        className="flex flex-col items-center p-2 rounded-full text-orange-600 hover:text-orange-800 hover:bg-orange-100 transition-colors"
+                                        title="Retour à l'accueil"
+                                    >
+                                        <Home className="w-6 h-6" />
+                                        <span className="text-xs font-medium">Accueil</span>
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
+                                        disabled={currentPage >= 4}
+                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage < 4 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
+                                        title="Page suivante"
+                                    >
+                                        <ChevronRight className="w-6 h-6" />
+                                        <span className="text-xs font-medium">Suivant</span>
+                                    </button>
                                 </div>
                             )}
                             
-                            <p className="text-lg text-amber-700 font-medium">{getPageTitle()}</p>
+                            <p className="text-lg text-amber-700 font-medium mt-2">{getPageTitle()}</p>
                         </div>
-
-                        {(showFullPage || currentPage === 4) && (
-                            <div className="flex justify-center items-center space-x-4 mb-6 bg-white/50 backdrop-blur rounded-lg p-3">
-                                <button 
-                                    onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
-                                    disabled={currentPage <= 1}
-                                    className={`flex items-center space-x-1 px-3 py-2 rounded-md ${currentPage > 1 ? 'bg-amber-200 hover:bg-amber-300 text-amber-800' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    <span>Précédent</span>
-                                </button>
-                                
-                                <button 
-                                    onClick={() => handleNavigation(1)}
-                                    className="flex items-center space-x-1 px-3 py-2 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-md"
-                                >
-                                    <Home className="w-4 h-4" />
-                                    <span>Accueil</span>
-                                </button>
-                                
-                                <button 
-                                    onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
-                                    disabled={currentPage >= 4}
-                                    className={`flex items-center space-x-1 px-3 py-2 rounded-md ${currentPage < 4 ? 'bg-amber-200 hover:bg-amber-300 text-amber-800' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                                >
-                                    <span>Suivant</span>
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
 
                         {currentPage === 1 && showFullPage && notifications.length > 0 && (
                             <div className="mb-4">
