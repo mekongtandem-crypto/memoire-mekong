@@ -495,6 +495,8 @@
                         return React.createElement(Play, { className: "w-5 h-5 text-green-600" });
                     case 'paused':
                         return React.createElement(Pause, { className: "w-5 h-5 text-orange-600" });
+                    case 'pending':
+                        return <span className="text-lg">⏳</span>;
                     case 'closed':
                         return React.createElement(Lock, { className: "w-5 h-5 text-gray-600" });
                     default:
@@ -542,7 +544,7 @@
                                     🚨 RESET
                                 </button>
                                 <span className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold">
-                                    ✅ Version GitHub Pages
+                                    ✅ Version 1.2 - GitHub Pages
                                 </span>
                             </div>
                             
