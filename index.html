@@ -8,19 +8,277 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .lucide {
+            width: 1em;
+            height: 1em;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        // Icônes Lucide simplifiées
+        const ChevronLeft = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="m15 18-6-6 6-6"/>
+            </svg>
+        );
 
+        const ChevronRight = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="m9 18 6-6-6-6"/>
+            </svg>
+        );
+
+        const Home = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+            </svg>
+        );
+
+        const Play = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <polygon points="5,3 19,12 5,21"/>
+            </svg>
+        );
+
+        const Users = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="m22 21-2-2"/>
+                <path d="m16 17 2 2"/>
+                <path d="m14 15 2 2"/>
+            </svg>
+        );
+
+        const User = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+        );
+
+        const Camera = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                <circle cx="12" cy="13" r="3"/>
+            </svg>
+        );
+
+        const Clock = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+            </svg>
+        );
+
+        const Mic = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" x2="12" y1="19" y2="22"/>
+                <line x1="8" x2="16" y1="22" y2="22"/>
+            </svg>
+        );
+
+        const Zap = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
+            </svg>
+        );
+
+        const MapPin = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+        );
+
+        const BookOpen = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+        );
+
+        const Edit = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/>
+            </svg>
+        );
+
+        const Trash2 = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/>
+                <line x1="10" x2="10" y1="11" y2="17"/>
+                <line x1="14" x2="14" y1="11" y2="17"/>
+            </svg>
+        );
+
+        const Lock = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="m7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+        );
+
+        const Pause = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <rect width="4" height="16" x="6" y="4"/>
+                <rect width="4" height="16" x="14" y="4"/>
+            </svg>
+        );
+
+        const Shuffle = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <polyline points="16,3 21,3 21,8"/>
+                <line x1="4" x2="21" y1="20" y2="3"/>
+                <polyline points="21,16 21,21 16,21"/>
+                <line x1="15" x2="21" y1="15" y2="21"/>
+                <line x1="4" x2="9" y1="4" y2="9"/>
+            </svg>
+        );
+
+        const ArrowUpRight = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <line x1="7" x2="17" y1="17" y2="7"/>
+                <polyline points="7,7 17,7 17,17"/>
+            </svg>
+        );
+
+        const Cloud = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+            </svg>
+        );
+
+        const RefreshCw = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M8 16l-5 5v-5h5"/>
+            </svg>
+        );
+
+        // Application principale
         const MemoireMekong = () => {
-            const [currentPage, setCurrentPage] = useState(1);
-            const [selectedMode, setSelectedMode] = useState('');
-            const [selectedUser, setSelectedUser] = useState('');
-            const [showUserSelection, setShowUserSelection] = useState(false);
-            const [showFullPage, setShowFullPage] = useState(false);
+            const [currentPage, setCurrentPage] = React.useState(1);
+            const [selectedMode, setSelectedMode] = React.useState('');
+            const [selectedUser, setSelectedUser] = React.useState('');
+            const [sessions, setSessions] = React.useState([]);
+            const [currentSession, setCurrentSession] = React.useState(null);
+            const [selectedGame, setSelectedGame] = React.useState(null);
+            const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
+            const [notifications, setNotifications] = React.useState([]);
+            const [showUserSelection, setShowUserSelection] = React.useState(false);
+            const [showFullPage, setShowFullPage] = React.useState(false);
+            const [isEditingSessionName, setIsEditingSessionName] = React.useState(false);
+            const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
+
+            const presentielGames = [
+                { 
+                    id: 1, 
+                    title: "Photo roulette", 
+                    duration: "15 min", 
+                    icon: Camera, 
+                    description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient" 
+                },
+                { 
+                    id: 2, 
+                    title: "Timeline aveugle", 
+                    duration: "20 min", 
+                    icon: Clock, 
+                    description: "Reconstituez la chronologie d'une étape sans regarder les dates" 
+                },
+                { 
+                    id: 3, 
+                    title: "Interview journaliste", 
+                    duration: "25 min", 
+                    icon: Mic, 
+                    description: "L'un interviewe l'autre sur une étape précise du voyage" 
+                }
+            ];
+
+            const distancielGames = [
+                { 
+                    id: 4, 
+                    title: "Photo sans légende", 
+                    duration: "async", 
+                    icon: Camera, 
+                    description: "Envoyez une photo, l'autre devine le contexte et ses souvenirs" 
+                },
+                { 
+                    id: 5, 
+                    title: "Mot déclencheur", 
+                    duration: "async", 
+                    icon: Zap, 
+                    description: "Un mot-clé pour déclencher un souvenir chez l'autre" 
+                },
+                { 
+                    id: 6, 
+                    title: "Géolocalisation mystère", 
+                    duration: "async", 
+                    icon: MapPin, 
+                    description: "Partagez une position GPS, l'autre raconte ce lieu" 
+                }
+            ];
+
+            const mastodonPosts = [
+                {
+                    id: 1,
+                    text: "J131: D'arbres en cascades\nMais qu'y a t-il donc sur cette île, à part ces plages parfaites et cette jungle sans chemins ? Lambert part pour une traversée de l'ile à vélo. Avec une succession de pentes jusqu'a 28% en pein cagnard, il est vite calmé...\nOn loue 2 scoot, et on part à la recherche de fameuses cascades. Un peu plus loin, on rend visite à des arbres multi centenaires, donc sacrés.",
+                    images: []
+                },
+                {
+                    id: 2,
+                    text: "J102 : Gérer les chiens\nA 5h du mat, il manque un élément essentiel de nos bagages : une tongue ! Les talents de pisteurs de Tom nous mènerons chez le chien du voisin.\nTracer la route au lever du soleil est un plaisir particulier. Jusqu'à 11h, la chaleur est supportable mais les chiens qui nous courent après le long des pistes pas toujours faciles a gérer : chute de Tom quelques km avant l'arrivée. Séance infirmerie qui justifie le transport de notre trousse qui a peu servi jusque là.",
+                    images: []
+                }
+            ];
+
+            React.useEffect(() => {
+                setNotifications([]);
+                
+                const savedSessions = localStorage.getItem('mekong-sessions');
+                if (savedSessions) {
+                    try {
+                        const parsedSessions = JSON.parse(savedSessions);
+                        setSessions(Array.isArray(parsedSessions) ? parsedSessions : []);
+                    } catch (error) {
+                        console.error('Erreur parsing sessions:', error);
+                        setSessions([]);
+                    }
+                }
+                
+                if (selectedUser === 'Lambert') {
+                    setTimeout(() => {
+                        setNotifications(['Tom vous a envoyé un ping sur la session']);
+                    }, 100);
+                } else if (selectedUser === 'Tom') {
+                    setTimeout(() => {
+                        setNotifications(['Lambert vous a envoyé un ping sur la session']);
+                    }, 100);
+                }
+            }, [selectedUser]);
+
+            const saveSessions = (newSessions) => {
+                const validSessions = Array.isArray(newSessions) ? newSessions : [];
+                setSessions(validSessions);
+                localStorage.setItem('mekong-sessions', JSON.stringify(validSessions));
+            };
 
             const handleModeSelection = (mode) => {
                 setSelectedMode(mode);
@@ -43,6 +301,205 @@
                 setShowUserSelection(false);
                 setShowFullPage(false);
                 setCurrentPage(1);
+                setCurrentSession(null);
+                setSelectedGame(null);
+                setHasUnsavedChanges(false);
+                setNotifications([]);
+                setIsEditingSessionName(false);
+                setCurrentMastodonPost(null);
+            };
+
+            const selectGame = (game) => {
+                setSelectedGame(game);
+                const newSession = {
+                    id: Date.now(),
+                    mode: selectedMode,
+                    user: selectedUser,
+                    game: game,
+                    date: new Date().toISOString(),
+                    status: 'active',
+                    participants: [],
+                    notes: [],
+                    photo: null
+                };
+                
+                setCurrentSession(newSession);
+                setCurrentPage(3);
+            };
+
+            const closeSession = () => {
+                if (!currentSession) return;
+                
+                const savedSession = { ...currentSession, status: 'closed' };
+                const updatedSessions = [savedSession, ...sessions.filter(s => s.id !== currentSession.id)];
+                saveSessions(updatedSessions);
+                setCurrentSession(null);
+                setCurrentPage(1);
+                setHasUnsavedChanges(false);
+            };
+
+            const pauseSession = () => {
+                if (!currentSession) return;
+                
+                const pausedSession = { ...currentSession, status: 'paused' };
+                const updatedSessions = [pausedSession, ...sessions.filter(s => s.id !== currentSession.id)];
+                saveSessions(updatedSessions);
+                setCurrentSession(null);
+                setCurrentPage(1);
+                setHasUnsavedChanges(false);
+            };
+
+            const inviteOtherUser = () => {
+                if (!currentSession) return;
+                
+                const otherUser = selectedUser === 'Tom' ? 'Lambert' : 'Tom';
+                
+                // Sauvegarder la session avec statut "en attente"
+                const sessionWithPending = { ...currentSession, status: 'pending', lastPingBy: selectedUser };
+                const updatedSessions = [sessionWithPending, ...sessions.filter(s => s.id !== currentSession.id)];
+                saveSessions(updatedSessions);
+                
+                // Retourner à l'accueil
+                setCurrentSession(null);
+                setCurrentPage(1);
+                setHasUnsavedChanges(false);
+                
+                alert('🔨 Invitation envoyée à ' + otherUser + ' !');
+            };
+
+            const handleNavigation = (targetPage) => {
+                setCurrentPage(targetPage);
+            };
+
+            const addNote = () => {
+                if (!currentSession) return;
+                const newNote = {
+                    id: Date.now(),
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    isEditing: true
+                };
+                setCurrentSession({
+                    ...currentSession,
+                    notes: [...(currentSession.notes || []), newNote]
+                });
+                setHasUnsavedChanges(true);
+            };
+
+            const updateNote = (noteId, content) => {
+                if (!currentSession) return;
+                setCurrentSession({
+                    ...currentSession,
+                    notes: (currentSession.notes || []).map(note => 
+                        note.id === noteId ? { ...note, content, isEditing: false } : note
+                    )
+                });
+                setHasUnsavedChanges(true);
+            };
+
+            const editNote = (noteId) => {
+                if (!currentSession) return;
+                setCurrentSession({
+                    ...currentSession,
+                    notes: (currentSession.notes || []).map(note => 
+                        note.id === noteId ? { ...note, isEditing: true, originalContent: note.content } : note
+                    )
+                });
+            };
+
+            const cancelEditNote = (noteId) => {
+                if (!currentSession) return;
+                setCurrentSession({
+                    ...currentSession,
+                    notes: (currentSession.notes || []).map(note => 
+                        note.id === noteId ? { ...note, content: note.originalContent || note.content, isEditing: false, originalContent: undefined } : note
+                    )
+                });
+            };
+
+            const deleteNote = (noteId) => {
+                if (!currentSession) return;
+                
+                const updatedNotes = (currentSession.notes || []).filter(n => n.id !== noteId);
+                setCurrentSession({
+                    ...currentSession,
+                    notes: updatedNotes
+                });
+                setHasUnsavedChanges(true);
+            };
+
+            const updateSessionName = (newName) => {
+                if (!currentSession) return;
+                
+                setCurrentSession({
+                    ...currentSession,
+                    customName: newName
+                });
+                setHasUnsavedChanges(true);
+                setIsEditingSessionName(false);
+            };
+
+            const getSessionDisplayName = (session) => {
+                return session.customName || session.game?.title || 'Session sans nom';
+            };
+
+            const openSession = (session) => {
+                setShowFullPage(true);
+                setSelectedMode(session.mode);
+                setSelectedUser(session.user);
+                setSelectedGame(session.game);
+                setCurrentSession(session);
+                setHasUnsavedChanges(false);
+                setCurrentPage(3);
+            };
+
+            const exportToGoogleDocs = () => {
+                alert('🚧 Export vers Google Docs - À venir dans la prochaine version !');
+            };
+
+            const openMemoryPage = () => {
+                setCurrentPage(4);
+                const randomPost = mastodonPosts[Math.floor(Math.random() * mastodonPosts.length)];
+                setCurrentMastodonPost(randomPost);
+            };
+
+            const getRandomPost = () => {
+                const availablePosts = mastodonPosts.filter(post => 
+                    !currentMastodonPost || post.id !== currentMastodonPost.id
+                );
+                
+                const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : mastodonPosts;
+                
+                const randomPost = postsToChooseFrom[Math.floor(Math.random() * postsToChooseFrom.length)];
+                setCurrentMastodonPost(randomPost);
+            };
+
+            const getPageTitle = () => {
+                switch(currentPage) {
+                    case 1: 
+                        return "Accueil & Sessions";
+                    case 2: 
+                        return "Choix du jeu";
+                    case 3: 
+                        return currentSession?.game?.title || '';
+                    case 4:
+                        return "Mémoire Mastodon";
+                    default: 
+                        return "Navigation";
+                }
+            };
+
+            const getStatusIcon = (status) => {
+                switch(status) {
+                    case 'active':
+                        return React.createElement(Play, { className: "w-5 h-5 text-green-600" });
+                    case 'paused':
+                        return React.createElement(Pause, { className: "w-5 h-5 text-orange-600" });
+                    case 'closed':
+                        return React.createElement(Lock, { className: "w-5 h-5 text-gray-600" });
+                    default:
+                        return React.createElement(Play, { className: "w-5 h-5 text-green-600" });
+                }
             };
 
             return (
@@ -50,23 +507,45 @@
                     <div className="max-w-4xl mx-auto">
                         
                         <div className="text-center mb-6">
-                            <h1 className="text-4xl font-bold text-amber-900 mb-2">🐘 Mémoire du Mékong</h1>
+                            <div className="flex justify-center items-center space-x-4 mb-2">
+                                <button
+                                    onClick={resetOnboarding}
+                                    className="text-amber-600 hover:text-amber-800 p-2 rounded-full hover:bg-amber-100 transition-colors flex flex-col items-center"
+                                    title="Changer d'utilisateur ou de mode"
+                                >
+                                    <span className="text-2xl">🐘</span>
+                                    <span className="text-xs text-amber-700 font-medium">
+                                        {selectedMode === 'duo' ? 'Duo' : selectedUser || 'Utilisateur'}
+                                    </span>
+                                </button>
+                                <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
+                                <button
+                                    onClick={openMemoryPage}
+                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition-colors flex flex-col items-center"
+                                    title="Accéder aux souvenirs Mastodon"
+                                >
+                                    <Cloud className="w-6 h-6" />
+                                    <span className="text-xs text-blue-700 font-medium">Souvenirs</span>
+                                </button>
+                            </div>
                             
                             <div className="mb-2 flex space-x-2 justify-center">
                                 <button
                                     onClick={() => {
+                                        localStorage.removeItem('mekong-sessions');
+                                        setSessions([]);
                                         resetOnboarding();
-                                        alert('Reset effectué !');
+                                        alert('Données effacées !');
                                     }}
                                     className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-bold"
                                 >
                                     🚨 RESET
                                 </button>
                                 <span className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold">
-                                    ✅ Version Propre
+                                    ✅ Version GitHub Pages
                                 </span>
                             </div>
-
+                            
                             {showFullPage && (
                                 <div className="flex justify-center mb-3 space-x-4">
                                     <div className="flex items-center space-x-2 text-amber-700 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full shadow-sm">
@@ -85,102 +564,462 @@
                                 </div>
                             )}
                             
-                            <p className="text-lg text-amber-700 font-medium">Page d'accueil</p>
+                            <p className="text-lg text-amber-700 font-medium">{getPageTitle()}</p>
                         </div>
+
+                        {(showFullPage || currentPage === 4) && (
+                            <div className="flex justify-center items-center space-x-4 mb-6 bg-white/50 backdrop-blur rounded-lg p-3">
+                                <button 
+                                    onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
+                                    disabled={currentPage <= 1}
+                                    className={`flex items-center space-x-1 px-3 py-2 rounded-md ${currentPage > 1 ? 'bg-amber-200 hover:bg-amber-300 text-amber-800' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    <span>Précédent</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => handleNavigation(1)}
+                                    className="flex items-center space-x-1 px-3 py-2 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-md"
+                                >
+                                    <Home className="w-4 h-4" />
+                                    <span>Accueil</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
+                                    disabled={currentPage >= 4}
+                                    className={`flex items-center space-x-1 px-3 py-2 rounded-md ${currentPage < 4 ? 'bg-amber-200 hover:bg-amber-300 text-amber-800' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                                >
+                                    <span>Suivant</span>
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        {currentPage === 1 && showFullPage && notifications.length > 0 && (
+                            <div className="mb-4">
+                                {notifications.map((notif, idx) => (
+                                    <div key={idx} className="bg-blue-100 border-l-4 border-blue-500 p-3 rounded">
+                                        <p className="text-blue-800">🔔 {notif}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
                             
-                            {!showFullPage && !selectedMode && (
-                                <div className="max-w-md mx-auto space-y-3">
-                                    <h3 className="text-lg font-semibold text-amber-900 text-center">Choisissez votre mode de session</h3>
+                            {currentPage === 1 && !showFullPage && (
+                                <div className="space-y-8">
+                                    
+                                    {!selectedMode && (
+                                        <div className="max-w-md mx-auto space-y-3">
+                                            <h3 className="text-lg font-semibold text-amber-900 text-center">Choisissez votre mode de session</h3>
+                                            <div className="space-y-3">
+                                                <button
+                                                    onClick={() => handleModeSelection('duo')}
+                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                                >
+                                                    <Users className="w-6 h-6 text-amber-600" />
+                                                    <div>
+                                                        <span className="font-medium text-lg">Duo</span>
+                                                        <p className="text-sm text-gray-600">Session intensive à deux (présentiel)</p>
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleModeSelection('solo')}
+                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                                >
+                                                    <User className="w-6 h-6 text-amber-600" />
+                                                    <div>
+                                                        <span className="font-medium text-lg">Solo</span>
+                                                        <p className="text-sm text-gray-600">Lancer un ping-pong (asynchrone)</p>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedMode === 'solo' && showUserSelection && !showFullPage && (
+                                        <div className="max-w-md mx-auto space-y-3">
+                                            <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
+                                            <div className="space-y-3">
+                                                <button
+                                                    onClick={() => handleUserSelection('Tom')}
+                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                                >
+                                                    <span className="text-3xl">🐘</span>
+                                                    <span className="font-medium text-lg">Lambert, le Vieil éléphant</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {currentPage === 1 && showFullPage && (
+                                <div className="space-y-6">
                                     <div className="space-y-3">
-                                        <button
-                                            onClick={() => handleModeSelection('duo')}
-                                            className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
-                                        >
-                                            <span className="text-2xl">👥</span>
-                                            <div>
-                                                <span className="font-medium text-lg">Duo</span>
-                                                <p className="text-sm text-gray-600">Session intensive à deux (présentiel)</p>
+                                        <h3 className="text-lg font-semibold text-amber-900">Sessions précédentes</h3>
+                                        {sessions.length === 0 ? (
+                                            <div className="text-center py-8">
+                                                <p className="text-gray-500 mb-4">Aucune session enregistrée</p>
+                                                <button
+                                                    onClick={() => setCurrentPage(2)}
+                                                    className="px-6 py-3 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg font-medium"
+                                                >
+                                                    Créer votre première session
+                                                </button>
                                             </div>
-                                        </button>
-                                        <button
-                                            onClick={() => handleModeSelection('solo')}
-                                            className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
-                                        >
-                                            <span className="text-2xl">👤</span>
-                                            <div>
-                                                <span className="font-medium text-lg">Solo</span>
-                                                <p className="text-sm text-gray-600">Lancer un ping-pong (asynchrone)</p>
-                                            </div>
-                                        </button>
+                                        ) : (
+                                            <>
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <span className="text-sm text-gray-600">{sessions.length} session(s)</span>
+                                                    <button
+                                                        onClick={() => setCurrentPage(2)}
+                                                        className="px-4 py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg font-medium"
+                                                    >
+                                                        Nouvelle session
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {sessions.map((session, index) => (
+                                                        <div 
+                                                            key={session.id}
+                                                            className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            <div 
+                                                                onClick={() => openSession(session)}
+                                                                className="flex items-center space-x-3 flex-1 cursor-pointer"
+                                                            >
+                                                                {getStatusIcon(session.status)}
+                                                                <div>
+                                                                    <span className="font-medium">{getSessionDisplayName(session)}</span>
+                                                                    <p className="text-sm text-gray-600">
+                                                                        {session.mode} • {session.user} • {new Date(session.date).toLocaleDateString('fr-FR')}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <button
+                                                                    onClick={exportToGoogleDocs}
+                                                                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
+                                                                    title="Export Google Docs"
+                                                                >
+                                                                    ⬇️
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
-                            {selectedMode === 'solo' && showUserSelection && !showFullPage && (
-                                <div className="max-w-md mx-auto space-y-3">
-                                    <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
-                                    <div className="space-y-3">
+                            {currentPage === 2 && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-lg font-semibold text-amber-900">
+                                            Jeux {selectedMode === 'duo' ? 'présentiel' : 'distanciel'} disponibles
+                                        </h3>
                                         <button
-                                            onClick={() => handleUserSelection('Tom')}
-                                            className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                            onClick={() => {
+                                                const games = selectedMode === 'duo' ? presentielGames : distancielGames;
+                                                const randomGame = games[Math.floor(Math.random() * games.length)];
+                                                selectGame(randomGame);
+                                            }}
+                                            className="flex items-center space-x-2 px-4 py-2 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg"
                                         >
-                                            <span className="text-3xl">🐘</span>
-                                            <span className="font-medium text-lg">Tom l'éléphanteau</span>
+                                            <Shuffle className="w-4 h-4" />
+                                            <span>Au hasard</span>
                                         </button>
-                                        <button
-                                            onClick={() => handleUserSelection('Lambert')}
-                                            className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
-                                        >
-                                            <span className="text-3xl">🐘</span>
-                                            <span className="font-medium text-lg">Lambert, le Vieil éléphant</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {showFullPage && (
-                                <div className="text-center py-8">
-                                    <div className="mb-6">
-                                        <h3 className="text-xl font-semibold text-amber-900 mb-2">🎉 Configuration terminée !</h3>
-                                        <p className="text-gray-600">
-                                            Mode: <span className="font-medium">{selectedMode === 'duo' ? 'Duo' : 'Solo'}</span> • 
-                                            Utilisateur: <span className="font-medium">{selectedUser}</span>
-                                        </p>
                                     </div>
                                     
-                                    <div className="space-y-4">
-                                        <div className="bg-green-100 border border-green-200 rounded-lg p-4">
-                                            <p className="text-green-800 font-medium">✅ Bug de sélection utilisateur corrigé !</p>
-                                            <p className="text-green-700 text-sm mt-1">Les deux boutons Tom/Lambert s'affichent correctement.</p>
-                                        </div>
-                                        
-                                        <div className="bg-blue-100 border border-blue-200 rounded-lg p-4">
-                                            <p className="text-blue-800 font-medium">🚀 Prochaine étape</p>
-                                            <p className="text-blue-700 text-sm mt-1">Intégration des 275 posts Mastodon et connexion OneDrive</p>
+                                    <div className="grid gap-4">
+                                        {(selectedMode === 'duo' ? presentielGames : distancielGames).map(game => {
+                                            const IconComponent = game.icon;
+                                            return (
+                                                <button 
+                                                    key={game.id}
+                                                    onClick={() => selectGame(game)}
+                                                    className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all hover:border-amber-300 hover:bg-amber-50 text-left w-full"
+                                                >
+                                                    <div className="flex items-start space-x-3">
+                                                        <IconComponent className="w-6 h-6 text-amber-600 mt-1 flex-shrink-0" />
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <h4 className="font-medium text-amber-900">{game.title}</h4>
+                                                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                                    {game.duration}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-gray-600">{game.description}</p>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentPage === 3 && currentSession && (
+                                <div className="space-y-6">
+                                    <div className="bg-amber-50 p-4 rounded-lg">
+                                        <div className="flex items-start space-x-3">
+                                            {React.createElement(currentSession.game.icon || BookOpen, { 
+                                                className: "w-8 h-8 text-amber-600 mt-1 flex-shrink-0" 
+                                            })}
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-2 mb-2">
+                                                    {isEditingSessionName ? (
+                                                        <div className="flex items-center space-x-2 flex-1">
+                                                            <input 
+                                                                type="text"
+                                                                defaultValue={getSessionDisplayName(currentSession)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        updateSessionName(e.target.value);
+                                                                    } else if (e.key === 'Escape') {
+                                                                        setIsEditingSessionName(false);
+                                                                    }
+                                                                }}
+                                                                className="flex-1 px-2 py-1 border rounded text-lg font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                                autoFocus
+                                                            />
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const input = document.querySelector('input[type="text"]');
+                                                                    if (input) updateSessionName(input.value);
+                                                                }}
+                                                                className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                                                            >
+                                                                ✓
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => setIsEditingSessionName(false)}
+                                                                className="px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center space-x-2 flex-1">
+                                                            <h3 className="text-lg font-semibold text-amber-900 flex-1">
+                                                                {getSessionDisplayName(currentSession)}
+                                                            </h3>
+                                                            <button 
+                                                                onClick={() => setIsEditingSessionName(true)}
+                                                                className="text-amber-600 hover:text-amber-800 p-1 rounded hover:bg-amber-200"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <p className="text-amber-700 mb-2">
+                                                    {currentSession.game?.description || 'Aucune description disponible'}
+                                                </p>
+                                                <div className="flex items-center space-x-4 text-sm text-amber-600">
+                                                    <span>Mode: {currentSession.mode}</span>
+                                                    <span>Durée: {currentSession.game?.duration}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={resetOnboarding}
-                                        className="mt-6 px-6 py-3 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg font-medium"
-                                    >
-                                        🔄 Tester à nouveau
-                                    </button>
+                                    <div className="space-y-3">
+                                        <h4 className="font-medium text-amber-900">Notes et souvenirs</h4>
+                                        
+                                        <div className="space-y-3">
+                                            {currentSession.notes && currentSession.notes.length > 0 ? (
+                                                currentSession.notes.map((note, index) => (
+                                                    <div key={note.id} className={`border rounded-lg p-3 ${note.isEditing ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 cursor-pointer hover:bg-gray-100'} transition-colors`}>
+                                                        {note.isEditing ? (
+                                                            <div className="space-y-2">
+                                                                <textarea 
+                                                                    value={note.content || ''}
+                                                                    onChange={(e) => {
+                                                                        setCurrentSession({
+                                                                            ...currentSession,
+                                                                            notes: currentSession.notes.map(n => 
+                                                                                n.id === note.id ? { ...n, content: e.target.value } : n
+                                                                            )
+                                                                        });
+                                                                        setHasUnsavedChanges(true);
+                                                                    }}
+                                                                    className="w-full h-32 p-3 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                                    placeholder="Notez ici vos souvenirs, réflexions, détails..."
+                                                                    autoFocus
+                                                                />
+                                                                <div className="flex space-x-2">
+                                                                    <button 
+                                                                        onClick={() => updateNote(note.id, note.content || '')}
+                                                                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                                                                    >
+                                                                        Sauvegarder
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => cancelEditNote(note.id)}
+                                                                        className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                                                    >
+                                                                        Annuler
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div 
+                                                                onClick={() => editNote(note.id)}
+                                                                className="cursor-pointer"
+                                                            >
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <span className="text-xs text-gray-500">
+                                                                        Note #{index + 1} • {selectedUser || 'Utilisateur'} • {note.timestamp ? new Date(note.timestamp).toLocaleString('fr-FR') : 'Date inconnue'}
+                                                                    </span>
+                                                                    <button 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            deleteNote(note.id);
+                                                                        }}
+                                                                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-100"
+                                                                        title="Supprimer la note"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                                <p className="text-gray-700 whitespace-pre-wrap">{note.content || 'Note vide - cliquez pour éditer'}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-gray-500 text-center py-4">Aucune note pour le moment. Cliquez sur "Écrire" pour commencer.</p>
+                                            )}
+                                            
+                                            <div className="flex justify-center pt-2">
+                                                <button 
+                                                    onClick={addNote}
+                                                    className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                                                >
+                                                    <BookOpen className="w-4 h-4" />
+                                                    <span>Écrire</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-center space-x-4 pt-4 border-t">
+                                        {selectedMode === 'solo' ? (
+                                            <>
+                                                <button 
+                                                    onClick={inviteOtherUser}
+                                                    className="flex items-center space-x-2 px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
+                                                >
+                                                    <ArrowUpRight className="w-4 h-4" />
+                                                    <span>Ping-pong</span>
+                                                </button>
+                                                <button 
+                                                    onClick={closeSession}
+                                                    className="flex items-center space-x-2 px-4 py-2 bg-red-200 hover:bg-red-300 text-red-800 rounded-lg"
+                                                >
+                                                    <Lock className="w-4 h-4" />
+                                                    <span>Clore l'échange</span>
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button 
+                                                    onClick={pauseSession}
+                                                    className="flex items-center space-x-2 px-4 py-2 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-lg"
+                                                >
+                                                    <Pause className="w-4 h-4" />
+                                                    <span>Pause</span>
+                                                </button>
+                                                <button 
+                                                    onClick={closeSession}
+                                                    className="flex items-center space-x-2 px-4 py-2 bg-red-200 hover:bg-red-300 text-red-800 rounded-lg"
+                                                >
+                                                    <Lock className="w-4 h-4" />
+                                                    <span>Terminer</span>
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentPage === 4 && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-lg font-semibold text-blue-900 flex items-center space-x-2">
+                                            <Cloud className="w-6 h-6" />
+                                            <span>Souvenirs Mastodon</span>
+                                        </h3>
+                                        <button
+                                            onClick={getRandomPost}
+                                            className="flex items-center space-x-2 px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
+                                        >
+                                            <RefreshCw className="w-4 h-4" />
+                                            <span>Autre post</span>
+                                        </button>
+                                    </div>
+
+                                    {currentMastodonPost && (
+                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                                            <div className="mb-4">
+                                                <div 
+                                                    className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm select-text mb-4"
+                                                    style={{ userSelect: 'text' }}
+                                                >
+                                                    <p className="text-gray-800 leading-relaxed text-base whitespace-pre-line">
+                                                        {currentMastodonPost.text}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="text-center">
+                                                    <p className="text-sm text-blue-600 mb-2">
+                                                        💡 Vous pouvez sélectionner et copier le texte ci-dessus
+                                                    </p>
+                                                    <a 
+                                                        href="https://mastodon.in.th/@mekongtandem"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-blue-500 hover:text-blue-700 underline"
+                                                    >
+                                                        Voir le compte Mastodon complet (275 posts)
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!currentMastodonPost && (
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-500 mb-4">Cliquez sur "Autre post" pour découvrir un souvenir</p>
+                                            <button
+                                                onClick={getRandomPost}
+                                                className="px-6 py-3 bg-blue-200 hover:bg-blue-300 text-blue-900 rounded-lg font-medium"
+                                            >
+                                                Découvrir un souvenir
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
 
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
-                            <p className="text-xs mt-1 opacity-75">✅ Version simple et propre • 🐛 Bug corrigé</p>
+                            <p className="text-xs mt-1 opacity-75">✅ Version GitHub Pages déployée • 📱 Multi-appareils</p>
                         </div>
                     </div>
                 </div>
             );
         };
 
+        // Rendu de l'application
         ReactDOM.render(React.createElement(MemoireMekong), document.getElementById('root'));
     </script>
 </body>
