@@ -542,7 +542,7 @@
                                     🚨 RESET
                                 </button>
                                 <span className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold">
-                                    ✅ Version GitHub Pages
+                                    ✅ Version 7 Corrigée
                                 </span>
                             </div>
                             
@@ -646,6 +646,13 @@
                                             <div className="space-y-3">
                                                 <button
                                                     onClick={() => handleUserSelection('Tom')}
+                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                                                >
+                                                    <span className="text-3xl">🐘</span>
+                                                    <span className="font-medium text-lg">Tom l'éléphanteau</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleUserSelection('Lambert')}
                                                     className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
                                                 >
                                                     <span className="text-3xl">🐘</span>
@@ -1012,15 +1019,16 @@
 
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
-                            <p className="text-xs mt-1 opacity-75">✅ Version GitHub Pages déployée • 📱 Multi-appareils</p>
+                            <p className="text-xs mt-1 opacity-75">✅ Version 7 Corrigée • 📱 Multi-appareils</p>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // Rendu de l'application
-        ReactDOM.render(React.createElement(MemoireMekong), document.getElementById('root'));
+        // Rendu de l'application avec React 18
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(MemoireMekong));
     </script>
 </body>
 </html>
