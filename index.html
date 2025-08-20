@@ -455,7 +455,8 @@
             const openSession = (session) => {
                 setShowFullPage(true);
                 setSelectedMode(session.mode);
-                setSelectedUser(session.user);
+                // CORRECTION : Ne pas écraser l'utilisateur sélectionné
+                // setSelectedUser(session.user); // ❌ Cette ligne causait le bug
                 setSelectedGame(session.game);
                 setCurrentSession(session);
                 setHasUnsavedChanges(false);
@@ -558,7 +559,7 @@
                                     🚨 RESET
                                 </button>
                                 <span className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold">
-                                    ✅ Version 3.3
+                                    ✅ Version 3.4
                                 </span>
                             </div>
 
@@ -587,41 +588,43 @@
                                 </button>
                             </div>
 
-                            {/* Ligne inférieure : Navigation sous le titre */}
-                            {(showFullPage || currentPage === 4) && (
-                                <div className="flex justify-center items-center space-x-8 mb-2">
-                                    <button 
-                                        onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
-                                        disabled={currentPage <= 1}
-                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage > 1 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
-                                        title="Page précédente"
-                                    >
-                                        <ChevronLeft className="w-6 h-6" />
-                                        <span className="text-xs font-medium">Précédent</span>
-                                    </button>
-                                    
-                                    <button 
-                                        onClick={() => handleNavigation(1)}
-                                        className="flex flex-col items-center p-2 rounded-full text-orange-600 hover:text-orange-800 hover:bg-orange-100 transition-colors"
-                                        title="Retour à l'accueil"
-                                    >
-                                        <Home className="w-6 h-6" />
-                                        <span className="text-xs font-medium">Accueil</span>
-                                    </button>
-                                    
-                                    <button 
-                                        onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
-                                        disabled={currentPage >= 4}
-                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage < 4 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
-                                        title="Page suivante"
-                                    >
-                                        <ChevronRight className="w-6 h-6" />
-                                        <span className="text-xs font-medium">Suivant</span>
-                                    </button>
-                                </div>
-                            )}
-                            
-                            <p className="text-lg text-amber-700 font-medium mt-2">{getPageTitle()}</p>
+                            {/* Ligne inférieure : Titre de page et Navigation sous le titre */}
+                            <div className="space-y-3">
+                                <p className="text-lg text-amber-700 font-medium">{getPageTitle()}</p>
+                                
+                                {(showFullPage || currentPage === 4) && (
+                                    <div className="flex justify-center items-center space-x-8">
+                                        <button 
+                                            onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
+                                            disabled={currentPage <= 1}
+                                            className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage > 1 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
+                                            title="Page précédente"
+                                        >
+                                            <ChevronLeft className="w-6 h-6" />
+                                            <span className="text-xs font-medium">Précédent</span>
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => handleNavigation(1)}
+                                            className="flex flex-col items-center p-2 rounded-full text-orange-600 hover:text-orange-800 hover:bg-orange-100 transition-colors"
+                                            title="Retour à l'accueil"
+                                        >
+                                            <Home className="w-6 h-6" />
+                                            <span className="text-xs font-medium">Accueil</span>
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
+                                            disabled={currentPage >= 4}
+                                            className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage < 4 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
+                                            title="Page suivante"
+                                        >
+                                            <ChevronRight className="w-6 h-6" />
+                                            <span className="text-xs font-medium">Suivant</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {currentPage === 1 && showFullPage && notifications.length > 0 && (
@@ -1046,7 +1049,7 @@
 
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
-                            <p className="text-xs mt-1 opacity-75">✅ Version 3.3 • 📱 Multi-appareils</p>
+                            <p className="text-xs mt-1 opacity-75">✅ Version 3.4 • 📱 Multi-appareils</p>
                         </div>
                     </div>
                 </div>
