@@ -182,6 +182,40 @@
             </svg>
         );
 
+        const Upload = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7,10 12,15 17,10"/>
+                <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+        );
+
+        const Search = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
+        );
+
+        const Calendar = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                <line x1="16" x2="16" y1="2" y2="6"/>
+                <line x1="8" x2="8" y1="2" y2="6"/>
+                <line x1="3" x2="21" y1="10" y2="10"/>
+            </svg>
+        );
+
+        const FileText = ({ className }) => (
+            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" x2="8" y1="13" y2="13"/>
+                <line x1="16" x2="8" y1="17" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+            </svg>
+        );
+
         // Application principale
         const MemoireMekong = () => {
             const [currentPage, setCurrentPage] = React.useState(1);
@@ -196,6 +230,12 @@
             const [showFullPage, setShowFullPage] = React.useState(false);
             const [isEditingSessionName, setIsEditingSessionName] = React.useState(false);
             const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
+            
+            // Nouvelles données Mastodon
+            const [mastodonData, setMastodonData] = React.useState(null);
+            const [currentPostIndex, setCurrentPostIndex] = React.useState(0);
+            const [searchTerm, setSearchTerm] = React.useState('');
+            const [isLoadingFile, setIsLoadingFile] = React.useState(false);
 
             const presentielGames = [
                 { 
@@ -245,16 +285,20 @@
                 }
             ];
 
-            const mastodonPosts = [
+            const defaultMastodonPosts = [
                 {
                     id: 1,
                     text: "J131: D'arbres en cascades\nMais qu'y a t-il donc sur cette île, à part ces plages parfaites et cette jungle sans chemins ? Lambert part pour une traversée de l'ile à vélo. Avec une succession de pentes jusqu'a 28% en pein cagnard, il est vite calmé...\nOn loue 2 scoot, et on part à la recherche de fameuses cascades. Un peu plus loin, on rend visite à des arbres multi centenaires, donc sacrés.",
-                    images: []
+                    images: [],
+                    date: "2021-12-01",
+                    dayNumber: 131
                 },
                 {
                     id: 2,
                     text: "J102 : Gérer les chiens\nA 5h du mat, il manque un élément essentiel de nos bagages : une tongue ! Les talents de pisteurs de Tom nous mènerons chez le chien du voisin.\nTracer la route au lever du soleil est un plaisir particulier. Jusqu'à 11h, la chaleur est supportable mais les chiens qui nous courent après le long des pistes pas toujours faciles a gérer : chute de Tom quelques km avant l'arrivée. Séance infirmerie qui justifie le transport de notre trousse qui a peu servi jusque là.",
-                    images: []
+                    images: [],
+                    date: "2021-11-02",
+                    dayNumber: 102
                 }
             ];
 
@@ -272,6 +316,17 @@
                     }
                 }
                 
+                // Charger les données Mastodon sauvegardées
+                const savedMastodonData = localStorage.getItem('mekong-mastodon');
+                if (savedMastodonData) {
+                    try {
+                        const parsedData = JSON.parse(savedMastodonData);
+                        setMastodonData(parsedData);
+                    } catch (error) {
+                        console.error('Erreur parsing mastodon data:', error);
+                    }
+                }
+                
                 if (selectedUser === 'Lambert') {
                     setTimeout(() => {
                         setNotifications(['Tom vous a envoyé un ping sur la session']);
@@ -282,6 +337,94 @@
                     }, 100);
                 }
             }, [selectedUser]);
+
+            const parseMastodonFile = (jsonData) => {
+                try {
+                    const posts = [];
+                    const orderedItems = jsonData.orderedItems || [];
+                    
+                    orderedItems.forEach((item, index) => {
+                        if (item.object && item.object.content) {
+                            const content = item.object.content;
+                            const published = item.object.published;
+                            
+                            // Extraire le numéro du jour du contenu (J123, J001, etc.)
+                            const dayMatch = content.match(/J(\d+)/);
+                            const dayNumber = dayMatch ? parseInt(dayMatch[1]) : index + 1;
+                            
+                            // Nettoyer le contenu HTML
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = content;
+                            const cleanText = tempDiv.textContent || tempDiv.innerText || '';
+                            
+                            posts.push({
+                                id: index + 1,
+                                text: cleanText,
+                                date: published,
+                                dayNumber: dayNumber,
+                                images: item.object.attachment || [],
+                                originalIndex: orderedItems.length - index // Les posts sont dans l'ordre inverse
+                            });
+                        }
+                    });
+                    
+                    // Trier par numéro de jour
+                    posts.sort((a, b) => a.dayNumber - b.dayNumber);
+                    
+                    return posts;
+                } catch (error) {
+                    console.error('Erreur lors du parsing:', error);
+                    return [];
+                }
+            };
+
+            const handleFileUpload = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                setIsLoadingFile(true);
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        const parsedPosts = parseMastodonFile(jsonData);
+                        
+                        setMastodonData({
+                            totalItems: jsonData.totalItems || parsedPosts.length,
+                            posts: parsedPosts,
+                            loadedAt: new Date().toISOString()
+                        });
+                        
+                        // Sauvegarder dans localStorage
+                        localStorage.setItem('mekong-mastodon', JSON.stringify({
+                            totalItems: jsonData.totalItems || parsedPosts.length,
+                            posts: parsedPosts,
+                            loadedAt: new Date().toISOString()
+                        }));
+                        
+                        alert(`✅ ${parsedPosts.length} posts chargés avec succès !`);
+                        setCurrentPostIndex(0);
+                    } catch (error) {
+                        console.error('Erreur parsing JSON:', error);
+                        alert('❌ Erreur lors de la lecture du fichier. Vérifiez que c\'est bien votre outbox.json');
+                    } finally {
+                        setIsLoadingFile(false);
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+
+            const getCurrentPosts = () => {
+                if (!mastodonData?.posts) return defaultMastodonPosts;
+                
+                if (!searchTerm) return mastodonData.posts;
+                
+                return mastodonData.posts.filter(post => 
+                    post.text.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            };
 
             const saveSessions = (newSessions) => {
                 const validSessions = Array.isArray(newSessions) ? newSessions : [];
@@ -316,6 +459,7 @@
                 setNotifications([]);
                 setIsEditingSessionName(false);
                 setCurrentMastodonPost(null);
+                setSearchTerm('');
             };
 
             const selectGame = (game) => {
@@ -371,7 +515,6 @@
                 
                 const otherUser = selectedUser === 'Tom' ? 'Lambert' : 'Tom';
                 
-                // Sauvegarder la session avec statut "en attente"
                 const sessionWithPending = { 
                     ...currentSession, 
                     status: 'pending', 
@@ -381,7 +524,6 @@
                 const updatedSessions = [sessionWithPending, ...sessions.filter(s => s.id !== currentSession.id)];
                 saveSessions(updatedSessions);
                 
-                // Retourner à l'accueil
                 setCurrentSession(null);
                 setCurrentPage(1);
                 setHasUnsavedChanges(false);
@@ -399,7 +541,7 @@
                     id: Date.now(),
                     content: '',
                     timestamp: new Date().toISOString(),
-                    author: selectedUser || 'Utilisateur', // CORRECTION : Stocker l'auteur de la note
+                    author: selectedUser || 'Utilisateur',
                     isEditing: true
                 };
                 setCurrentSession({
@@ -469,8 +611,6 @@
             const openSession = (session) => {
                 setShowFullPage(true);
                 setSelectedMode(session.mode);
-                // CORRECTION : Ne pas écraser l'utilisateur sélectionné
-                // setSelectedUser(session.user); // ❌ Cette ligne causait le bug
                 setSelectedGame(session.game);
                 setCurrentSession(session);
                 setHasUnsavedChanges(false);
@@ -483,19 +623,40 @@
 
             const openMemoryPage = () => {
                 setCurrentPage(4);
-                const randomPost = mastodonPosts[Math.floor(Math.random() * mastodonPosts.length)];
-                setCurrentMastodonPost(randomPost);
+                const posts = getCurrentPosts();
+                if (posts.length > 0) {
+                    const randomPost = posts[Math.floor(Math.random() * posts.length)];
+                    setCurrentMastodonPost(randomPost);
+                }
             };
 
             const getRandomPost = () => {
-                const availablePosts = mastodonPosts.filter(post => 
+                const posts = getCurrentPosts();
+                const availablePosts = posts.filter(post => 
                     !currentMastodonPost || post.id !== currentMastodonPost.id
                 );
                 
-                const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : mastodonPosts;
+                const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : posts;
                 
-                const randomPost = postsToChooseFrom[Math.floor(Math.random() * postsToChooseFrom.length)];
-                setCurrentMastodonPost(randomPost);
+                if (postsToChooseFrom.length > 0) {
+                    const randomPost = postsToChooseFrom[Math.floor(Math.random() * postsToChooseFrom.length)];
+                    setCurrentMastodonPost(randomPost);
+                }
+            };
+
+            const navigatePost = (direction) => {
+                const posts = getCurrentPosts();
+                if (posts.length === 0) return;
+                
+                let newIndex = currentPostIndex;
+                if (direction === 'next') {
+                    newIndex = (currentPostIndex + 1) % posts.length;
+                } else if (direction === 'prev') {
+                    newIndex = currentPostIndex > 0 ? currentPostIndex - 1 : posts.length - 1;
+                }
+                
+                setCurrentPostIndex(newIndex);
+                setCurrentMastodonPost(posts[newIndex]);
             };
 
             const getPageTitle = () => {
@@ -507,7 +668,9 @@
                     case 3: 
                         return currentSession?.game?.title || '';
                     case 4:
-                        return "Mémoire Mastodon";
+                        const posts = getCurrentPosts();
+                        const total = mastodonData?.totalItems || 275;
+                        return `Souvenirs Mastodon (${posts.length}/${total})`;
                     default: 
                         return "Navigation";
                 }
@@ -551,6 +714,19 @@
                             text: 'text-amber-800',
                             icon: 'text-amber-600'
                         };
+                }
+            };
+
+            const formatDate = (dateString) => {
+                try {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('fr-FR', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                } catch {
+                    return 'Date inconnue';
                 }
             };
 
@@ -984,25 +1160,121 @@
 
                             {currentPage === 4 && (
                                 <div className="space-y-6">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-lg font-semibold text-blue-900 flex items-center space-x-2">
-                                            <Cloud className="w-6 h-6" />
-                                            <span>Souvenirs Mastodon</span>
-                                        </h3>
-                                        <button
-                                            onClick={getRandomPost}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
-                                        >
-                                            <RefreshCw className="w-4 h-4" />
-                                            <span>Autre post</span>
-                                        </button>
-                                    </div>
+                                    {/* Section Upload/Info */}
+                                    {!mastodonData && (
+                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                                            <div className="text-center space-y-4">
+                                                <h3 className="text-lg font-semibold text-blue-900 flex items-center justify-center space-x-2">
+                                                    <Upload className="w-6 h-6" />
+                                                    <span>Charger vos posts Mastodon</span>
+                                                </h3>
+                                                <p className="text-blue-700">
+                                                    Sélectionnez votre fichier <code className="bg-blue-100 px-2 py-1 rounded">outbox.json</code> pour charger vos 275 posts de voyage
+                                                </p>
+                                                <div className="flex justify-center">
+                                                    <label className="flex items-center space-x-2 px-6 py-3 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg cursor-pointer transition-colors">
+                                                        <FileText className="w-5 h-5" />
+                                                        <span>{isLoadingFile ? 'Chargement...' : 'Choisir outbox.json'}</span>
+                                                        <input 
+                                                            type="file" 
+                                                            accept=".json"
+                                                            onChange={handleFileUpload}
+                                                            className="hidden"
+                                                            disabled={isLoadingFile}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
+                                    {/* Section navigation et recherche */}
+                                    {mastodonData && (
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="text-lg font-semibold text-blue-900 flex items-center space-x-2">
+                                                    <Cloud className="w-6 h-6" />
+                                                    <span>Souvenirs Mastodon</span>
+                                                </h3>
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="text-sm text-gray-600">
+                                                        {getCurrentPosts().length} post(s)
+                                                    </span>
+                                                    <button
+                                                        onClick={getRandomPost}
+                                                        className="flex items-center space-x-2 px-3 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                        <span>Hasard</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Barre de recherche */}
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rechercher dans vos souvenirs... (lieu, mot-clé, émotion)"
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                                />
+                                            </div>
+
+                                            {/* Navigation entre posts */}
+                                            {getCurrentPosts().length > 0 && (
+                                                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                                                    <button
+                                                        onClick={() => navigatePost('prev')}
+                                                        className="flex items-center space-x-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                        <span>Précédent</span>
+                                                    </button>
+                                                    
+                                                    <span className="text-sm text-gray-600">
+                                                        {currentPostIndex + 1} / {getCurrentPosts().length}
+                                                    </span>
+                                                    
+                                                    <button
+                                                        onClick={() => navigatePost('next')}
+                                                        className="flex items-center space-x-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg"
+                                                    >
+                                                        <span>Suivant</span>
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Affichage du post courant */}
                                     {currentMastodonPost && (
                                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
-                                            <div className="mb-4">
+                                            <div className="space-y-4">
+                                                {/* Métadonnées du post */}
+                                                <div className="flex items-center justify-between border-b border-blue-200 pb-3">
+                                                    <div className="flex items-center space-x-3">
+                                                        <Calendar className="w-5 h-5 text-blue-600" />
+                                                        <span className="text-sm font-medium text-blue-800">
+                                                            Jour {currentMastodonPost.dayNumber || '?'}
+                                                        </span>
+                                                        <span className="text-sm text-blue-600">
+                                                            {formatDate(currentMastodonPost.date)}
+                                                        </span>
+                                                    </div>
+                                                    {currentMastodonPost.images && currentMastodonPost.images.length > 0 && (
+                                                        <div className="flex items-center space-x-1 text-sm text-blue-600">
+                                                            <Camera className="w-4 h-4" />
+                                                            <span>{currentMastodonPost.images.length} photo(s)</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Contenu du post */}
                                                 <div 
-                                                    className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm select-text mb-4"
+                                                    className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm select-text"
                                                     style={{ userSelect: 'text' }}
                                                 >
                                                     <p className="text-gray-800 leading-relaxed text-base whitespace-pre-line">
@@ -1010,32 +1282,74 @@
                                                     </p>
                                                 </div>
                                                 
-                                                <div className="text-center">
-                                                    <p className="text-sm text-blue-600 mb-2">
+                                                {/* Actions */}
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <p className="text-blue-600">
                                                         💡 Vous pouvez sélectionner et copier le texte ci-dessus
                                                     </p>
-                                                    <a 
-                                                        href="https://mastodon.in.th/@mekongtandem"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-sm text-blue-500 hover:text-blue-700 underline"
-                                                    >
-                                                        Voir le compte Mastodon complet (275 posts)
-                                                    </a>
+                                                    <div className="flex space-x-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                // Ajouter ce post à une session de remémoration
+                                                                const newSession = {
+                                                                    id: Date.now(),
+                                                                    mode: 'solo',
+                                                                    user: selectedUser || 'Utilisateur',
+                                                                    game: { title: `Souvenir J${currentMastodonPost.dayNumber}`, description: 'Session basée sur un post Mastodon' },
+                                                                    date: new Date().toISOString(),
+                                                                    status: 'active',
+                                                                    participants: [],
+                                                                    notes: [{
+                                                                        id: Date.now(),
+                                                                        content: `Post Mastodon J${currentMastodonPost.dayNumber}:\n\n${currentMastodonPost.text}`,
+                                                                        timestamp: new Date().toISOString(),
+                                                                        author: 'Système',
+                                                                        isEditing: false
+                                                                    }],
+                                                                    photo: null
+                                                                };
+                                                                setCurrentSession(newSession);
+                                                                setCurrentPage(3);
+                                                            }}
+                                                            className="flex items-center space-x-1 px-3 py-2 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg"
+                                                        >
+                                                            <BookOpen className="w-4 h-4" />
+                                                            <span>Créer session</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {!currentMastodonPost && (
+                                    {/* Message par défaut si pas de post */}
+                                    {!currentMastodonPost && mastodonData && getCurrentPosts().length === 0 && (
                                         <div className="text-center py-8">
-                                            <p className="text-gray-500 mb-4">Cliquez sur "Autre post" pour découvrir un souvenir</p>
+                                            <p className="text-gray-500 mb-4">Aucun post ne correspond à votre recherche</p>
                                             <button
-                                                onClick={getRandomPost}
-                                                className="px-6 py-3 bg-blue-200 hover:bg-blue-300 text-blue-900 rounded-lg font-medium"
+                                                onClick={() => setSearchTerm('')}
+                                                className="px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
                                             >
-                                                Découvrir un souvenir
+                                                Effacer la recherche
                                             </button>
+                                        </div>
+                                    )}
+
+                                    {/* Info sur les données chargées */}
+                                    {mastodonData && (
+                                        <div className="text-center text-sm text-gray-600 border-t pt-4">
+                                            <p>
+                                                📊 {mastodonData.totalItems} posts chargés • 
+                                                Dernière mise à jour : {formatDate(mastodonData.loadedAt)}
+                                            </p>
+                                            <a 
+                                                href="https://mastodon.in.th/@mekongtandem"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-500 hover:text-blue-700 underline ml-2"
+                                            >
+                                                Voir le compte Mastodon original
+                                            </a>
                                         </div>
                                     )}
                                 </div>
@@ -1045,12 +1359,14 @@
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
-                                <span>✅ Version 3.4e • 📱 Multi-appareils</span>
+                                <span>✅ Version 8.0 • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
                                 <button
                                     onClick={() => {
-                                        if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées.\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
+                                        if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées (y compris les posts Mastodon).\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
                                             localStorage.removeItem('mekong-sessions');
+                                            localStorage.removeItem('mekong-mastodon');
                                             setSessions([]);
+                                            setMastodonData(null);
                                             resetOnboarding();
                                             alert('✅ Toutes les données ont été effacées !');
                                         }
