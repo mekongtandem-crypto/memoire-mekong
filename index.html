@@ -386,6 +386,7 @@
                     id: Date.now(),
                     content: '',
                     timestamp: new Date().toISOString(),
+                    author: selectedUser || 'Utilisateur', // CORRECTION : Stocker l'auteur de la note
                     isEditing: true
                 };
                 setCurrentSession({
@@ -545,26 +546,8 @@
                     <div className="max-w-4xl mx-auto">
                         
                         <div className="text-center mb-6">
-                            {/* Ligne supérieure : Reset et Version */}
-                            <div className="flex space-x-2 justify-center mb-4">
-                                <button
-                                    onClick={() => {
-                                        localStorage.removeItem('mekong-sessions');
-                                        setSessions([]);
-                                        resetOnboarding();
-                                        alert('Données effacées !');
-                                    }}
-                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-bold"
-                                >
-                                    🚨 RESET
-                                </button>
-                                <span className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold">
-                                    ✅ Version 3.4
-                                </span>
-                            </div>
-
                             {/* Ligne centrale : Utilisateur, Titre, Souvenirs */}
-                            <div className="flex justify-center items-center space-x-8 mb-4">
+                            <div className="flex justify-center items-center space-x-8 mb-2">
                                 <button
                                     onClick={resetOnboarding}
                                     className={`${selectedUser ? getUserColors(selectedUser).icon : 'text-amber-600'} hover:text-amber-800 p-2 rounded-full ${selectedUser ? getUserColors(selectedUser).bg : 'hover:bg-amber-100'} transition-colors flex flex-col items-center`}
@@ -576,7 +559,10 @@
                                     </span>
                                 </button>
                                 
-                                <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
+                                <div className="text-center">
+                                    <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
+                                    <p className="text-lg text-amber-700 font-medium mt-1">{getPageTitle()}</p>
+                                </div>
                                 
                                 <button
                                     onClick={openMemoryPage}
@@ -588,43 +574,39 @@
                                 </button>
                             </div>
 
-                            {/* Ligne inférieure : Titre de page et Navigation sous le titre */}
-                            <div className="space-y-3">
-                                <p className="text-lg text-amber-700 font-medium">{getPageTitle()}</p>
-                                
-                                {(showFullPage || currentPage === 4) && (
-                                    <div className="flex justify-center items-center space-x-8">
-                                        <button 
-                                            onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
-                                            disabled={currentPage <= 1}
-                                            className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage > 1 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
-                                            title="Page précédente"
-                                        >
-                                            <ChevronLeft className="w-6 h-6" />
-                                            <span className="text-xs font-medium">Précédent</span>
-                                        </button>
-                                        
-                                        <button 
-                                            onClick={() => handleNavigation(1)}
-                                            className="flex flex-col items-center p-2 rounded-full text-orange-600 hover:text-orange-800 hover:bg-orange-100 transition-colors"
-                                            title="Retour à l'accueil"
-                                        >
-                                            <Home className="w-6 h-6" />
-                                            <span className="text-xs font-medium">Accueil</span>
-                                        </button>
-                                        
-                                        <button 
-                                            onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
-                                            disabled={currentPage >= 4}
-                                            className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage < 4 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
-                                            title="Page suivante"
-                                        >
-                                            <ChevronRight className="w-6 h-6" />
-                                            <span className="text-xs font-medium">Suivant</span>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            {/* Navigation sous le sous-titre */}
+                            {(showFullPage || currentPage === 4) && (
+                                <div className="flex justify-center items-center space-x-8">
+                                    <button 
+                                        onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
+                                        disabled={currentPage <= 1}
+                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage > 1 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
+                                        title="Page précédente"
+                                    >
+                                        <ChevronLeft className="w-6 h-6" />
+                                        <span className="text-xs font-medium">Précédent</span>
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => handleNavigation(1)}
+                                        className="flex flex-col items-center p-2 rounded-full text-orange-600 hover:text-orange-800 hover:bg-orange-100 transition-colors"
+                                        title="Retour à l'accueil"
+                                    >
+                                        <Home className="w-6 h-6" />
+                                        <span className="text-xs font-medium">Accueil</span>
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
+                                        disabled={currentPage >= 4}
+                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage < 4 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
+                                        title="Page suivante"
+                                    >
+                                        <ChevronRight className="w-6 h-6" />
+                                        <span className="text-xs font-medium">Suivant</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {currentPage === 1 && showFullPage && notifications.length > 0 && (
@@ -913,7 +895,7 @@
                                                             >
                                                                 <div className="flex justify-between items-start mb-2">
                                                                     <span className="text-xs text-gray-500">
-                                                                        Note #{index + 1} • {selectedUser || 'Utilisateur'} • {note.timestamp ? new Date(note.timestamp).toLocaleString('fr-FR') : 'Date inconnue'}
+                                                                        Note #{index + 1} • {note.author || selectedUser || 'Utilisateur'} • {note.timestamp ? new Date(note.timestamp).toLocaleString('fr-FR') : 'Date inconnue'}
                                                                     </span>
                                                                     <button 
                                                                         onClick={(e) => {
@@ -1049,7 +1031,23 @@
 
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
-                            <p className="text-xs mt-1 opacity-75">✅ Version 3.4 • 📱 Multi-appareils</p>
+                            <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
+                                <span>✅ Version 3.4d • 📱 Multi-appareils</span>
+                                <button
+                                    onClick={() => {
+                                        if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées.\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
+                                            localStorage.removeItem('mekong-sessions');
+                                            setSessions([]);
+                                            resetOnboarding();
+                                            alert('✅ Toutes les données ont été effacées !');
+                                        }
+                                    }}
+                                    className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-bold ml-2"
+                                    title="Effacer toutes les données"
+                                >
+                                    🚨 RESET
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
