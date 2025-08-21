@@ -1,4 +1,3 @@
-<!-- ========== SECTION A : HEAD & SETUP ========== -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -25,7 +24,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-<!-- ========== SECTION B : ICONES LUCIDE ========== -->
         // Icônes Lucide simplifiées
         const ChevronLeft = ({ className }) => (
             <svg className={`lucide ${className}`} viewBox="0 0 24 24">
@@ -218,7 +216,6 @@
             </svg>
         );
 
-<!-- ========== SECTION C : STATES & DONNEES ========== -->
         // Application principale
         const MemoireMekong = () => {
             const [currentPage, setCurrentPage] = React.useState(1);
@@ -305,7 +302,6 @@
                 }
             ];
 
-<!-- ========== SECTION D : FONCTIONS UTILITAIRES ========== -->
             React.useEffect(() => {
                 setNotifications([]);
                 
@@ -734,7 +730,6 @@
                 }
             };
 
-<!-- ========== SECTION E : INTERFACE PAGES 1-2 ========== -->
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
                     <div className="max-w-4xl mx-auto">
@@ -978,7 +973,6 @@
                                 </div>
                             )}
 
-<!-- ========== SECTION F : INTERFACE PAGES 3-4 ========== -->
                             {currentPage === 3 && currentSession && (
                                 <div className="space-y-6">
                                     <div className="bg-amber-50 p-4 rounded-lg">
@@ -1362,7 +1356,6 @@
                             )}
                         </div>
 
-<!-- ========== SECTION G : FOOTER & SCRIPT ========== -->
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
