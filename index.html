@@ -24,7 +24,10 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Icônes Lucide simplifiées
+        // ============================================================================
+        // SECTION B: ICONES LUCIDE - Composants SVG
+        // ============================================================================
+        
         const ChevronLeft = ({ className }) => (
             <svg className={`lucide ${className}`} viewBox="0 0 24 24">
                 <path d="m15 18-6-6 6-6"/>
@@ -216,27 +219,34 @@
             </svg>
         );
 
-        // Application principale
+        // ============================================================================
+        // SECTION C: STATES & DONNEES - useState hooks et constantes
+        // ============================================================================
+
         const MemoireMekong = () => {
+            // États principaux de navigation
             const [currentPage, setCurrentPage] = React.useState(1);
             const [selectedMode, setSelectedMode] = React.useState('');
             const [selectedUser, setSelectedUser] = React.useState('');
             const [sessions, setSessions] = React.useState([]);
             const [currentSession, setCurrentSession] = React.useState(null);
             const [selectedGame, setSelectedGame] = React.useState(null);
+            
+            // États d'interface
             const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
             const [notifications, setNotifications] = React.useState([]);
             const [showUserSelection, setShowUserSelection] = React.useState(false);
             const [showFullPage, setShowFullPage] = React.useState(false);
             const [isEditingSessionName, setIsEditingSessionName] = React.useState(false);
-            const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
             
-            // Nouvelles données Mastodon
+            // États Mastodon
+            const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
             const [mastodonData, setMastodonData] = React.useState(null);
             const [currentPostIndex, setCurrentPostIndex] = React.useState(0);
             const [searchTerm, setSearchTerm] = React.useState('');
             const [isLoadingFile, setIsLoadingFile] = React.useState(false);
 
+            // Jeux présentiel
             const presentielGames = [
                 { 
                     id: 1, 
@@ -261,6 +271,7 @@
                 }
             ];
 
+            // Jeux distanciel
             const distancielGames = [
                 { 
                     id: 4, 
@@ -285,6 +296,7 @@
                 }
             ];
 
+            // Posts Mastodon par défaut (exemples)
             const defaultMastodonPosts = [
                 {
                     id: 1,
@@ -302,6 +314,11 @@
                 }
             ];
 
+            // ============================================================================
+            // SECTION D: FONCTIONS UTILITAIRES - Logique métier
+            // ============================================================================
+
+            // Initialisation au chargement
             React.useEffect(() => {
                 setNotifications([]);
                 
@@ -327,6 +344,7 @@
                     }
                 }
                 
+                // Notifications simul»es
                 if (selectedUser === 'Lambert') {
                     setTimeout(() => {
                         setNotifications(['Tom vous a envoyé un ping sur la session']);
@@ -338,6 +356,7 @@
                 }
             }, [selectedUser]);
 
+            // Parser fichier Mastodon JSON
             const parseMastodonFile = (jsonData) => {
                 try {
                     const posts = [];
@@ -378,6 +397,7 @@
                 }
             };
 
+            // Upload fichier Mastodon
             const handleFileUpload = (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -416,6 +436,7 @@
                 reader.readAsText(file);
             };
 
+            // Obtenir posts filtrés par recherche
             const getCurrentPosts = () => {
                 if (!mastodonData?.posts) return defaultMastodonPosts;
                 
@@ -426,12 +447,14 @@
                 );
             };
 
+            // Sauvegarde sessions
             const saveSessions = (newSessions) => {
                 const validSessions = Array.isArray(newSessions) ? newSessions : [];
                 setSessions(validSessions);
                 localStorage.setItem('mekong-sessions', JSON.stringify(validSessions));
             };
 
+            // Gestion navigation et sélections
             const handleModeSelection = (mode) => {
                 setSelectedMode(mode);
                 if (mode === 'duo') {
@@ -480,6 +503,7 @@
                 setCurrentPage(3);
             };
 
+            // Gestion sessions
             const closeSession = () => {
                 if (!currentSession) return;
                 
@@ -528,13 +552,14 @@
                 setCurrentPage(1);
                 setHasUnsavedChanges(false);
                 
-                alert('🔨 Invitation envoyée à ' + otherUser + ' !');
+                alert('📨 Invitation envoyée à ' + otherUser + ' !');
             };
 
             const handleNavigation = (targetPage) => {
                 setCurrentPage(targetPage);
             };
 
+            // Gestion notes
             const addNote = () => {
                 if (!currentSession) return;
                 const newNote = {
@@ -659,6 +684,7 @@
                 setCurrentMastodonPost(posts[newIndex]);
             };
 
+            // Fonctions utilitaires d'affichage
             const getPageTitle = () => {
                 switch(currentPage) {
                     case 1: 
@@ -729,6 +755,10 @@
                     return 'Date inconnue';
                 }
             };
+
+            // ============================================================================
+            // SECTION E: INTERFACE PAGES 1-2 - Accueil et sélection
+            // ============================================================================
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
@@ -850,7 +880,7 @@
                                                     className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserColors('Tom').bg} ${getUserColors('Tom').border}`}
                                                 >
                                                     <span className="text-3xl">🐘</span>
-                                                    <span className={`font-medium text-lg ${getUserColors('Tom').text}`}>Tom l'éléphanteau</span>
+                                                    <span className={`font-medium text-lg ${getUserColors('Tom').text}`}>Tom l'éléphantau</span>
                                                 </button>
                                                 <button
                                                     onClick={() => handleUserSelection('Lambert')}
@@ -972,6 +1002,10 @@
                                     </div>
                                 </div>
                             )}
+
+            // ============================================================================
+            // SECTION F: INTERFACE PAGES 3-4 - Sessions et Mastodon
+            // ============================================================================
 
                             {currentPage === 3 && currentSession && (
                                 <div className="space-y-6">
@@ -1356,10 +1390,14 @@
                             )}
                         </div>
 
+            // ============================================================================
+            // SECTION G: FOOTER & SCRIPT - Footer et rendu React
+            // ============================================================================
+
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
-                                <span>✅ Version 8.0 • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
+                                <span>✅ Version 8.0b • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
                                 <button
                                     onClick={() => {
                                         if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées (y compris les posts Mastodon).\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
