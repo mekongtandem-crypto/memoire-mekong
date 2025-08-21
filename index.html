@@ -24,10 +24,9 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // ============================================================================
-        // SECTION B: ICONES LUCIDE - Composants SVG
-        // ============================================================================
+        // V8.0 COMPLÈTE ASSEMBLÉE - TOUTES SECTIONS INTÉGRÉES
         
+        // === SECTION B - ICONES LUCIDE ===
         const ChevronLeft = ({ className }) => (
             <svg className={`lucide ${className}`} viewBox="0 0 24 24">
                 <path d="m15 18-6-6 6-6"/>
@@ -219,28 +218,24 @@
             </svg>
         );
 
-        // ============================================================================
-        // SECTION C: STATES & DONNEES - useState hooks et constantes
-        // ============================================================================
-
+        // === SECTION C & D - COMPOSANT PRINCIPAL ===
+        //SECTION C - États et données intégrés
         const MemoireMekong = () => {
-            // États principaux de navigation
+            // États principaux
             const [currentPage, setCurrentPage] = React.useState(1);
             const [selectedMode, setSelectedMode] = React.useState('');
             const [selectedUser, setSelectedUser] = React.useState('');
             const [sessions, setSessions] = React.useState([]);
             const [currentSession, setCurrentSession] = React.useState(null);
             const [selectedGame, setSelectedGame] = React.useState(null);
-            
-            // États d'interface
             const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
             const [notifications, setNotifications] = React.useState([]);
             const [showUserSelection, setShowUserSelection] = React.useState(false);
             const [showFullPage, setShowFullPage] = React.useState(false);
             const [isEditingSessionName, setIsEditingSessionName] = React.useState(false);
+            const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
             
             // États Mastodon
-            const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
             const [mastodonData, setMastodonData] = React.useState(null);
             const [currentPostIndex, setCurrentPostIndex] = React.useState(0);
             const [searchTerm, setSearchTerm] = React.useState('');
@@ -296,7 +291,7 @@
                 }
             ];
 
-            // Posts Mastodon par défaut (exemples)
+            // Posts Mastodon par défaut
             const defaultMastodonPosts = [
                 {
                     id: 1,
@@ -314,11 +309,7 @@
                 }
             ];
 
-            // ============================================================================
-            // SECTION D: FONCTIONS UTILITAIRES - Logique métier
-            // ============================================================================
-
-            // Initialisation au chargement
+            // Effet d'initialisation
             React.useEffect(() => {
                 setNotifications([]);
                 
@@ -333,7 +324,6 @@
                     }
                 }
                 
-                // Charger les données Mastodon sauvegardées
                 const savedMastodonData = localStorage.getItem('mekong-mastodon');
                 if (savedMastodonData) {
                     try {
@@ -344,7 +334,6 @@
                     }
                 }
                 
-                // Notifications simul»es
                 if (selectedUser === 'Lambert') {
                     setTimeout(() => {
                         setNotifications(['Tom vous a envoyé un ping sur la session']);
@@ -355,8 +344,8 @@
                     }, 100);
                 }
             }, [selectedUser]);
-
-            // Parser fichier Mastodon JSON
+// === SECTION D - Fonctions utilitaires intégrées
+            // Fonctions utilitaires
             const parseMastodonFile = (jsonData) => {
                 try {
                     const posts = [];
@@ -367,11 +356,9 @@
                             const content = item.object.content;
                             const published = item.object.published;
                             
-                            // Extraire le numéro du jour du contenu (J123, J001, etc.)
                             const dayMatch = content.match(/J(\d+)/);
                             const dayNumber = dayMatch ? parseInt(dayMatch[1]) : index + 1;
                             
-                            // Nettoyer le contenu HTML
                             const tempDiv = document.createElement('div');
                             tempDiv.innerHTML = content;
                             const cleanText = tempDiv.textContent || tempDiv.innerText || '';
@@ -382,14 +369,12 @@
                                 date: published,
                                 dayNumber: dayNumber,
                                 images: item.object.attachment || [],
-                                originalIndex: orderedItems.length - index // Les posts sont dans l'ordre inverse
+                                originalIndex: orderedItems.length - index
                             });
                         }
                     });
                     
-                    // Trier par numéro de jour
                     posts.sort((a, b) => a.dayNumber - b.dayNumber);
-                    
                     return posts;
                 } catch (error) {
                     console.error('Erreur lors du parsing:', error);
@@ -397,7 +382,6 @@
                 }
             };
 
-            // Upload fichier Mastodon
             const handleFileUpload = (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -416,7 +400,6 @@
                             loadedAt: new Date().toISOString()
                         });
                         
-                        // Sauvegarder dans localStorage
                         localStorage.setItem('mekong-mastodon', JSON.stringify({
                             totalItems: jsonData.totalItems || parsedPosts.length,
                             posts: parsedPosts,
@@ -436,74 +419,49 @@
                 reader.readAsText(file);
             };
 
-            // Obtenir posts filtrés par recherche
             const getCurrentPosts = () => {
                 if (!mastodonData?.posts) return defaultMastodonPosts;
-                
                 if (!searchTerm) return mastodonData.posts;
-                
                 return mastodonData.posts.filter(post => 
                     post.text.toLowerCase().includes(searchTerm.toLowerCase())
                 );
             };
 
-            // Sauvegarde sessions
+            const navigatePost = (direction) => {
+                const posts = getCurrentPosts();
+                if (posts.length === 0) return;
+                
+                let newIndex = currentPostIndex;
+                if (direction === 'next') {
+                    newIndex = (currentPostIndex + 1) % posts.length;
+                } else if (direction === 'prev') {
+                    newIndex = currentPostIndex > 0 ? currentPostIndex - 1 : posts.length - 1;
+                }
+                
+                setCurrentPostIndex(newIndex);
+                setCurrentMastodonPost(posts[newIndex]);
+            };
+
+            const getRandomPost = () => {
+                const posts = getCurrentPosts();
+                const availablePosts = posts.filter(post => 
+                    !currentMastodonPost || post.id !== currentMastodonPost.id
+                );
+                
+                const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : posts;
+                
+                if (postsToChooseFrom.length > 0) {
+                    const randomPost = postsToChooseFrom[Math.floor(Math.random() * postsToChooseFrom.length)];
+                    setCurrentMastodonPost(randomPost);
+                }
+            };
+
             const saveSessions = (newSessions) => {
                 const validSessions = Array.isArray(newSessions) ? newSessions : [];
                 setSessions(validSessions);
                 localStorage.setItem('mekong-sessions', JSON.stringify(validSessions));
             };
 
-            // Gestion navigation et sélections
-            const handleModeSelection = (mode) => {
-                setSelectedMode(mode);
-                if (mode === 'duo') {
-                    setSelectedUser('Duo');
-                    setShowFullPage(true);
-                } else {
-                    setShowUserSelection(true);
-                }
-            };
-
-            const handleUserSelection = (user) => {
-                setSelectedUser(user);
-                setShowFullPage(true);
-            };
-
-            const resetOnboarding = () => {
-                setSelectedMode('');
-                setSelectedUser('');
-                setShowUserSelection(false);
-                setShowFullPage(false);
-                setCurrentPage(1);
-                setCurrentSession(null);
-                setSelectedGame(null);
-                setHasUnsavedChanges(false);
-                setNotifications([]);
-                setIsEditingSessionName(false);
-                setCurrentMastodonPost(null);
-                setSearchTerm('');
-            };
-
-            const selectGame = (game) => {
-                setSelectedGame(game);
-                const newSession = {
-                    id: Date.now(),
-                    mode: selectedMode,
-                    user: selectedUser,
-                    game: game,
-                    date: new Date().toISOString(),
-                    status: 'active',
-                    participants: [],
-                    notes: [],
-                    photo: null
-                };
-                
-                setCurrentSession(newSession);
-                setCurrentPage(3);
-            };
-
-            // Gestion sessions
             const closeSession = () => {
                 if (!currentSession) return;
                 
@@ -555,11 +513,15 @@
                 alert('📨 Invitation envoyée à ' + otherUser + ' !');
             };
 
-            const handleNavigation = (targetPage) => {
-                setCurrentPage(targetPage);
+            const openSession = (session) => {
+                setShowFullPage(true);
+                setSelectedMode(session.mode);
+                setSelectedGame(session.game);
+                setCurrentSession(session);
+                setHasUnsavedChanges(false);
+                setCurrentPage(3);
             };
 
-            // Gestion notes
             const addNote = () => {
                 if (!currentSession) return;
                 const newNote = {
@@ -618,6 +580,58 @@
                 setHasUnsavedChanges(true);
             };
 
+            const handleModeSelection = (mode) => {
+                setSelectedMode(mode);
+                if (mode === 'duo') {
+                    setSelectedUser('Duo');
+                    setShowFullPage(true);
+                } else {
+                    setShowUserSelection(true);
+                }
+            };
+
+            const handleUserSelection = (user) => {
+                setSelectedUser(user);
+                setShowFullPage(true);
+            };
+
+            const resetOnboarding = () => {
+                setSelectedMode('');
+                setSelectedUser('');
+                setShowUserSelection(false);
+                setShowFullPage(false);
+                setCurrentPage(1);
+                setCurrentSession(null);
+                setSelectedGame(null);
+                setHasUnsavedChanges(false);
+                setNotifications([]);
+                setIsEditingSessionName(false);
+                setCurrentMastodonPost(null);
+                setSearchTerm('');
+            };
+
+            const selectGame = (game) => {
+                setSelectedGame(game);
+                const newSession = {
+                    id: Date.now(),
+                    mode: selectedMode,
+                    user: selectedUser,
+                    game: game,
+                    date: new Date().toISOString(),
+                    status: 'active',
+                    participants: [],
+                    notes: [],
+                    photo: null
+                };
+                
+                setCurrentSession(newSession);
+                setCurrentPage(3);
+            };
+
+            const handleNavigation = (targetPage) => {
+                setCurrentPage(targetPage);
+            };
+
             const updateSessionName = (newName) => {
                 if (!currentSession) return;
                 
@@ -629,23 +643,6 @@
                 setIsEditingSessionName(false);
             };
 
-            const getSessionDisplayName = (session) => {
-                return session.customName || session.game?.title || 'Session sans nom';
-            };
-
-            const openSession = (session) => {
-                setShowFullPage(true);
-                setSelectedMode(session.mode);
-                setSelectedGame(session.game);
-                setCurrentSession(session);
-                setHasUnsavedChanges(false);
-                setCurrentPage(3);
-            };
-
-            const exportToGoogleDocs = () => {
-                alert('🚧 Export vers Google Docs - À venir dans la prochaine version !');
-            };
-
             const openMemoryPage = () => {
                 setCurrentPage(4);
                 const posts = getCurrentPosts();
@@ -655,36 +652,14 @@
                 }
             };
 
-            const getRandomPost = () => {
-                const posts = getCurrentPosts();
-                const availablePosts = posts.filter(post => 
-                    !currentMastodonPost || post.id !== currentMastodonPost.id
-                );
-                
-                const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : posts;
-                
-                if (postsToChooseFrom.length > 0) {
-                    const randomPost = postsToChooseFrom[Math.floor(Math.random() * postsToChooseFrom.length)];
-                    setCurrentMastodonPost(randomPost);
-                }
+            const exportToGoogleDocs = () => {
+                alert('🚧 Export vers Google Docs - À venir dans la prochaine version !');
             };
 
-            const navigatePost = (direction) => {
-                const posts = getCurrentPosts();
-                if (posts.length === 0) return;
-                
-                let newIndex = currentPostIndex;
-                if (direction === 'next') {
-                    newIndex = (currentPostIndex + 1) % posts.length;
-                } else if (direction === 'prev') {
-                    newIndex = currentPostIndex > 0 ? currentPostIndex - 1 : posts.length - 1;
-                }
-                
-                setCurrentPostIndex(newIndex);
-                setCurrentMastodonPost(posts[newIndex]);
+            const getSessionDisplayName = (session) => {
+                return session.customName || session.game?.title || 'Session sans nom';
             };
 
-            // Fonctions utilitaires d'affichage
             const getPageTitle = () => {
                 switch(currentPage) {
                     case 1: 
@@ -756,10 +731,7 @@
                 }
             };
 
-            // ============================================================================
-            // SECTION E: INTERFACE PAGES 1-2 - Accueil et sélection
-            // ============================================================================
-
+            // === SECTIONS E & F - INTERFACE COMPLÈTE ===
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
                     <div className="max-w-4xl mx-auto">
@@ -828,6 +800,7 @@
                             )}
                         </div>
 
+                        {/* Notifications */}
                         {currentPage === 1 && showFullPage && notifications.length > 0 && (
                             <div className="mb-4">
                                 {notifications.map((notif, idx) => (
@@ -840,6 +813,7 @@
 
                         <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
                             
+                            {/* PAGE 1 - SÉLECTION MODE ET UTILISATEUR */}
                             {currentPage === 1 && !showFullPage && (
                                 <div className="space-y-8">
                                     
@@ -894,7 +868,8 @@
                                     )}
                                 </div>
                             )}
-
+{/* SECTION E - Pages 1-2 (accueil, jeux) intégrées */}
+                            {/* PAGE 1 - SESSIONS PRÉCÉDENTES */}
                             {currentPage === 1 && showFullPage && (
                                 <div className="space-y-6">
                                     <div className="space-y-3">
@@ -956,6 +931,7 @@
                                 </div>
                             )}
 
+                            {/* PAGE 2 - SÉLECTION DES JEUX */}
                             {currentPage === 2 && (
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-center">
@@ -1002,11 +978,8 @@
                                     </div>
                                 </div>
                             )}
-
-            // ============================================================================
-            // SECTION F: INTERFACE PAGES 3-4 - Sessions et Mastodon
-            // ============================================================================
-
+ {/* SECTION F - Pages 3-4 (sessions, Mastodon) intégrées */}
+                            {/* PAGE 3 - SESSION ACTIVE */}
                             {currentPage === 3 && currentSession && (
                                 <div className="space-y-6">
                                     <div className="bg-amber-50 p-4 rounded-lg">
@@ -1192,6 +1165,7 @@
                                 </div>
                             )}
 
+                            {/* PAGE 4 - SOUVENIRS MASTODON */}
                             {currentPage === 4 && (
                                 <div className="space-y-6">
                                     {/* Section Upload/Info */}
@@ -1388,12 +1362,10 @@
                                     )}
                                 </div>
                             )}
+
                         </div>
 
-            // ============================================================================
-            // SECTION G: FOOTER & SCRIPT - Footer et rendu React
-            // ============================================================================
-
+                        {/* SECTION G - FOOTER et rendu React intégrés */}
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
@@ -1419,9 +1391,9 @@
                     </div>
                 </div>
             );
-        };
+        }; // Fin du composant MemoireMekong
 
-        // Rendu de l'application avec React 18
+        // === RENDU REACT 18 ===
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
     </script>
