@@ -236,6 +236,7 @@
             const [currentPostIndex, setCurrentPostIndex] = React.useState(0);
             const [searchTerm, setSearchTerm] = React.useState('');
             const [isLoadingFile, setIsLoadingFile] = React.useState(false);
+            const [googlePhotos, setGooglePhotos] = React.useState({});
 
             const presentielGames = [
                 { 
@@ -414,6 +415,28 @@
                 };
                 
                 reader.readAsText(file);
+                };
+
+            const handlePhotosUpload = (event) => {
+                const files = event.target.files;
+                if (!files) return;
+                
+                const newPhotos = {};
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const dayMatch = file.name.match(/J(\d+)/);
+                    if (dayMatch) {
+                        const day = parseInt(dayMatch[1]);
+                        newPhotos[day] = newPhotos[day] || [];
+                        newPhotos[day].push({
+                            url: URL.createObjectURL(file),
+                            name: file.name
+                        });
+                    }
+                }
+                setGooglePhotos(newPhotos);
+                alert(`✅ ${files.length} photos chargées !`);
+            };
             };
 
             const getCurrentPosts = () => {
@@ -1186,6 +1209,18 @@
                                                 </div>
                                             </div>
                                         </div>
+                                    <div className="mt-4 text-center">
+                                        <label className="px-4 py-2 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg cursor-pointer">
+                                            📸 Ajouter photos
+                                            <input 
+                                                type="file" 
+                                                multiple
+                                                onChange={handlePhotosUpload}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    </div>
+</div>
                                     )}
 
                                     {/* Section navigation et recherche */}
@@ -1359,7 +1394,7 @@
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
-                                <span>✅ Version 8.0 • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
+                                <span>✅ Version 9.0a • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
                                 <button
                                     onClick={() => {
                                         if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées (y compris les posts Mastodon).\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
