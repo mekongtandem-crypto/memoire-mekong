@@ -349,7 +349,7 @@
                     
                     // Extraction du jour depuis le chemin du fichier
                     const path = file.webkitRelativePath || file.name;
-                    const folderMatch = path.match(/J(\d+)[^\/]*\//);
+                    const folderMatch = path.match(/(\d+)[^\/]*\//);
                     
                     if (folderMatch) {
                         const dayNumber = parseInt(folderMatch[1]);
@@ -1538,9 +1538,8 @@
                                     </div>
                                 </div>
                             )}
-///////////////// V8.0 PARTIE 3 - PAGE 4 + FOOTER + FIN
-// V8.0 PARTIE 3 - PAGE 4 + FOOTER + FIN
-                            // À COLLER APRÈS LA PARTIE 2
+                            
+
 
                             {/* PAGE 4 - SOUVENIRS MASTODON */}
                             {currentPage === 4 && (
