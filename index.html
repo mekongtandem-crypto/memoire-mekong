@@ -342,40 +342,121 @@
 
             // Traitement upload Google Photos par dossiers
             const processGooglePhotosUpload = (files) => {
-                const photosByDay = {};
-                
-                Array.from(files).forEach(file => {
-                    if (!file.type.startsWith('image/')) return;
-                    
-                    // Extraction du jour depuis le chemin du fichier
-                    const path = file.webkitRelativePath || file.name;
-                    const folderMatch = path.match(/(\d+)[^\/]*\//);
-                    
-                    if (folderMatch) {
-                        const dayNumber = parseInt(folderMatch[1]);
-                        if (!photosByDay[dayNumber]) {
-                            photosByDay[dayNumber] = [];
-                        }
-                        
-                        const photoData = {
-                            id: `google_${Date.now()}_${Math.random()}`,
-                            file: file,
-                            url: createPhotoURL(file),
-                            name: file.name,
-                            size: file.size,
-                            type: 'google',
-                            dayNumber: dayNumber,
-                            uploadedAt: new Date().toISOString()
-                        };
-                        
-                        if (photoData.url) {
-                            photosByDay[dayNumber].push(photoData);
-                        }
-                    }
-                });
-                
-                return photosByDay;
+    const photosByDay = {};
+    
+    Array.from(files).forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        
+        // Extraction du jour depuis le chemin du fichier
+        const path = file.webkitRelativePath || file.name;
+        const folderMatch = path.match(/(\d+)[^\/]*\//);
+        
+        if (folderMatch) {
+            const dayNumber = parseInt(folderMatch[1]);
+            if (!photosByDay[dayNumber]) {
+                photosByDay[dayNumber] = [];
+            }
+            
+            const photoData = {
+                id: `google_${Date.now()}_${Math.random()}`,
+                file: file, // Gardé pour référence
+                url: createPhotoURL(file), // URL temporaire pour affichage immédiat
+                path: path, // NOUVEAU : Chemin relatif persistant
+                name: file.name,
+                size: file.size,
+                type: 'google',
+                dayNumber: dayNumber,
+                uploadedAt: new Date().toISOString(),
+                folderName: path.split('/')[0] // Ex: "025-Luang-Prabang"
             };
+            
+            if (photoData.url) {
+                photosByDay[dayNumber].push(photoData);
+            }
+        }
+    });
+    
+    return photosByDay;
+};
+
+// 2. NOUVELLE fonction de sauvegarde améliorée :
+
+const savePhotosToStorage = () => {
+    try {
+        // Sauvegarde métadonnées Google Photos AVEC chemins
+        const googleMeta = {};
+        Object.entries(googlePhotos).forEach(([day, photos]) => {
+            googleMeta[day] = photos.map(photo => ({
+                id: photo.id,
+                name: photo.name,
+                size: photo.size,
+                type: photo.type,
+                dayNumber: photo.dayNumber,
+                uploadedAt: photo.uploadedAt,
+                path: photo.path, // NOUVEAU : Chemin sauvé
+                folderName: photo.folderName // NOUVEAU : Nom dossier
+                // url n'est PAS sauvegardée (temporaire)
+            }));
+        });
+        
+        localStorage.setItem('mekong-google-photos-meta', JSON.stringify(googleMeta));
+        localStorage.setItem('mekong-mastodon-photos', JSON.stringify(mastodonPhotos));
+        
+        // NOUVEAU : Sauvegarde statistiques pour affichage
+        const stats = getPhotoStats();
+        localStorage.setItem('mekong-photos-stats', JSON.stringify({
+            ...stats,
+            lastUpload: new Date().toISOString(),
+            foldersList: Object.values(googleMeta).flat().map(p => p.folderName).filter((v, i, a) => a.indexOf(v) === i)
+        }));
+        
+    } catch (error) {
+        console.error('Erreur sauvegarde photos:', error);
+    }
+};
+
+// 3. NOUVELLE fonction de re-linkage au démarrage :
+
+const relinkPhotosOnStartup = (files) => {
+    const savedMeta = localStorage.getItem('mekong-google-photos-meta');
+    if (!savedMeta) return false;
+    
+    try {
+        const meta = JSON.parse(savedMeta);
+        const photosByDay = {};
+        
+        // Index des fichiers uploadés par chemin
+        const filesByPath = {};
+        Array.from(files).forEach(file => {
+            const path = file.webkitRelativePath || file.name;
+            filesByPath[path] = file;
+        });
+        
+        // Re-création des objets photos avec nouvelles URLs
+        Object.entries(meta).forEach(([day, photosMetadata]) => {
+            photosByDay[day] = [];
+            
+            photosMetadata.forEach(photoMeta => {
+                const matchingFile = filesByPath[photoMeta.path];
+                if (matchingFile) {
+                    const reconstructedPhoto = {
+                        ...photoMeta,
+                        file: matchingFile,
+                        url: createPhotoURL(matchingFile) // Nouvelle URL temporaire
+                    };
+                    photosByDay[day].push(reconstructedPhoto);
+                }
+            });
+        });
+        
+        setGooglePhotos(photosByDay);
+        return true;
+        
+    } catch (error) {
+        console.error('Erreur re-linkage photos:', error);
+        return false;
+    }
+};
 
             // Traitement photos Mastodon depuis outbox.json
             const processMastodonPhotos = (mastodonData) => {
@@ -684,36 +765,56 @@
 
             // === AJOUT PHOTOS - FONCTIONS DE GESTION ===
             
-            // Gestion upload Google Photos par dossiers
-            const handleGooglePhotosUpload = (event) => {
-                const files = event.target.files;
-                if (!files || files.length === 0) return;
-                
-                setIsUploadingPhotos(true);
-                setPhotoUploadProgress(0);
-                
-                try {
-                    const processed = processGooglePhotosUpload(files);
-                    const dayCount = Object.keys(processed).length;
-                    const photoCount = Object.values(processed).reduce((total, photos) => total + photos.length, 0);
-                    
-                    // Merge avec les photos existantes
-                    setGooglePhotos(prev => ({
-                        ...prev,
-                        ...processed
-                    }));
-                    
-                    setPhotoUploadProgress(100);
-                    alert(`✅ ${photoCount} photos chargées pour ${dayCount} jours !`);
-                    
-                } catch (error) {
-                    console.error('Erreur upload photos:', error);
-                    alert('❌ Erreur lors du chargement des photos');
-                } finally {
-                    setIsUploadingPhotos(false);
-                    setTimeout(() => setPhotoUploadProgress(0), 1000);
-                }
-            };
+            // 4. MODIFIER handleGooglePhotosUpload pour différencier premier upload / re-link :
+
+const handleGooglePhotosUpload = (event, isRelink = false) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploadingPhotos(true);
+    setPhotoUploadProgress(0);
+    
+    try {
+        if (isRelink) {
+            // Mode re-linkage : utilise métadonnées existantes
+            const success = relinkPhotosOnStartup(files);
+            if (success) {
+                const stats = getPhotoStats();
+                setPhotoUploadProgress(100);
+                alert(`✅ ${stats.google} photos re-linkées avec succès !`);
+            } else {
+                throw new Error('Échec re-linkage');
+            }
+        } else {
+            // Mode normal : nouvel upload
+            const processed = processGooglePhotosUpload(files);
+            const dayCount = Object.keys(processed).length;
+            const photoCount = Object.values(processed).reduce((total, photos) => total + photos.length, 0);
+            
+            setGooglePhotos(prev => ({
+                ...prev,
+                ...processed
+            }));
+            
+            setPhotoUploadProgress(100);
+            alert(`✅ ${photoCount} photos chargées pour ${dayCount} jours !`);
+        }
+        
+    } catch (error) {
+        console.error('Erreur upload photos:', error);
+        alert('❌ Erreur lors du chargement des photos');
+    } finally {
+        setIsUploadingPhotos(false);
+        setTimeout(() => setPhotoUploadProgress(0), 1000);
+    }
+};
+
+// 5. NOUVELLE fonction de détection photos existantes :
+
+const hasExistingPhotos = () => {
+    const savedStats = localStorage.getItem('mekong-photos-stats');
+    return savedStats ? JSON.parse(savedStats) : null;
+};
 
             // Ouverture photo en plein écran
             const openPhotoFullscreen = (photo) => {
@@ -1669,81 +1770,153 @@
                                         </div>
                                     )}
 
-                                    {/* === SECTION UPLOAD PHOTOS GOOGLE - NOUVEAU === */}
-                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-                                        <div className="space-y-4">
-                                            <h3 className="text-lg font-semibold text-green-900 flex items-center space-x-2">
-                                                <Camera className="w-6 h-6" />
-                                                <span>Photos Google Photos</span>
-                                            </h3>
-                                            
-                                            {/* Statistiques photos */}
-                                            {(() => {
-                                                const stats = getPhotoStats();
-                                                return (
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                                        <div className="bg-white p-3 rounded-lg border border-green-200">
-                                                            <div className="text-2xl font-bold text-green-700">{stats.google}</div>
-                                                            <div className="text-xs text-green-600">Google Photos</div>
-                                                        </div>
-                                                        <div className="bg-white p-3 rounded-lg border border-blue-200">
-                                                            <div className="text-2xl font-bold text-blue-700">{stats.mastodon}</div>
-                                                            <div className="text-xs text-blue-600">Photos Mastodon</div>
-                                                        </div>
-                                                        <div className="bg-white p-3 rounded-lg border border-amber-200">
-                                                            <div className="text-2xl font-bold text-amber-700">{stats.total}</div>
-                                                            <div className="text-xs text-amber-600">Total photos</div>
-                                                        </div>
-                                                        <div className="bg-white p-3 rounded-lg border border-purple-200">
-                                                            <div className="text-2xl font-bold text-purple-700">{stats.days}</div>
-                                                            <div className="text-xs text-purple-600">Jours couverts</div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
-                                            
-                                            {/* Upload progress */}
-                                            {isUploadingPhotos && (
-                                                <div className="bg-white p-4 rounded-lg border border-green-200">
-                                                    <div className="flex items-center space-x-3 mb-2">
-                                                        <RefreshCw className="w-5 h-5 text-green-600 animate-spin" />
-                                                        <span className="text-green-800 font-medium">Upload en cours...</span>
-                                                    </div>
-                                                    <div className="w-full bg-green-200 rounded-full h-2">
-                                                        <div 
-                                                            className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                                                            style={{ width: `${photoUploadProgress}%` }}
-                                                        ></div>
-                                                    </div>
-                                                    <div className="text-right text-sm text-green-600 mt-1">{photoUploadProgress}%</div>
-                                                </div>
-                                            )}
-                                            
-                                            {/* Bouton upload */}
-                                            <div className="text-center">
-                                                <p className="text-green-700 mb-3">
-                                                    Sélectionnez vos dossiers <code className="bg-green-100 px-2 py-1 rounded">J001-Lieu</code>, <code className="bg-green-100 px-2 py-1 rounded">J002-Lieu</code>...
-                                                </p>
-                                                <label className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg cursor-pointer transition-colors">
-                                                    <Upload className="w-5 h-5" />
-                                                    <span>{isUploadingPhotos ? 'Upload...' : 'Choisir dossiers photos'}</span>
-                                                    <input 
-                                                        type="file" 
-                                                        multiple
-                                                        webkitdirectory="true"
-                                                        directory="true"
-                                                        onChange={handleGooglePhotosUpload}
-                                                        className="hidden"
-                                                        disabled={isUploadingPhotos}
-                                                        accept="image/*"
-                                                    />
-                                                </label>
-                                                <p className="text-xs text-green-600 mt-2">
-                                                    💡 Maintenez Ctrl/Cmd pour sélectionner plusieurs dossiers
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    /* === SECTION UPLOAD PHOTOS GOOGLE AMÉLIORÉE === */}
+<div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
+    <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-green-900 flex items-center space-x-2">
+            <Camera className="w-6 h-6" />
+            <span>Photos Google Photos</span>
+        </h3>
+        
+        {/* Détection photos existantes */}
+        {(() => {
+            const existingStats = hasExistingPhotos();
+            const currentStats = getPhotoStats();
+            
+            // Si on a des photos existantes sauvées mais pas chargées
+            if (existingStats && currentStats.google === 0) {
+                return (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                            <div className="text-yellow-600">⚠️</div>
+                            <div className="flex-1">
+                                <h4 className="font-medium text-yellow-800 mb-2">
+                                    Photos précédemment chargées détectées
+                                </h4>
+                                <p className="text-yellow-700 text-sm mb-3">
+                                    {existingStats.google} photos dans {existingStats.foldersList?.length || 0} dossiers 
+                                    (dernier upload : {new Date(existingStats.lastUpload).toLocaleDateString('fr-FR')})
+                                </p>
+                                <div className="flex space-x-2">
+                                    <label className="px-4 py-2 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded cursor-pointer text-sm">
+                                        🔗 Re-lier photos existantes
+                                        <input 
+                                            type="file" 
+                                            multiple
+                                            webkitdirectory="true"
+                                            onChange={(e) => handleGooglePhotosUpload(e, true)}
+                                            className="hidden"
+                                            accept="image/*"
+                                        />
+                                    </label>
+                                    <label className="px-4 py-2 bg-green-200 hover:bg-green-300 text-green-800 rounded cursor-pointer text-sm">
+                                        📁 Ajouter nouveaux dossiers
+                                        <input 
+                                            type="file" 
+                                            multiple
+                                            webkitdirectory="true"
+                                            onChange={(e) => handleGooglePhotosUpload(e, false)}
+                                            className="hidden"
+                                            accept="image/*"
+                                        />
+                                    </label>
+                                </div>
+                                <p className="text-xs text-yellow-600 mt-2">
+                                    💡 Re-sélectionnez vos dossiers OneDrive pour restaurer l'accès aux photos
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return null;
+        })()}
+        
+        {/* Statistiques photos */}
+        {(() => {
+            const stats = getPhotoStats();
+            return (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="bg-white p-3 rounded-lg border border-green-200">
+                        <div className="text-2xl font-bold text-green-700">{stats.google}</div>
+                        <div className="text-xs text-green-600">Google Photos</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-blue-200">
+                        <div className="text-2xl font-bold text-blue-700">{stats.mastodon}</div>
+                        <div className="text-xs text-blue-600">Photos Mastodon</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-amber-200">
+                        <div className="text-2xl font-bold text-amber-700">{stats.total}</div>
+                        <div className="text-xs text-amber-600">Total photos</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-purple-200">
+                        <div className="text-2xl font-bold text-purple-700">{stats.days}</div>
+                        <div className="text-xs text-purple-600">Jours couverts</div>
+                    </div>
+                </div>
+            );
+        })()}
+        
+        {/* Upload progress */}
+        {isUploadingPhotos && (
+            <div className="bg-white p-4 rounded-lg border border-green-200">
+                <div className="flex items-center space-x-3 mb-2">
+                    <RefreshCw className="w-5 h-5 text-green-600 animate-spin" />
+                    <span className="text-green-800 font-medium">
+                        {(() => {
+                            const existingStats = hasExistingPhotos();
+                            return existingStats && getPhotoStats().google === 0 
+                                ? "Re-linkage en cours..." 
+                                : "Upload en cours...";
+                        })()}
+                    </span>
+                </div>
+                <div className="w-full bg-green-200 rounded-full h-2">
+                    <div 
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${photoUploadProgress}%` }}
+                    ></div>
+                </div>
+                <div className="text-right text-sm text-green-600 mt-1">{photoUploadProgress}%</div>
+            </div>
+        )}
+        
+        {/* Bouton upload (seulement si pas de photos existantes non-linkées) */}
+        {(() => {
+            const existingStats = hasExistingPhotos();
+            const currentStats = getPhotoStats();
+            
+            if (existingStats && currentStats.google === 0) {
+                return null; // Masqué si on a des photos à re-lier
+            }
+            
+            return (
+                <div className="text-center">
+                    <p className="text-green-700 mb-3">
+                        Sélectionnez vos dossiers <code className="bg-green-100 px-2 py-1 rounded">001-Lieu</code>, <code className="bg-green-100 px-2 py-1 rounded">025-Lieu</code>...
+                    </p>
+                    <label className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg cursor-pointer transition-colors">
+                        <Upload className="w-5 h-5" />
+                        <span>{isUploadingPhotos ? 'Upload...' : 'Choisir dossiers photos'}</span>
+                        <input 
+                            type="file" 
+                            multiple
+                            webkitdirectory="true"
+                            onChange={(e) => handleGooglePhotosUpload(e, false)}
+                            className="hidden"
+                            disabled={isUploadingPhotos}
+                            accept="image/*"
+                        />
+                    </label>
+                    <p className="text-xs text-green-600 mt-2">
+                        💡 Maintenez Ctrl/Cmd pour sélectionner plusieurs dossiers
+                    </p>
+                </div>
+            );
+        })()}
+    </div>
+</div>
 
                                     {/* === SECTION NAVIGATION ET FILTRES PHOTOS - NOUVEAU === */}
                                     {(getPhotoStats().total > 0) && (
@@ -2144,7 +2317,7 @@
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
-                                <span>✅ Version 8.3d • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
+                                <span>✅ Version 8.4 • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
                                 <button
                                     onClick={() => {
                                         if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées (y compris les posts Mastodon).\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
