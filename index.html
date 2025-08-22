@@ -433,7 +433,39 @@ const [photoFilters, setPhotoFilters] = React.useState({
                 
                 reader.readAsText(file);
             };
+            
+// Fonction d'upload Google Photos (à ajouter avec les autres fonctions utilitaires)
+const handleGooglePhotosUpload = (event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploadingPhotos(true);
+    setPhotoUploadProgress(0);
+    
+    try {
+        const processed = processGooglePhotosUpload(files);
+        const dayCount = Object.keys(processed).length;
+        const photoCount = Object.values(processed).reduce((total, photos) => total + photos.length, 0);
+        
+        // Merge avec les photos existantes
+        setGooglePhotos(prev => ({
+            ...prev,
+            ...processed
+        }));
+        
+        setPhotoUploadProgress(100);
+        alert(`✅ ${photoCount} photos chargées pour ${dayCount} jours !`);
+        
+    } catch (error) {
+        console.error('Erreur upload photos:', error);
+        alert('❌ Erreur lors du chargement des photos');
+    } finally {
+        setIsUploadingPhotos(false);
+        setTimeout(() => setPhotoUploadProgress(0), 1000);
+    }
+};
 
+            
 // Utilitaires photos (à ajouter après les fonctions utilitaires existantes)
 
 const extractDayFromFolderName = (folderName) => {
@@ -1449,40 +1481,7 @@ React.useEffect(() => {
                                         </div>
                                     )}
 
-                                    // === AJOUT-2 : COMPOSANT UPLOAD PHOTOS ===
-// À insérer dans le JSX de la V8.0, dans la PAGE 4 - SOUVENIRS MASTODON
-// Juste après la section "Upload/Info" existante (ligne ~600)
-
-// Fonction d'upload Google Photos (à ajouter avec les autres fonctions utilitaires)
-const handleGooglePhotosUpload = (event) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    setIsUploadingPhotos(true);
-    setPhotoUploadProgress(0);
-    
-    try {
-        const processed = processGooglePhotosUpload(files);
-        const dayCount = Object.keys(processed).length;
-        const photoCount = Object.values(processed).reduce((total, photos) => total + photos.length, 0);
-        
-        // Merge avec les photos existantes
-        setGooglePhotos(prev => ({
-            ...prev,
-            ...processed
-        }));
-        
-        setPhotoUploadProgress(100);
-        alert(`✅ ${photoCount} photos chargées pour ${dayCount} jours !`);
-        
-    } catch (error) {
-        console.error('Erreur upload photos:', error);
-        alert('❌ Erreur lors du chargement des photos');
-    } finally {
-        setIsUploadingPhotos(false);
-        setTimeout(() => setPhotoUploadProgress(0), 1000);
-    }
-};
+                                
 
 // JSX à insérer dans PAGE 4, après la section upload Mastodon existante :
 
