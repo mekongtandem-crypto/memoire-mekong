@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2.1</title>
+    <title>🐘 Mémoire du Mékong V0.2.2</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -176,6 +176,16 @@
             }
         };
 
+        // ===== SESSION HELPERS =====
+        const getGameIcon = (gameId) => {
+            const game = GAMES.find(g => g.id === gameId);
+            return game?.icon || BookOpen; // Fallback si jeu non trouvé
+        };
+
+        const getGameById = (gameId) => {
+            return GAMES.find(g => g.id === gameId);
+        };
+
         // ===== SESSION HOOKS =====
         const useSessionState = () => {
             const [currentSession, setCurrentSession] = React.useState(null);
@@ -191,7 +201,6 @@
                     id: Date.now(),
                     gameId: game.id,
                     gameTitle: game.title,
-                    gameIcon: game.icon,
                     gameDescription: game.description,
                     gameDuration: game.duration,
                     user: user,
@@ -200,6 +209,7 @@
                     status: 'active',
                     notes: [], // S'assurer que notes est toujours un tableau
                     participants: [user]
+                    // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
                 };
                 
                 SessionStorage.saveSession(newSession);
@@ -236,7 +246,8 @@
                 sessions,
                 createSession,
                 updateSession,
-                deleteSession
+                deleteSession,
+                getGameIcon // Exposer la fonction helper
             };
         };
 
@@ -385,7 +396,8 @@
                 sessions,
                 createSession,
                 updateSession,
-                deleteSession
+                deleteSession,
+                getGameIcon
             } = useSessionState();
 
             const [newMessageContent, setNewMessageContent] = React.useState('');
@@ -639,7 +651,7 @@
 
             // Vue: Session active
             if (sessionView === 'active' && currentSession) {
-                const IconComponent = currentSession.gameIcon;
+                const IconComponent = getGameIcon(currentSession.gameId);
                 return (
                     <div className="flex flex-col h-screen max-h-[80vh] fade-in">
                         {/* Header */}
@@ -906,7 +918,7 @@
                         {/* Header */}
                         <div className="text-center mb-6">
                             <h1 className="text-4xl font-bold text-amber-900 mb-2">🐘 Mémoire du Mékong</h1>
-                            <p className="text-amber-700">V0.2.1 • Interface chat + Bug fixes • 23 août 2025</p>
+                            <p className="text-amber-700">V0.2.2 • Bug page blanche corrigé • 23 août 2025</p>
                         </div>
 
                         {/* Navigation */}
@@ -935,7 +947,7 @@
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <p className="text-xs opacity-75 mt-1">
-                                ✅ Core + Navigation + Interface Chat • ⏳ Photos + Mastodon
+                                ✅ Bug page blanche corrigé • ⏳ Photos + Mastodon
                             </p>
                         </div>
                     </div>
