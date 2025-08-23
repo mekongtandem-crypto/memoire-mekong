@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2.2</title>
+    <title>🐘 Mémoire du Mékong V0.2.3</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -178,9 +178,25 @@
 
         // ===== SESSION HELPERS =====
         const getGameIcon = (gameId) => {
-            if (!gameId) return BookOpen; // Sécurité si gameId undefined
+            if (!gameId || typeof gameId !== 'number') {
+                console.log('getGameIcon: gameId invalide', gameId);
+                return BookOpen; // Sécurité si gameId undefined/invalide
+            }
             const game = GAMES.find(g => g.id === gameId);
-            return game?.icon || BookOpen; // Fallback si jeu non trouvé
+            if (!game) {
+                console.log('getGameIcon: jeu non trouvé pour gameId', gameId);
+                return BookOpen;
+            }
+            return game.icon;
+        };
+
+        const renderGameIcon = (gameId, className = "w-6 h-6 text-amber-600") => {
+            const IconComponent = getGameIcon(gameId);
+            if (!IconComponent || typeof IconComponent !== 'function') {
+                console.log('renderGameIcon: IconComponent invalide', IconComponent, 'pour gameId', gameId);
+                return React.createElement(BookOpen, { className });
+            }
+            return React.createElement(IconComponent, { className });
         };
 
         const getGameById = (gameId) => {
@@ -198,12 +214,19 @@
             }, []);
 
             const createSession = (game, user) => {
+                console.log('createSession appelée avec:', { game, user });
+                
+                if (!game || !game.id) {
+                    console.error('createSession: jeu invalide', game);
+                    return;
+                }
+                
                 const newSession = {
                     id: Date.now(),
-                    gameId: game.id,
-                    gameTitle: game.title,
-                    gameDescription: game.description,
-                    gameDuration: game.duration,
+                    gameId: Number(game.id), // S'assurer que c'est un nombre
+                    gameTitle: game.title || 'Titre inconnu',
+                    gameDescription: game.description || 'Description inconnue',
+                    gameDuration: game.duration || 'Durée inconnue',
                     user: user,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
@@ -212,6 +235,8 @@
                     participants: [user]
                     // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
                 };
+                
+                console.log('Nouvelle session créée:', newSession);
                 
                 SessionStorage.saveSession(newSession);
                 setSessions(SessionStorage.getSessions());
@@ -248,7 +273,8 @@
                 createSession,
                 updateSession,
                 deleteSession,
-                getGameIcon // Exposer la fonction helper
+                getGameIcon, // Exposer la fonction helper
+                renderGameIcon // Exposer la fonction de rendu sécurisée
             };
         };
 
@@ -398,7 +424,8 @@
                 createSession,
                 updateSession,
                 deleteSession,
-                getGameIcon
+                getGameIcon,
+                renderGameIcon
             } = useSessionState();
 
             const [newMessageContent, setNewMessageContent] = React.useState('');
@@ -507,10 +534,20 @@
             };
 
             const closeSession = () => {
+                console.log('closeSession appelée pour session:', currentSession?.id);
+                
+                if (!currentSession) {
+                    console.warn('closeSession: aucune session courante');
+                    return;
+                }
+                
                 const updatedSession = {
                     ...currentSession,
                     status: 'completed'
                 };
+                
+                console.log('Session à fermer:', updatedSession);
+                
                 updateSession(updatedSession);
                 setSessionView('list');
             };
@@ -652,7 +689,6 @@
 
             // Vue: Session active
             if (sessionView === 'active' && currentSession) {
-                const IconComponent = getGameIcon(currentSession.gameId);
                 return (
                     <div className="flex flex-col h-screen max-h-[80vh] fade-in">
                         {/* Header */}
@@ -669,16 +705,16 @@
                         {/* Session Header */}
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex-shrink-0">
                             <div className="flex items-start space-x-3">
-                                <IconComponent className="w-8 h-8 text-amber-600 flex-shrink-0" />
+                                {renderGameIcon(currentSession.gameId, "w-8 h-8 text-amber-600")}
                                 <div className="flex-1">
                                     <h2 className="text-lg font-bold text-amber-900 mb-1">
-                                        {currentSession.gameTitle}
+                                        {currentSession.gameTitle || 'Session sans titre'}
                                     </h2>
                                     <p className="text-amber-700 text-sm mb-2">
-                                        {currentSession.gameDescription}
+                                        {currentSession.gameDescription || 'Aucune description'}
                                     </p>
                                     <div className="flex items-center space-x-3 text-xs text-amber-600">
-                                        <span>{currentSession.gameDuration}</span>
+                                        <span>{currentSession.gameDuration || 'Durée inconnue'}</span>
                                         <span>•</span>
                                         <span>{formatDate(currentSession.createdAt)}</span>
                                     </div>
@@ -938,7 +974,7 @@
                         {/* Header */}
                         <div className="text-center mb-6">
                             <h1 className="text-4xl font-bold text-amber-900 mb-2">🐘 Mémoire du Mékong</h1>
-                            <p className="text-amber-700">V0.2.2 • Bug page blanche corrigé • 23 août 2025</p>
+                            <p className="text-amber-700">V0.2.3 • Debug approfondi • 23 août 2025</p>
                         </div>
 
                         {/* Navigation */}
@@ -967,7 +1003,7 @@
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <p className="text-xs opacity-75 mt-1">
-                                ✅ Bug page blanche corrigé • ⏳ Photos + Mastodon
+                                ✅ Debug renforcé + Logs console • ⏳ Photos + Mastodon
                             </p>
                         </div>
                     </div>
