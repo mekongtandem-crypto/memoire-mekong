@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2</title>
+    <title>🐘 Mémoire du Mékong V0.2.1</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -39,6 +39,7 @@
         const Pause = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>;
         const ArrowLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>;
         const Send = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
+        const Trash2 = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
 
         // ===== CORE STORAGE =====
         const Storage = {
@@ -197,7 +198,7 @@
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     status: 'active',
-                    notes: [],
+                    notes: [], // S'assurer que notes est toujours un tableau
                     participants: [user]
                 };
                 
@@ -208,10 +209,16 @@
             };
 
             const updateSession = (updatedSession) => {
-                const updated = { ...updatedSession, updatedAt: new Date().toISOString() };
-                SessionStorage.saveSession(updated);
+                // S'assurer que notes existe toujours
+                const sessionToSave = {
+                    ...updatedSession, 
+                    notes: updatedSession.notes || [],
+                    updatedAt: new Date().toISOString()
+                };
+                
+                SessionStorage.saveSession(sessionToSave);
                 setSessions(SessionStorage.getSessions());
-                setCurrentSession(updated);
+                setCurrentSession(sessionToSave);
             };
 
             const deleteSession = (sessionId) => {
@@ -381,7 +388,24 @@
                 deleteSession
             } = useSessionState();
 
-            const [newNoteContent, setNewNoteContent] = React.useState('');
+            const [newMessageContent, setNewMessageContent] = React.useState('');
+            const [editingMessage, setEditingMessage] = React.useState(null);
+            const [editContent, setEditContent] = React.useState('');
+            const messagesEndRef = React.useRef(null);
+
+            // Auto-scroll vers le bas des messages
+            React.useEffect(() => {
+                if (currentSession?.notes && messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, [currentSession?.notes?.length]);
+
+            const formatTime = (dateString) => {
+                return new Date(dateString).toLocaleTimeString('fr-FR', { 
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
 
             const formatDate = (dateString) => {
                 return new Date(dateString).toLocaleDateString('fr-FR', { 
@@ -392,23 +416,61 @@
                 });
             };
 
-            const addNote = () => {
-                if (!newNoteContent.trim() || !currentSession) return;
+            const sendMessage = () => {
+                if (!newMessageContent.trim() || !currentSession) return;
 
-                const newNote = {
+                const newMessage = {
                     id: Date.now(),
-                    content: newNoteContent.trim(),
+                    content: newMessageContent.trim(),
                     author: currentUser,
                     timestamp: new Date().toISOString()
                 };
 
                 const updatedSession = {
                     ...currentSession,
-                    notes: [...currentSession.notes, newNote]
+                    notes: [...(currentSession.notes || []), newMessage]
                 };
 
                 updateSession(updatedSession);
-                setNewNoteContent('');
+                setNewMessageContent('');
+            };
+
+            const startEditMessage = (message) => {
+                setEditingMessage(message.id);
+                setEditContent(message.content);
+            };
+
+            const saveEditMessage = (messageId) => {
+                if (!editContent.trim() || !currentSession) return;
+
+                const updatedSession = {
+                    ...currentSession,
+                    notes: (currentSession.notes || []).map(note => 
+                        note.id === messageId 
+                            ? { ...note, content: editContent.trim(), edited: true }
+                            : note
+                    )
+                };
+
+                updateSession(updatedSession);
+                setEditingMessage(null);
+                setEditContent('');
+            };
+
+            const cancelEdit = () => {
+                setEditingMessage(null);
+                setEditContent('');
+            };
+
+            const deleteMessage = (messageId) => {
+                if (!confirm('Supprimer ce message ?') || !currentSession) return;
+
+                const updatedSession = {
+                    ...currentSession,
+                    notes: (currentSession.notes || []).filter(note => note.id !== messageId)
+                };
+
+                updateSession(updatedSession);
             };
 
             const inviteOtherUser = () => {
@@ -493,7 +555,7 @@
                                                     <div>
                                                         <div className="font-medium text-gray-900">{session.gameTitle}</div>
                                                         <div className="text-sm text-gray-600">
-                                                            {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {session.notes.length} note(s)
+                                                            {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
                                                         </div>
                                                     </div>
                                                 </div>
@@ -579,8 +641,9 @@
             if (sessionView === 'active' && currentSession) {
                 const IconComponent = currentSession.gameIcon;
                 return (
-                    <div className="space-y-6 fade-in">
-                        <div className="flex items-center space-x-4">
+                    <div className="flex flex-col h-screen max-h-[80vh] fade-in">
+                        {/* Header */}
+                        <div className="flex items-center space-x-4 mb-4">
                             <button
                                 onClick={() => setSessionView('list')}
                                 className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
@@ -591,96 +654,178 @@
                         </div>
 
                         {/* Session Header */}
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-                            <div className="flex items-start space-x-4">
-                                <IconComponent className="w-10 h-10 text-amber-600 flex-shrink-0" />
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex-shrink-0">
+                            <div className="flex items-start space-x-3">
+                                <IconComponent className="w-8 h-8 text-amber-600 flex-shrink-0" />
                                 <div className="flex-1">
-                                    <h2 className="text-xl font-bold text-amber-900 mb-2">
+                                    <h2 className="text-lg font-bold text-amber-900 mb-1">
                                         {currentSession.gameTitle}
                                     </h2>
-                                    <p className="text-amber-700 mb-3">
+                                    <p className="text-amber-700 text-sm mb-2">
                                         {currentSession.gameDescription}
                                     </p>
-                                    <div className="flex items-center space-x-4 text-sm text-amber-600">
-                                        <span>Durée: {currentSession.gameDuration}</span>
+                                    <div className="flex items-center space-x-3 text-xs text-amber-600">
+                                        <span>{currentSession.gameDuration}</span>
                                         <span>•</span>
-                                        <span>Créée le {formatDate(currentSession.createdAt)}</span>
+                                        <span>{formatDate(currentSession.createdAt)}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Notes Section */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900">Notes et souvenirs</h3>
-                            
-                            <div className="space-y-3">
-                                {currentSession.notes.map((note, index) => (
-                                    <div key={note.id} className="bg-white p-4 rounded-lg border border-gray-200">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className="text-xs text-gray-500">
-                                                #{index + 1} • {USERS[note.author]?.name} • {formatDate(note.timestamp)}
-                                            </span>
-                                        </div>
-                                        <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                                            {note.content}
-                                        </p>
-                                    </div>
-                                ))}
-                                
-                                {currentSession.notes.length === 0 && (
-                                    <div className="text-center py-8 text-gray-500">
-                                        <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                        <p>Aucune note pour le moment. Commencez à écrire vos souvenirs !</p>
-                                    </div>
-                                )}
-                            </div>
+                        {/* Messages Container */}
+                        <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
+                            {(!currentSession.notes || currentSession.notes.length === 0) ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                    <p className="text-lg font-medium mb-2">Aucun message</p>
+                                    <p className="text-sm">Commencez la conversation en écrivant vos souvenirs !</p>
+                                </div>
+                            ) : (
+                                (currentSession.notes || []).map((message, index) => {
+                                    const isOwnMessage = message.author === currentUser;
+                                    const isEditing = editingMessage === message.id;
+                                    
+                                    // Couleurs des bulles selon l'utilisateur
+                                    const getBubbleStyle = (author) => {
+                                        if (author === 'tom') return 'bg-blue-500 text-white';
+                                        if (author === 'lambert') return 'bg-green-500 text-white'; 
+                                        return 'bg-amber-500 text-white'; // duo
+                                    };
 
-                            {/* Add Note */}
-                            <div className="space-y-3">
-                                <textarea
-                                    value={newNoteContent}
-                                    onChange={(e) => setNewNoteContent(e.target.value)}
-                                    placeholder="Écrivez vos souvenirs, réflexions, détails qui vous reviennent..."
-                                    className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
-                                />
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-500">
-                                        {newNoteContent.length} caractères
-                                    </span>
+                                    return (
+                                        <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[70%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
+                                                {/* Nom de l'utilisateur (seulement si ce n'est pas soi) */}
+                                                {!isOwnMessage && (
+                                                    <div className="text-xs text-gray-500 mb-1 px-3">
+                                                        {USERS[message.author]?.name}
+                                                    </div>
+                                                )}
+                                                
+                                                <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
+                                                    {isEditing ? (
+                                                        <div className="space-y-2">
+                                                            <textarea
+                                                                value={editContent}
+                                                                onChange={(e) => setEditContent(e.target.value)}
+                                                                className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none"
+                                                                rows="3"
+                                                                autoFocus
+                                                            />
+                                                            <div className="flex space-x-2">
+                                                                <button
+                                                                    onClick={() => saveEditMessage(message.id)}
+                                                                    className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium"
+                                                                >
+                                                                    Sauver
+                                                                </button>
+                                                                <button
+                                                                    onClick={cancelEdit}
+                                                                    className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium"
+                                                                >
+                                                                    Annuler
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                                                {message.content}
+                                                            </p>
+                                                            {message.edited && (
+                                                                <span className="text-xs opacity-70 italic">modifié</span>
+                                                            )}
+                                                            
+                                                            {/* Menu d'actions (seulement pour ses propres messages) */}
+                                                            {isOwnMessage && (
+                                                                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button
+                                                                        onClick={() => startEditMessage(message)}
+                                                                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs"
+                                                                        title="Modifier"
+                                                                    >
+                                                                        <Edit className="w-3 h-3" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => deleteMessage(message.id)}
+                                                                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1"
+                                                                        title="Supprimer"
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Timestamp */}
+                                                <div className={`text-xs text-gray-500 mt-1 px-3 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                                                    {formatTime(message.timestamp)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Message Input */}
+                        <div className="mt-4 flex-shrink-0">
+                            <div className="bg-white border border-gray-300 rounded-lg p-3">
+                                <div className="flex space-x-3">
+                                    <textarea
+                                        value={newMessageContent}
+                                        onChange={(e) => setNewMessageContent(e.target.value)}
+                                        placeholder="Écrivez vos souvenirs, réflexions, détails qui vous reviennent..."
+                                        className="flex-1 resize-none border-none focus:outline-none text-gray-800"
+                                        rows="3"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                sendMessage();
+                                            }
+                                        }}
+                                    />
                                     <button
-                                        onClick={addNote}
-                                        disabled={!newNoteContent.trim()}
-                                        className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed"
+                                        onClick={sendMessage}
+                                        disabled={!newMessageContent.trim()}
+                                        className="self-end px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center space-x-2"
                                     >
-                                        <BookOpen className="w-4 h-4" />
-                                        <span>Ajouter</span>
+                                        <Send className="w-4 h-4" />
+                                        <span>Envoyer</span>
                                     </button>
+                                </div>
+                                <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                                    <span>{newMessageContent.length} caractères</span>
+                                    <span>Shift+Entrée pour nouvelle ligne</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Session Actions */}
-                        <div className="flex justify-center space-x-4 pt-6 border-t border-gray-200">
+                        <div className="flex justify-center space-x-3 mt-4 pt-3 border-t border-gray-200 flex-shrink-0">
                             {currentUser !== 'duo' && (
                                 <button
                                     onClick={inviteOtherUser}
-                                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                                    className="flex items-center space-x-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm"
                                 >
                                     <Send className="w-4 h-4" />
-                                    <span>Inviter l'autre</span>
+                                    <span>Inviter</span>
                                 </button>
                             )}
                             <button
                                 onClick={pauseSession}
-                                className="flex items-center space-x-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
+                                className="flex items-center space-x-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm"
                             >
                                 <Pause className="w-4 h-4" />
                                 <span>Pause</span>
                             </button>
                             <button
                                 onClick={closeSession}
-                                className="flex items-center space-x-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
+                                className="flex items-center space-x-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm"
                             >
                                 <Play className="w-4 h-4" />
                                 <span>Terminer</span>
@@ -761,7 +906,7 @@
                         {/* Header */}
                         <div className="text-center mb-6">
                             <h1 className="text-4xl font-bold text-amber-900 mb-2">🐘 Mémoire du Mékong</h1>
-                            <p className="text-amber-700">V0.2 • Sessions fonctionnelles • 23 août 2025</p>
+                            <p className="text-amber-700">V0.2.1 • Interface chat + Bug fixes • 23 août 2025</p>
                         </div>
 
                         {/* Navigation */}
@@ -790,7 +935,7 @@
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
                             <p className="text-xs opacity-75 mt-1">
-                                ✅ Core + Navigation + Sessions complètes • ⏳ Photos + Mastodon
+                                ✅ Core + Navigation + Interface Chat • ⏳ Photos + Mastodon
                             </p>
                         </div>
                     </div>
