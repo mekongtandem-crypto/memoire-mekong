@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.3.1</title>
+    <title>🐘 Mémoire du Mékong V0.3.2</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -72,36 +72,49 @@
             }
         };
         
-        // ===== GOOGLE DRIVE API =====
+
+// ===== GOOGLE DRIVE API - VERSION 2024 =====
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyAwg7AjeYANY0txP7Ir2Qxnc2Kjk-cPwyU',
     CLIENT_ID: '817414333860-27hgi2m4di1p79p6nqt03ke1aivn7ubc.apps.googleusercontent.com',
-    DISCOVERY_DOC: 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
     SCOPES: 'https://www.googleapis.com/auth/drive.file'
 };
 
 const GoogleDriveAPI = {
     isSignedIn: false,
     isInitialized: false,
+    tokenClient: null,
     
     async init() {
         if (this.isInitialized) return;
         
         try {
+            // Charger uniquement l'API Google Drive (pas auth2)
             await new Promise((resolve) => {
-                gapi.load('client:auth2', resolve);
+                gapi.load('client', resolve);
             });
             
             await gapi.client.init({
                 apiKey: GOOGLE_CONFIG.API_KEY,
-                clientId: GOOGLE_CONFIG.CLIENT_ID,
-                discoveryDocs: [GOOGLE_CONFIG.DISCOVERY_DOC],
-                scope: GOOGLE_CONFIG.SCOPES
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
             });
             
-            this.isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
+            // Initialiser le client OAuth2 (nouvelle méthode)
+            this.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CONFIG.CLIENT_ID,
+                scope: GOOGLE_CONFIG.SCOPES,
+                callback: (response) => {
+                    if (response.error) {
+                        console.error('❌ Erreur token:', response);
+                        return;
+                    }
+                    this.isSignedIn = true;
+                    console.log('✅ Token reçu, connecté à Google Drive');
+                }
+            });
+            
             this.isInitialized = true;
-            console.log('✅ Google Drive API initialisée');
+            console.log('✅ Google Drive API initialisée (version 2024)');
         } catch (error) {
             console.error('❌ Erreur init Google Drive API:', error);
         }
@@ -109,25 +122,42 @@ const GoogleDriveAPI = {
     
     async signIn() {
         if (!this.isInitialized) await this.init();
-        try {
-            await gapi.auth2.getAuthInstance().signIn();
-            this.isSignedIn = true;
-            console.log('✅ Connecté à Google Drive');
-            return true;
-        } catch (error) {
-            console.error('❌ Erreur connexion Google:', error);
-            return false;
-        }
+        
+        return new Promise((resolve) => {
+            if (!this.tokenClient) {
+                console.error('❌ Token client non initialisé');
+                resolve(false);
+                return;
+            }
+            
+            // Modifier le callback temporairement
+            this.tokenClient.callback = (response) => {
+                if (response.error) {
+                    console.error('❌ Erreur connexion:', response);
+                    resolve(false);
+                    return;
+                }
+                this.isSignedIn = true;
+                console.log('✅ Connecté à Google Drive');
+                resolve(true);
+            };
+            
+            this.tokenClient.requestAccessToken();
+        });
     },
     
     async signOut() {
-        if (!this.isInitialized) return;
-        await gapi.auth2.getAuthInstance().signOut();
+        const token = gapi.client.getToken();
+        if (token) {
+            google.accounts.oauth2.revoke(token.access_token);
+            gapi.client.setToken('');
+        }
         this.isSignedIn = false;
         console.log('✅ Déconnecté de Google Drive');
     },
     
     async findMekongFile() {
+        if (!this.isSignedIn) return null;
         try {
             const response = await gapi.client.drive.files.list({
                 q: "name='mekong_sessions.json' and trashed=false",
@@ -156,34 +186,29 @@ const GoogleDriveAPI = {
             const existingFile = await this.findMekongFile();
             
             if (existingFile) {
-                // Mettre à jour le fichier existant
-                await gapi.client.request({
+                // Mettre à jour fichier existant
+                const response = await gapi.client.request({
                     path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
                     method: 'PATCH',
                     params: { uploadType: 'media' },
                     headers: { 'Content-Type': 'application/json' },
                     body: data
                 });
-                console.log('✅ Sessions sauvegardées sur Google Drive (MAJ)');
+                console.log('✅ Sessions sauvegardées (MAJ)');
+                return true;
             } else {
                 // Créer nouveau fichier
-                await gapi.client.request({
-                    path: 'https://www.googleapis.com/upload/drive/v3/files',
-                    method: 'POST',
-                    params: { uploadType: 'media' },
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: 'mekong_sessions.json',
-                        parents: ['appDataFolder']
-                    })
+                const fileMetadata = { name: 'mekong_sessions.json' };
+                const response = await gapi.client.drive.files.create({
+                    resource: fileMetadata,
+                    media: { mimeType: 'application/json', body: data },
+                    fields: 'id'
                 });
-                
-                await this.saveSessions(sessions); // Retry après création
-                console.log('✅ Sessions sauvegardées sur Google Drive (NOUVEAU)');
+                console.log('✅ Sessions sauvegardées (NOUVEAU)');
+                return true;
             }
-            return true;
         } catch (error) {
-            console.error('❌ Erreur sauvegarde Google Drive:', error);
+            console.error('❌ Erreur sauvegarde:', error);
             return false;
         }
     },
@@ -204,7 +229,7 @@ const GoogleDriveAPI = {
             console.log('✅ Sessions chargées depuis Google Drive');
             return data.sessions || [];
         } catch (error) {
-            console.error('❌ Erreur chargement Google Drive:', error);
+            console.error('❌ Erreur chargement:', error);
             return null;
         }
     }
@@ -541,22 +566,19 @@ const useGoogleAuth = () => {
     }, []);
 
     const signIn = async () => {
-        setIsLoading(true);
-        const success = await GoogleDriveAPI.signIn();
-        if (success) {
-            setIsConnected(true);
-            const authInstance = gapi.auth2.getAuthInstance();
-            const user = authInstance.currentUser.get();
-            const profile = user.getBasicProfile();
-            setUserInfo({
-                name: profile.getName(),
-                email: profile.getEmail(),
-                picture: profile.getImageUrl()
-            });
-        }
-        setIsLoading(false);
-        return success;
-    };
+    setIsLoading(true);
+    const success = await GoogleDriveAPI.signIn();
+    setIsConnected(success);
+    if (success) {
+        setUserInfo({
+            name: 'Utilisateur connecté',
+            email: 'Google Drive activé',
+            picture: null
+        });
+    }
+    setIsLoading(false);
+    return success;
+};
 
     const signOut = async () => {
         await GoogleDriveAPI.signOut();
