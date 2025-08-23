@@ -3,2349 +3,356 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong</title>
-    <meta http-equiv="Content-Security-Policy" content="script-src 'sha256-ieoeWczDHkReVBsRBqaal5AFMlBtNjMzgwKvLqi/tSU=' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:;">
+    <title>🐘 Mémoire du Mékong V9.0</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .lucide {
-            width: 1em;
-            height: 1em;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
+        .lucide { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // V8.0 PARTIE 1 - HTML + ÉTATS
-        
-        // === SECTION B - ICONES LUCIDE ===
-        const ChevronLeft = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="m15 18-6-6 6-6"/>
-            </svg>
+        // ===== ICONS LUCIDE =====
+        const Home = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>;
+        const Users = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-2-2"/></svg>;
+        const User = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+        const Play = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>;
+        const Camera = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
+        const Cloud = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
+        const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25.17-.5.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const ChevronLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>;
+        const ChevronRight = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>;
+
+        // ===== CORE STORAGE =====
+        const Storage = {
+            get: (key, defaultValue = null) => {
+                try {
+                    const item = localStorage.getItem(`mekong_${key}`);
+                    return item ? JSON.parse(item) : defaultValue;
+                } catch { return defaultValue; }
+            },
+            set: (key, value) => {
+                try {
+                    localStorage.setItem(`mekong_${key}`, JSON.stringify(value));
+                    return true;
+                } catch { return false; }
+            },
+            remove: (key) => localStorage.removeItem(`mekong_${key}`),
+            clear: () => {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('mekong_')) localStorage.removeItem(key);
+                });
+            }
+        };
+
+        // ===== CORE STATES =====
+        const useAppState = () => {
+            const [currentPage, setCurrentPage] = React.useState('home');
+            const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', ''));
+            const [currentMode, setCurrentMode] = React.useState(Storage.get('currentMode', ''));
+            
+            // Sauvegarde automatique
+            React.useEffect(() => {
+                Storage.set('currentUser', currentUser);
+                Storage.set('currentMode', currentMode);
+            }, [currentUser, currentMode]);
+
+            const resetApp = () => {
+                setCurrentPage('home');
+                setCurrentUser('');
+                setCurrentMode('');
+                Storage.clear();
+            };
+
+            return {
+                currentPage, setCurrentPage,
+                currentUser, setCurrentUser,
+                currentMode, setCurrentMode,
+                resetApp
+            };
+        };
+
+        // ===== USER CONFIG =====
+        const USERS = {
+            tom: { name: 'Tom l\'éléphantau', color: 'blue', emoji: '🐘' },
+            lambert: { name: 'Lambert, le Vieil éléphant', color: 'green', emoji: '🐘' },
+            duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' }
+        };
+
+        const getUserStyle = (userKey) => {
+            const user = USERS[userKey];
+            if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' };
+            
+            const styles = {
+                blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' },
+                green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' },
+                amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' }
+            };
+            return styles[user.color] || styles.blue;
+        };
+
+        // ===== NAVIGATION COMPONENT =====
+        const Navigation = ({ currentPage, currentUser, onPageChange, onUserChange }) => (
+            <div className="bg-white/90 backdrop-blur rounded-xl shadow-lg p-4 mb-6">
+                <div className="flex justify-between items-center">
+                    {/* User Selection */}
+                    <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-600">Utilisateur:</span>
+                        {!currentUser ? (
+                            <select 
+                                onChange={(e) => onUserChange(e.target.value)}
+                                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            >
+                                <option value="">Choisir...</option>
+                                <option value="tom">🐘 Tom</option>
+                                <option value="lambert">🐘 Lambert</option>
+                                <option value="duo">🐘🐘 Duo</option>
+                            </select>
+                        ) : (
+                            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}>
+                                <span>{USERS[currentUser]?.emoji}</span>
+                                <span className={`font-medium ${getUserStyle(currentUser).text}`}>
+                                    {USERS[currentUser]?.name}
+                                </span>
+                                <button 
+                                    onClick={() => onUserChange('')}
+                                    className="text-red-500 hover:text-red-700 ml-2"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Page Navigation */}
+                    <div className="flex items-center space-x-1">
+                        {['home', 'sessions', 'memories', 'settings'].map((page) => {
+                            const icons = { home: Home, sessions: Play, memories: Cloud, settings: Settings };
+                            const labels = { home: 'Accueil', sessions: 'Sessions', memories: 'Mémoires', settings: 'Réglages' };
+                            const Icon = icons[page];
+                            
+                            return (
+                                <button
+                                    key={page}
+                                    onClick={() => onPageChange(page)}
+                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                                        currentPage === page 
+                                            ? 'bg-amber-200 text-amber-800' 
+                                            : 'hover:bg-gray-100 text-gray-600'
+                                    }`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span className="text-sm font-medium">{labels[page]}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
         );
 
-        const ChevronRight = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="m9 18 6-6-6-6"/>
-            </svg>
+        // ===== MAIN PAGES =====
+        const HomePage = ({ currentUser, currentMode, onModeChange, onPageChange }) => (
+            <div className="space-y-6 fade-in">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-amber-900 mb-4">
+                        Bienvenue dans vos mémoires du Mékong
+                    </h2>
+                    {currentUser && (
+                        <p className="text-amber-700 mb-6">
+                            Bonjour <strong>{USERS[currentUser]?.name}</strong> ! Que souhaitez-vous faire aujourd'hui ?
+                        </p>
+                    )}
+                </div>
+
+                {!currentUser ? (
+                    <div className="bg-amber-50 p-6 rounded-lg border border-amber-200 text-center">
+                        <p className="text-amber-800 mb-4">👆 Sélectionnez votre utilisateur ci-dessus pour commencer</p>
+                    </div>
+                ) : !currentMode ? (
+                    <div className="max-w-md mx-auto space-y-4">
+                        <h3 className="text-lg font-semibold text-amber-900 text-center">Choisir votre mode</h3>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => onModeChange('duo')}
+                                className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                            >
+                                <Users className="w-6 h-6 text-amber-600" />
+                                <div>
+                                    <div className="font-medium text-lg">Duo</div>
+                                    <div className="text-sm text-gray-600">Session intensive à deux (présentiel)</div>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => onModeChange('solo')}
+                                className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
+                            >
+                                <User className="w-6 h-6 text-amber-600" />
+                                <div>
+                                    <div className="font-medium text-lg">Solo</div>
+                                    <div className="text-sm text-gray-600">Lancer un ping-pong (asynchrone)</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('sessions')}>
+                            <div className="text-center">
+                                <Play className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Sessions</h3>
+                                <p className="text-gray-600 text-sm">Créer ou reprendre une session de remémoration</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}>
+                            <div className="text-center">
+                                <Cloud className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Mémoires</h3>
+                                <p className="text-gray-600 text-sm">Explorer le blog Mastodon et les photos</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}>
+                            <div className="text-center">
+                                <Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Réglages</h3>
+                                <p className="text-gray-600 text-sm">Configuration et préférences</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         );
 
-        const Home = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9,22 9,12 15,12 15,22"/>
-            </svg>
+        const SessionsPage = () => (
+            <div className="space-y-6 fade-in">
+                <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
+                <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 text-center">
+                    <p className="text-blue-800 mb-4">🚧 Module Sessions en cours de développement</p>
+                    <p className="text-blue-600 text-sm">Prochaine étape : Catalogue de jeux + Sessions collaboratives</p>
+                </div>
+            </div>
         );
 
-        const Play = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <polygon points="5,3 19,12 5,21"/>
-            </svg>
+        const MemoriesPage = () => (
+            <div className="space-y-6 fade-in">
+                <h2 className="text-2xl font-bold text-amber-900">Mémoires du voyage</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                        <div className="text-center">
+                            <Cloud className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-blue-900 mb-2">Blog Mastodon</h3>
+                            <p className="text-blue-700 text-sm mb-4">275 posts du voyage à explorer</p>
+                            <div className="bg-blue-100 p-3 rounded text-blue-800 text-sm">
+                                🚧 Import et navigation - Prochaine étape
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
+                        <div className="text-center">
+                            <Camera className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-green-900 mb-2">Photos</h3>
+                            <p className="text-green-700 text-sm mb-4">2000+ photos organisées par jour</p>
+                            <div className="bg-green-100 p-3 rounded text-green-800 text-sm">
+                                🚧 API DirectoryPicker - Prochaine étape
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         );
 
-        const Users = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="m22 21-2-2"/>
-                <path d="m16 17 2 2"/>
-                <path d="m14 15 2 2"/>
-            </svg>
+        const SettingsPage = ({ onReset }) => (
+            <div className="space-y-6 fade-in">
+                <h2 className="text-2xl font-bold text-amber-900">Réglages</h2>
+                <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Données</h3>
+                        <button 
+                            onClick={() => {
+                                if (confirm('⚠️ Effacer toutes les données sauvegardées ?')) onReset();
+                            }}
+                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium"
+                        >
+                            🗑️ Reset complet
+                        </button>
+                    </div>
+                    <div className="pt-4 border-t border-gray-200">
+                        <h4 className="font-medium text-gray-700 mb-2">Stockage actuel</h4>
+                        <div className="text-sm text-gray-600">
+                            <div>Utilisateur: {Storage.get('currentUser') || 'Non défini'}</div>
+                            <div>Mode: {Storage.get('currentMode') || 'Non défini'}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         );
 
-        const User = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-            </svg>
-        );
-
-        const Camera = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                <circle cx="12" cy="13" r="3"/>
-            </svg>
-        );
-
-        const Clock = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-            </svg>
-        );
-
-        const Hourglass = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M5 22h14"/>
-                <path d="M5 2h14"/>
-                <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>
-                <path d="M7 22v-4.172a2 2 0 0 1 .586-1.414L12 12 7.586 7.414A2 2 0 0 1 7 6.172V2"/>
-            </svg>
-        );
-
-        const Mic = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" x2="12" y1="19" y2="22"/>
-                <line x1="8" x2="16" y1="22" y2="22"/>
-            </svg>
-        );
-
-        const Zap = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
-            </svg>
-        );
-
-        const MapPin = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                <circle cx="12" cy="10" r="3"/>
-            </svg>
-        );
-
-        const BookOpen = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-            </svg>
-        );
-
-        const Edit = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/>
-            </svg>
-        );
-
-        const Trash2 = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/>
-                <line x1="10" x2="10" y1="11" y2="17"/>
-                <line x1="14" x2="14" y1="11" y2="17"/>
-            </svg>
-        );
-
-        const Lock = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                <path d="m7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-        );
-
-        const Pause = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <rect width="4" height="16" x="6" y="4"/>
-                <rect width="4" height="16" x="14" y="4"/>
-            </svg>
-        );
-
-        const Shuffle = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <polyline points="16,3 21,3 21,8"/>
-                <line x1="4" x2="21" y1="20" y2="3"/>
-                <polyline points="21,16 21,21 16,21"/>
-                <line x1="15" x2="21" y1="15" y2="21"/>
-                <line x1="4" x2="9" y1="4" y2="9"/>
-            </svg>
-        );
-
-        const ArrowUpRight = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <line x1="7" x2="17" y1="17" y2="7"/>
-                <polyline points="7,7 17,7 17,17"/>
-            </svg>
-        );
-
-        const Cloud = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-            </svg>
-        );
-
-        const RefreshCw = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M8 16l-5 5v-5h5"/>
-            </svg>
-        );
-
-        const Upload = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7,10 12,15 17,10"/>
-                <line x1="12" x2="12" y1="15" y2="3"/>
-            </svg>
-        );
-
-        const Search = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-            </svg>
-        );
-
-        const Calendar = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-                <line x1="16" x2="16" y1="2" y2="6"/>
-                <line x1="8" x2="8" y1="2" y2="6"/>
-                <line x1="3" x2="21" y1="10" y2="10"/>
-            </svg>
-        );
-
-        const FileText = ({ className }) => (
-            <svg className={`lucide ${className}`} viewBox="0 0 24 24">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <line x1="16" x2="8" y1="13" y2="13"/>
-                <line x1="16" x2="8" y1="17" y2="17"/>
-                <polyline points="10,9 9,9 8,9"/>
-            </svg>
-        );
-
-        // === DÉBUT COMPOSANT PRINCIPAL ===
+        // ===== MAIN APP =====
         const MemoireMekong = () => {
-            // États principaux
-            const [currentPage, setCurrentPage] = React.useState(1);
-            const [selectedMode, setSelectedMode] = React.useState('');
-            const [selectedUser, setSelectedUser] = React.useState('');
-            const [sessions, setSessions] = React.useState([]);
-            const [currentSession, setCurrentSession] = React.useState(null);
-            const [selectedGame, setSelectedGame] = React.useState(null);
-            const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
-            const [notifications, setNotifications] = React.useState([]);
-            const [showUserSelection, setShowUserSelection] = React.useState(false);
-            const [showFullPage, setShowFullPage] = React.useState(false);
-            const [isEditingSessionName, setIsEditingSessionName] = React.useState(false);
-            const [currentMastodonPost, setCurrentMastodonPost] = React.useState(null);
-            
-            // États Mastodon
-            const [mastodonData, setMastodonData] = React.useState(null);
-            const [currentPostIndex, setCurrentPostIndex] = React.useState(0);
-            const [searchTerm, setSearchTerm] = React.useState('');
-            const [isLoadingFile, setIsLoadingFile] = React.useState(false);
+            const {
+                currentPage, setCurrentPage,
+                currentUser, setCurrentUser,
+                currentMode, setCurrentMode,
+                resetApp
+            } = useAppState();
 
-            // === AJOUT PHOTOS - NOUVEAUX ÉTATS ===
-            const [googlePhotos, setGooglePhotos] = React.useState({});
-            const [mastodonPhotos, setMastodonPhotos] = React.useState({});
-            const [currentPhotoView, setCurrentPhotoView] = React.useState(null);
-            const [photoViewMode, setPhotoViewMode] = React.useState('grid'); // 'grid', 'carousel', 'fullscreen'
-            const [selectedPhotoDay, setSelectedPhotoDay] = React.useState(null);
-            const [isUploadingPhotos, setIsUploadingPhotos] = React.useState(false);
-            const [photoUploadProgress, setPhotoUploadProgress] = React.useState(0);
-            const [photoFilters, setPhotoFilters] = React.useState({
-                source: 'all', // 'all', 'mastodon', 'google'
-                day: null,
-                searchTerm: ''
-            });
-
-            // Jeux présentiel
-            const presentielGames = [
-                { 
-                    id: 1, 
-                    title: "Photo roulette", 
-                    duration: "15 min", 
-                    icon: Camera, 
-                    description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient" 
-                },
-                { 
-                    id: 2, 
-                    title: "Timeline aveugle", 
-                    duration: "20 min", 
-                    icon: Clock, 
-                    description: "Reconstituez la chronologie d'une étape sans regarder les dates" 
-                },
-                { 
-                    id: 3, 
-                    title: "Interview journaliste", 
-                    duration: "25 min", 
-                    icon: Mic, 
-                    description: "L'un interviewe l'autre sur une étape précise du voyage" 
-                }
-            ];
-
-            // Jeux distanciel
-            const distancielGames = [
-                { 
-                    id: 4, 
-                    title: "Photo sans légende", 
-                    duration: "async", 
-                    icon: Camera, 
-                    description: "Envoyez une photo, l'autre devine le contexte et ses souvenirs" 
-                },
-                { 
-                    id: 5, 
-                    title: "Mot déclencheur", 
-                    duration: "async", 
-                    icon: Zap, 
-                    description: "Un mot-clé pour déclencher un souvenir chez l'autre" 
-                },
-                { 
-                    id: 6, 
-                    title: "Géolocalisation mystère", 
-                    duration: "async", 
-                    icon: MapPin, 
-                    description: "Partagez une position GPS, l'autre raconte ce lieu" 
-                }
-            ];
-
-            // Posts Mastodon par défaut
-            const defaultMastodonPosts = [
-                {
-                    id: 1,
-                    text: "J131: D'arbres en cascades\nMais qu'y a t-il donc sur cette île, à part ces plages parfaites et cette jungle sans chemins ? Lambert part pour une traversée de l'ile à vélo. Avec une succession de pentes jusqu'a 28% en pein cagnard, il est vite calmé...\nOn loue 2 scoot, et on part à la recherche de fameuses cascades. Un peu plus loin, on rend visite à des arbres multi centenaires, donc sacrés.",
-                    images: [],
-                    date: "2021-12-01",
-                    dayNumber: 131
-                },
-                {
-                    id: 2,
-                    text: "J102 : Gérer les chiens\nA 5h du mat, il manque un élément essentiel de nos bagages : une tongue ! Les talents de pisteurs de Tom nous mènerons chez le chien du voisin.\nTracer la route au lever du soleil est un plaisir particulier. Jusqu'à 11h, la chaleur est supportable mais les chiens qui nous courent après le long des pistes pas toujours faciles a gérer : chute de Tom quelques km avant l'arrivée. Séance infirmerie qui justifie le transport de notre trousse qui a peu servi jusque là.",
-                    images: [],
-                    date: "2021-11-02",
-                    dayNumber: 102
-                }
-            ];
-
-            // === AJOUT PHOTOS - FONCTIONS UTILITAIRES ===
-            
-            // Extraction du jour depuis nom de dossier
-            const extractDayFromFolderName = (folderName) => {
-                const match = folderName.match(/J(\d+)/i);
-                return match ? parseInt(match[1]) : null;
+            const handleModeChange = (mode) => {
+                setCurrentMode(mode);
             };
 
-            // Création URL temporaire pour photo
-            const createPhotoURL = (file) => {
-                try {
-                    return URL.createObjectURL(file);
-                } catch (error) {
-                    console.error('Erreur création URL photo:', error);
-                    return null;
-                }
-            };
-
-            // Traitement upload Google Photos par dossiers
-            const processGooglePhotosUpload = (files) => {
-    const photosByDay = {};
-    
-    Array.from(files).forEach(file => {
-        if (!file.type.startsWith('image/')) return;
-        
-        // Extraction du jour depuis le chemin du fichier
-        const path = file.webkitRelativePath || file.name;
-        const folderMatch = path.match(/(\d+)[^\/]*\//);
-        
-        if (folderMatch) {
-            const dayNumber = parseInt(folderMatch[1]);
-            if (!photosByDay[dayNumber]) {
-                photosByDay[dayNumber] = [];
-            }
-            
-            const photoData = {
-                id: `google_${Date.now()}_${Math.random()}`,
-                file: file, // Gardé pour référence
-                url: createPhotoURL(file), // URL temporaire pour affichage immédiat
-                path: path, // NOUVEAU : Chemin relatif persistant
-                name: file.name,
-                size: file.size,
-                type: 'google',
-                dayNumber: dayNumber,
-                uploadedAt: new Date().toISOString(),
-                folderName: path.split('/')[0] // Ex: "025-Luang-Prabang"
-            };
-            
-            if (photoData.url) {
-                photosByDay[dayNumber].push(photoData);
-            }
-        }
-    });
-    
-    return photosByDay;
-};
-
-// 2. NOUVELLE fonction de sauvegarde améliorée :
-
-const savePhotosToStorage = () => {
-    try {
-        // Sauvegarde métadonnées Google Photos AVEC chemins
-        const googleMeta = {};
-        Object.entries(googlePhotos).forEach(([day, photos]) => {
-            googleMeta[day] = photos.map(photo => ({
-                id: photo.id,
-                name: photo.name,
-                size: photo.size,
-                type: photo.type,
-                dayNumber: photo.dayNumber,
-                uploadedAt: photo.uploadedAt,
-                path: photo.path, // NOUVEAU : Chemin sauvé
-                folderName: photo.folderName // NOUVEAU : Nom dossier
-                // url n'est PAS sauvegardée (temporaire)
-            }));
-        });
-        
-        localStorage.setItem('mekong-google-photos-meta', JSON.stringify(googleMeta));
-        localStorage.setItem('mekong-mastodon-photos', JSON.stringify(mastodonPhotos));
-        
-        // NOUVEAU : Sauvegarde statistiques pour affichage
-        const stats = getPhotoStats();
-        localStorage.setItem('mekong-photos-stats', JSON.stringify({
-            ...stats,
-            lastUpload: new Date().toISOString(),
-            foldersList: Object.values(googleMeta).flat().map(p => p.folderName).filter((v, i, a) => a.indexOf(v) === i)
-        }));
-        
-    } catch (error) {
-        console.error('Erreur sauvegarde photos:', error);
-    }
-};
-
-// 3. NOUVELLE fonction de re-linkage au démarrage :
-
-const relinkPhotosOnStartup = (files) => {
-    const savedMeta = localStorage.getItem('mekong-google-photos-meta');
-    if (!savedMeta) return false;
-    
-    try {
-        const meta = JSON.parse(savedMeta);
-        const photosByDay = {};
-        
-        // Index des fichiers uploadés par chemin
-        const filesByPath = {};
-        Array.from(files).forEach(file => {
-            const path = file.webkitRelativePath || file.name;
-            filesByPath[path] = file;
-        });
-        
-        // Re-création des objets photos avec nouvelles URLs
-        Object.entries(meta).forEach(([day, photosMetadata]) => {
-            photosByDay[day] = [];
-            
-            photosMetadata.forEach(photoMeta => {
-                const matchingFile = filesByPath[photoMeta.path];
-                if (matchingFile) {
-                    const reconstructedPhoto = {
-                        ...photoMeta,
-                        file: matchingFile,
-                        url: createPhotoURL(matchingFile) // Nouvelle URL temporaire
-                    };
-                    photosByDay[day].push(reconstructedPhoto);
-                }
-            });
-        });
-        
-        setGooglePhotos(photosByDay);
-        return true;
-        
-    } catch (error) {
-        console.error('Erreur re-linkage photos:', error);
-        return false;
-    }
-};
-
-            // Traitement photos Mastodon depuis outbox.json
-            const processMastodonPhotos = (mastodonData) => {
-                const photosByPost = {};
-                
-                if (!mastodonData?.posts) return photosByPost;
-                
-                mastodonData.posts.forEach(post => {
-                    if (post.images && post.images.length > 0) {
-                        photosByPost[post.id] = post.images.map((img, index) => ({
-                            id: `mastodon_${post.id}_${index}`,
-                            url: img.url || img.href || img,
-                            name: img.name || `Photo_J${post.dayNumber}_${index + 1}`,
-                            type: 'mastodon',
-                            postId: post.id,
-                            dayNumber: post.dayNumber,
-                            mediaType: img.mediaType || 'image/jpeg'
-                        }));
-                    }
-                });
-                
-                return photosByPost;
-            };
-
-            // Récupération photos pour un jour donné
-            const getPhotosForDay = (dayNumber) => {
-                const photos = [];
-                
-                // Photos Google pour ce jour
-                if (googlePhotos[dayNumber]) {
-                    photos.push(...googlePhotos[dayNumber]);
-                }
-                
-                // Photos Mastodon pour ce jour
-                Object.values(mastodonPhotos).forEach(postPhotos => {
-                    const dayPhotos = postPhotos.filter(photo => photo.dayNumber === dayNumber);
-                    photos.push(...dayPhotos);
-                });
-                
-                return photos.sort((a, b) => {
-                    // Priorité aux photos Google, puis Mastodon
-                    if (a.type !== b.type) {
-                        return a.type === 'google' ? -1 : 1;
-                    }
-                    return a.name.localeCompare(b.name);
-                });
-            };
-
-            // Récupération de toutes les photos
-            const getAllPhotos = () => {
-                const allPhotos = [];
-                
-                // Toutes les photos Google
-                Object.values(googlePhotos).forEach(dayPhotos => {
-                    allPhotos.push(...dayPhotos);
-                });
-                
-                // Toutes les photos Mastodon
-                Object.values(mastodonPhotos).forEach(postPhotos => {
-                    allPhotos.push(...postPhotos);
-                });
-                
-                return allPhotos.sort((a, b) => {
-                    // Tri par jour puis par type
-                    if (a.dayNumber !== b.dayNumber) {
-                        return a.dayNumber - b.dayNumber;
-                    }
-                    if (a.type !== b.type) {
-                        return a.type === 'google' ? -1 : 1;
-                    }
-                    return a.name.localeCompare(b.name);
-                });
-            };
-
-            // Photos filtrées selon critères
-            const getFilteredPhotos = () => {
-                let photos = [];
-                
-                switch (photoFilters.source) {
-                    case 'google':
-                        Object.values(googlePhotos).forEach(dayPhotos => {
-                            photos.push(...dayPhotos);
-                        });
-                        break;
-                    case 'mastodon':
-                        Object.values(mastodonPhotos).forEach(postPhotos => {
-                            photos.push(...postPhotos);
-                        });
-                        break;
-                    default:
-                        photos = getAllPhotos();
-                }
-                
-                // Filtre par jour
-                if (photoFilters.day) {
-                    photos = photos.filter(photo => photo.dayNumber === photoFilters.day);
-                }
-                
-                // Filtre par recherche
-                if (photoFilters.searchTerm) {
-                    const searchLower = photoFilters.searchTerm.toLowerCase();
-                    photos = photos.filter(photo => 
-                        photo.name.toLowerCase().includes(searchLower) ||
-                        `j${photo.dayNumber}`.includes(searchLower)
-                    );
-                }
-                
-                return photos;
-            };
-
-            // Statistiques photos
-            const getPhotoStats = () => {
-                const googleCount = Object.values(googlePhotos).reduce((total, dayPhotos) => total + dayPhotos.length, 0);
-                const mastodonCount = Object.values(mastodonPhotos).reduce((total, postPhotos) => total + postPhotos.length, 0);
-                const totalDays = new Set([
-                    ...Object.keys(googlePhotos).map(Number),
-                    ...Object.values(mastodonPhotos).flatMap(postPhotos => postPhotos.map(p => p.dayNumber))
-                ]).size;
-                
-                return {
-                    google: googleCount,
-                    mastodon: mastodonCount,
-                    total: googleCount + mastodonCount,
-                    days: totalDays
-                };
-            };
-
-            // Sauvegarde photos dans localStorage
-            const savePhotosToStorage = () => {
-                try {
-                    // Sauvegarde métadonnées Google Photos (URLs temporaires)
-                    const googleMeta = {};
-                    Object.entries(googlePhotos).forEach(([day, photos]) => {
-                        googleMeta[day] = photos.map(photo => ({
-                            id: photo.id,
-                            name: photo.name,
-                            size: photo.size,
-                            type: photo.type,
-                            dayNumber: photo.dayNumber,
-                            uploadedAt: photo.uploadedAt
-                        }));
-                    });
-                    
-                    localStorage.setItem('mekong-google-photos-meta', JSON.stringify(googleMeta));
-                    localStorage.setItem('mekong-mastodon-photos', JSON.stringify(mastodonPhotos));
-                } catch (error) {
-                    console.error('Erreur sauvegarde photos:', error);
-                }
-            };
-
-            // Chargement photos depuis localStorage
-            const loadPhotosFromStorage = () => {
-                try {
-                    // Charge photos Mastodon (URLs externes)
-                    const savedMastodonPhotos = localStorage.getItem('mekong-mastodon-photos');
-                    if (savedMastodonPhotos) {
-                        setMastodonPhotos(JSON.parse(savedMastodonPhotos));
-                    }
-                    
-                    // Photos Google nécessitent re-upload (URLs temporaires)
-                    const googleMeta = localStorage.getItem('mekong-google-photos-meta');
-                    if (googleMeta) {
-                        const meta = JSON.parse(googleMeta);
-                        console.log('Photos Google précédemment uploadées:', Object.keys(meta).length, 'jours');
-                    }
-                } catch (error) {
-                    console.error('Erreur chargement photos:', error);
-                }
-            };
-
-            // Hook traitement automatique photos Mastodon
-            React.useEffect(() => {
-                if (mastodonData) {
-                    const processedPhotos = processMastodonPhotos(mastodonData);
-                    setMastodonPhotos(processedPhotos);
-                    savePhotosToStorage();
-                }
-            }, [mastodonData]);
-
-            // Hook sauvegarde automatique photos
-            React.useEffect(() => {
-                if (Object.keys(googlePhotos).length > 0 || Object.keys(mastodonPhotos).length > 0) {
-                    savePhotosToStorage();
-                }
-            }, [googlePhotos, mastodonPhotos]);
-
-            // Hook initialisation photos
-            React.useEffect(() => {
-                loadPhotosFromStorage();
-            }, []);
-
-
-///////////////// V8.0 PARTIE 2 - FONCTIONS + PAGES 1-3
-// V8.0 PARTIE 2 - FONCTIONS + PAGES 1-3
-            // À COLLER APRÈS LA PARTIE 1
-
-            // Effet d'initialisation
-            React.useEffect(() => {
-                setNotifications([]);
-                
-                const savedSessions = localStorage.getItem('mekong-sessions');
-                if (savedSessions) {
-                    try {
-                        const parsedSessions = JSON.parse(savedSessions);
-                        setSessions(Array.isArray(parsedSessions) ? parsedSessions : []);
-                    } catch (error) {
-                        console.error('Erreur parsing sessions:', error);
-                        setSessions([]);
-                    }
-                }
-                
-                const savedMastodonData = localStorage.getItem('mekong-mastodon');
-                if (savedMastodonData) {
-                    try {
-                        const parsedData = JSON.parse(savedMastodonData);
-                        setMastodonData(parsedData);
-                    } catch (error) {
-                        console.error('Erreur parsing mastodon data:', error);
-                    }
-                }
-                
-                if (selectedUser === 'Lambert') {
-                    setTimeout(() => {
-                        setNotifications(['Tom vous a envoyé un ping sur la session']);
-                    }, 100);
-                } else if (selectedUser === 'Tom') {
-                    setTimeout(() => {
-                        setNotifications(['Lambert vous a envoyé un ping sur la session']);
-                    }, 100);
-                }
-            }, [selectedUser]);
-
-            // Fonctions utilitaires
-            const parseMastodonFile = (jsonData) => {
-                try {
-                    const posts = [];
-                    const orderedItems = jsonData.orderedItems || [];
-                    
-                    orderedItems.forEach((item, index) => {
-                        if (item.object && item.object.content) {
-                            const content = item.object.content;
-                            const published = item.object.published;
-                            
-                            const dayMatch = content.match(/J(\d+)/);
-                            const dayNumber = dayMatch ? parseInt(dayMatch[1]) : index + 1;
-                            
-                            const tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = content;
-                            const cleanText = tempDiv.textContent || tempDiv.innerText || '';
-                            
-                            posts.push({
-                                id: index + 1,
-                                text: cleanText,
-                                date: published,
-                                dayNumber: dayNumber,
-                                images: item.object.attachment || [],
-                                originalIndex: orderedItems.length - index
-                            });
-                        }
-                    });
-                    
-                    posts.sort((a, b) => a.dayNumber - b.dayNumber);
-                    return posts;
-                } catch (error) {
-                    console.error('Erreur lors du parsing:', error);
-                    return [];
-                }
-            };
-
-            const handleFileUpload = (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-                
-                setIsLoadingFile(true);
-                const reader = new FileReader();
-                
-                reader.onload = (e) => {
-                    try {
-                        const jsonData = JSON.parse(e.target.result);
-                        const parsedPosts = parseMastodonFile(jsonData);
-                        
-                        setMastodonData({
-                            totalItems: jsonData.totalItems || parsedPosts.length,
-                            posts: parsedPosts,
-                            loadedAt: new Date().toISOString()
-                        });
-                        
-                        localStorage.setItem('mekong-mastodon', JSON.stringify({
-                            totalItems: jsonData.totalItems || parsedPosts.length,
-                            posts: parsedPosts,
-                            loadedAt: new Date().toISOString()
-                        }));
-                        
-                        alert(`✅ ${parsedPosts.length} posts chargés avec succès !`);
-                        setCurrentPostIndex(0);
-                    } catch (error) {
-                        console.error('Erreur parsing JSON:', error);
-                        alert('❌ Erreur lors de la lecture du fichier. Vérifiez que c\'est bien votre outbox.json');
-                    } finally {
-                        setIsLoadingFile(false);
-                    }
-                };
-                
-                reader.readAsText(file);
-            };
-
-            // === AJOUT PHOTOS - FONCTIONS DE GESTION ===
-            
-            // 4. MODIFIER handleGooglePhotosUpload pour différencier premier upload / re-link :
-
-const handleGooglePhotosUpload = (event, isRelink = false) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    setIsUploadingPhotos(true);
-    setPhotoUploadProgress(0);
-    
-    try {
-        if (isRelink) {
-            // Mode re-linkage : utilise métadonnées existantes
-            const success = relinkPhotosOnStartup(files);
-            if (success) {
-                const stats = getPhotoStats();
-                setPhotoUploadProgress(100);
-                alert(`✅ ${stats.google} photos re-linkées avec succès !`);
-            } else {
-                throw new Error('Échec re-linkage');
-            }
-        } else {
-            // Mode normal : nouvel upload
-            const processed = processGooglePhotosUpload(files);
-            const dayCount = Object.keys(processed).length;
-            const photoCount = Object.values(processed).reduce((total, photos) => total + photos.length, 0);
-            
-            setGooglePhotos(prev => ({
-                ...prev,
-                ...processed
-            }));
-            
-            setPhotoUploadProgress(100);
-            alert(`✅ ${photoCount} photos chargées pour ${dayCount} jours !`);
-        }
-        
-    } catch (error) {
-        console.error('Erreur upload photos:', error);
-        alert('❌ Erreur lors du chargement des photos');
-    } finally {
-        setIsUploadingPhotos(false);
-        setTimeout(() => setPhotoUploadProgress(0), 1000);
-    }
-};
-
-// 5. NOUVELLE fonction de détection photos existantes :
-
-const hasExistingPhotos = () => {
-    const savedStats = localStorage.getItem('mekong-photos-stats');
-    return savedStats ? JSON.parse(savedStats) : null;
-};
-
-            // Ouverture photo en plein écran
-            const openPhotoFullscreen = (photo) => {
-                setCurrentPhotoView(photo);
-                setPhotoViewMode('fullscreen');
-            };
-
-            // Fermeture modal photo
-            const closePhotoFullscreen = () => {
-                setCurrentPhotoView(null);
-                setPhotoViewMode('grid');
-            };
-
-            // Navigation dans le modal photo (précédent/suivant)
-            const navigatePhoto = (direction) => {
-                const photos = getFilteredPhotos();
-                const currentIndex = photos.findIndex(p => p.id === currentPhotoView?.id);
-                
-                if (currentIndex === -1) return;
-                
-                let newIndex;
-                if (direction === 'next') {
-                    newIndex = (currentIndex + 1) % photos.length;
-                } else {
-                    newIndex = currentIndex > 0 ? currentIndex - 1 : photos.length - 1;
-                }
-                
-                setCurrentPhotoView(photos[newIndex]);
-            };
-
-            // Création session de remémoration depuis une photo
-            const createSessionFromPhoto = (photo) => {
-                const newSession = {
-                    id: Date.now(),
-                    mode: 'solo',
-                    user: selectedUser || 'Utilisateur',
-                    game: { 
-                        title: `Photo J${photo.dayNumber}`, 
-                        description: 'Session basée sur une photo',
-                        icon: Camera
-                    },
-                    date: new Date().toISOString(),
-                    status: 'active',
-                    participants: [],
-                    notes: [{
-                        id: Date.now(),
-                        content: `Photo sélectionnée: ${photo.name}\nJour ${photo.dayNumber} - Source: ${photo.type === 'google' ? 'Google Photos' : 'Mastodon'}\n\nQue vous rappelez-vous de cette photo ?`,
-                        timestamp: new Date().toISOString(),
-                        author: 'Système',
-                        isEditing: false
-                    }],
-                    photo: photo
-                };
-                
-                setCurrentSession(newSession);
-                setCurrentPage(3);
-                closePhotoFullscreen();
-            };
-
-            const getCurrentPosts = () => {
-                if (!mastodonData?.posts) return defaultMastodonPosts;
-                if (!searchTerm) return mastodonData.posts;
-                return mastodonData.posts.filter(post => 
-                    post.text.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-            };
-
-            const navigatePost = (direction) => {
-                const posts = getCurrentPosts();
-                if (posts.length === 0) return;
-                
-                let newIndex = currentPostIndex;
-                if (direction === 'next') {
-                    newIndex = (currentPostIndex + 1) % posts.length;
-                } else if (direction === 'prev') {
-                    newIndex = currentPostIndex > 0 ? currentPostIndex - 1 : posts.length - 1;
-                }
-                
-                setCurrentPostIndex(newIndex);
-                setCurrentMastodonPost(posts[newIndex]);
-            };
-
-            const getRandomPost = () => {
-                const posts = getCurrentPosts();
-                const availablePosts = posts.filter(post => 
-                    !currentMastodonPost || post.id !== currentMastodonPost.id
-                );
-                
-                const postsToChooseFrom = availablePosts.length > 0 ? availablePosts : posts;
-                
-                if (postsToChooseFrom.length > 0) {
-                    const randomPost = postsToChooseFrom[Math.floor(Math.random() * postsToChooseFrom.length)];
-                    setCurrentMastodonPost(randomPost);
-                }
-            };
-
-            const saveSessions = (newSessions) => {
-                const validSessions = Array.isArray(newSessions) ? newSessions : [];
-                setSessions(validSessions);
-                localStorage.setItem('mekong-sessions', JSON.stringify(validSessions));
-            };
-
-            const closeSession = () => {
-                if (!currentSession) return;
-                
-                const savedSession = { 
-                    ...currentSession, 
-                    status: 'closed',
-                    lastModifiedBy: selectedUser || 'Utilisateur'
-                };
-                const updatedSessions = [savedSession, ...sessions.filter(s => s.id !== currentSession.id)];
-                saveSessions(updatedSessions);
-                setCurrentSession(null);
-                setCurrentPage(1);
-                setHasUnsavedChanges(false);
-            };
-
-            const pauseSession = () => {
-                if (!currentSession) return;
-                
-                const pausedSession = { 
-                    ...currentSession, 
-                    status: 'paused',
-                    lastModifiedBy: selectedUser || 'Utilisateur'
-                };
-                const updatedSessions = [pausedSession, ...sessions.filter(s => s.id !== currentSession.id)];
-                saveSessions(updatedSessions);
-                setCurrentSession(null);
-                setCurrentPage(1);
-                setHasUnsavedChanges(false);
-            };
-
-            const inviteOtherUser = () => {
-                if (!currentSession) return;
-                
-                const otherUser = selectedUser === 'Tom' ? 'Lambert' : 'Tom';
-                
-                const sessionWithPending = { 
-                    ...currentSession, 
-                    status: 'pending', 
-                    lastPingBy: selectedUser,
-                    lastModifiedBy: selectedUser || 'Utilisateur'
-                };
-                const updatedSessions = [sessionWithPending, ...sessions.filter(s => s.id !== currentSession.id)];
-                saveSessions(updatedSessions);
-                
-                setCurrentSession(null);
-                setCurrentPage(1);
-                setHasUnsavedChanges(false);
-                
-                alert('📨 Invitation envoyée à ' + otherUser + ' !');
-            };
-
-            const openSession = (session) => {
-                setShowFullPage(true);
-                setSelectedMode(session.mode);
-                setSelectedGame(session.game);
-                setCurrentSession(session);
-                setHasUnsavedChanges(false);
-                setCurrentPage(3);
-            };
-
-            const addNote = () => {
-                if (!currentSession) return;
-                const newNote = {
-                    id: Date.now(),
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    author: selectedUser || 'Utilisateur',
-                    isEditing: true
-                };
-                setCurrentSession({
-                    ...currentSession,
-                    notes: [...(currentSession.notes || []), newNote]
-                });
-                setHasUnsavedChanges(true);
-            };
-
-            const updateNote = (noteId, content) => {
-                if (!currentSession) return;
-                setCurrentSession({
-                    ...currentSession,
-                    notes: (currentSession.notes || []).map(note => 
-                        note.id === noteId ? { ...note, content, isEditing: false } : note
-                    )
-                });
-                setHasUnsavedChanges(true);
-            };
-
-            const editNote = (noteId) => {
-                if (!currentSession) return;
-                setCurrentSession({
-                    ...currentSession,
-                    notes: (currentSession.notes || []).map(note => 
-                        note.id === noteId ? { ...note, isEditing: true, originalContent: note.content } : note
-                    )
-                });
-            };
-
-            const cancelEditNote = (noteId) => {
-                if (!currentSession) return;
-                setCurrentSession({
-                    ...currentSession,
-                    notes: (currentSession.notes || []).map(note => 
-                        note.id === noteId ? { ...note, content: note.originalContent || note.content, isEditing: false, originalContent: undefined } : note
-                    )
-                });
-            };
-
-            const deleteNote = (noteId) => {
-                if (!currentSession) return;
-                
-                const updatedNotes = (currentSession.notes || []).filter(n => n.id !== noteId);
-                setCurrentSession({
-                    ...currentSession,
-                    notes: updatedNotes
-                });
-                setHasUnsavedChanges(true);
-            };
-
-            const handleModeSelection = (mode) => {
-                setSelectedMode(mode);
-                if (mode === 'duo') {
-                    setSelectedUser('Duo');
-                    setShowFullPage(true);
-                } else {
-                    setShowUserSelection(true);
-                }
-            };
-
-            const handleUserSelection = (user) => {
-                setSelectedUser(user);
-                setShowFullPage(true);
-            };
-
-            const resetOnboarding = () => {
-                setSelectedMode('');
-                setSelectedUser('');
-                setShowUserSelection(false);
-                setShowFullPage(false);
-                setCurrentPage(1);
-                setCurrentSession(null);
-                setSelectedGame(null);
-                setHasUnsavedChanges(false);
-                setNotifications([]);
-                setIsEditingSessionName(false);
-                setCurrentMastodonPost(null);
-                setSearchTerm('');
-            };
-
-            const selectGame = (game) => {
-                setSelectedGame(game);
-                const newSession = {
-                    id: Date.now(),
-                    mode: selectedMode,
-                    user: selectedUser,
-                    game: game,
-                    date: new Date().toISOString(),
-                    status: 'active',
-                    participants: [],
-                    notes: [],
-                    photo: null
-                };
-                
-                setCurrentSession(newSession);
-                setCurrentPage(3);
-            };
-
-            const handleNavigation = (targetPage) => {
-                setCurrentPage(targetPage);
-            };
-
-            const updateSessionName = (newName) => {
-                if (!currentSession) return;
-                
-                setCurrentSession({
-                    ...currentSession,
-                    customName: newName
-                });
-                setHasUnsavedChanges(true);
-                setIsEditingSessionName(false);
-            };
-
-            const openMemoryPage = () => {
-                setCurrentPage(4);
-                const posts = getCurrentPosts();
-                if (posts.length > 0) {
-                    const randomPost = posts[Math.floor(Math.random() * posts.length)];
-                    setCurrentMastodonPost(randomPost);
-                }
-            };
-
-            // Navigation vers page photos (nouvelle fonction)
-            const openPhotosPage = () => {
-                setCurrentPage(4);
-                // Si on a des photos, on peut en afficher une au hasard
-                const allPhotos = getAllPhotos();
-                if (allPhotos.length > 0) {
-                    const randomPhoto = allPhotos[Math.floor(Math.random() * allPhotos.length)];
-                    setCurrentPhotoView(randomPhoto);
-                }
-            };
-
-            const exportToGoogleDocs = () => {
-                alert('🚧 Export vers Google Docs - À venir dans la prochaine version !');
-            };
-
-            const getSessionDisplayName = (session) => {
-                return session.customName || session.game?.title || 'Session sans nom';
-            };
-
-            const getPageTitle = () => {
-                switch(currentPage) {
-                    case 1: 
-                        return "Accueil & Sessions";
-                    case 2: 
-                        return "Choix du jeu";
-                    case 3: 
-                        return currentSession?.game?.title || '';
-                    case 4:
-                        const posts = getCurrentPosts();
-                        const total = mastodonData?.totalItems || 275;
-                        return `Souvenirs Mastodon (${posts.length}/${total})`;
-                    default: 
-                        return "Navigation";
-                }
-            };
-
-            const getStatusIcon = (status) => {
-                switch(status) {
-                    case 'active':
-                        return React.createElement(Play, { className: "w-5 h-5 text-green-600" });
-                    case 'paused':
-                        return React.createElement(Pause, { className: "w-5 h-5 text-orange-600" });
-                    case 'closed':
-                        return React.createElement(Lock, { className: "w-5 h-5 text-gray-600" });
-                    case 'pending':
-                        return React.createElement(Hourglass, { className: "w-5 h-5 text-blue-600" });
-                    default:
-                        return React.createElement(Play, { className: "w-5 h-5 text-green-600" });
-                }
-            };
-
-            const getUserColors = (user) => {
-                switch(user) {
-                    case 'Tom':
-                        return {
-                            bg: 'bg-blue-100 hover:bg-blue-200',
-                            border: 'border-blue-300 hover:border-blue-400',
-                            text: 'text-blue-800',
-                            icon: 'text-blue-600'
-                        };
-                    case 'Lambert':
-                        return {
-                            bg: 'bg-green-100 hover:bg-green-200',
-                            border: 'border-green-300 hover:border-green-400',
-                            text: 'text-green-800',
-                            icon: 'text-green-600'
-                        };
-                    default:
-                        return {
-                            bg: 'bg-amber-100 hover:bg-amber-200',
-                            border: 'border-amber-300 hover:border-amber-400',
-                            text: 'text-amber-800',
-                            icon: 'text-amber-600'
-                        };
-                }
-            };
-
-            const formatDate = (dateString) => {
-                try {
-                    const date = new Date(dateString);
-                    return date.toLocaleDateString('fr-FR', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    });
-                } catch {
-                    return 'Date inconnue';
-                }
-            };
-
-            // === INTERFACE COMPLÈTE - PAGES 1-3 ===
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
-                    <div className="max-w-4xl mx-auto">
-                        
+                    <div className="max-w-6xl mx-auto">
+                        {/* Header */}
                         <div className="text-center mb-6">
-                            {/* Ligne centrale : Utilisateur, Titre, Souvenirs */}
-                            <div className="flex justify-center items-center space-x-8 mb-2">
-                                <button
-                                    onClick={resetOnboarding}
-                                    className={`${selectedUser ? getUserColors(selectedUser).icon : 'text-amber-600'} hover:text-amber-800 p-2 rounded-full ${selectedUser ? getUserColors(selectedUser).bg : 'hover:bg-amber-100'} transition-colors flex flex-col items-center`}
-                                    title="Changer d'utilisateur ou de mode"
-                                >
-                                    <span className="text-2xl">🐘</span>
-                                    <span className={`text-xs font-medium ${selectedUser ? getUserColors(selectedUser).text : 'text-amber-700'}`}>
-                                        {selectedMode === 'duo' ? 'Duo' : selectedUser || 'Utilisateur'}
-                                    </span>
-                                </button>
-                                
-                                <div className="text-center">
-                                    <h1 className="text-4xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                                    <p className="text-lg text-amber-700 font-medium mt-1">{getPageTitle()}</p>
-                                </div>
-                                
-                                <button
-                                    onClick={openMemoryPage}
-                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition-colors flex flex-col items-center"
-                                    title="Accéder aux souvenirs Mastodon"
-                                >
-                                    <Cloud className="w-6 h-6" />
-                                    <span className="text-xs text-blue-700 font-medium">Souvenirs</span>
-                                </button>
-                                
-                                <button
-                                    onClick={openPhotosPage}
-                                    className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-100 transition-colors flex flex-col items-center"
-                                    title="Accéder aux photos"
-                                >
-                                    <Camera className="w-6 h-6" />
-                                    <span className="text-xs text-green-700 font-medium">Photos</span>
-                                </button>
-                            </div>
-
-                            {/* Navigation sous le sous-titre */}
-                            {(showFullPage || currentPage === 4) && (
-                                <div className="flex justify-center items-center space-x-8">
-                                    <button 
-                                        onClick={() => currentPage > 1 && handleNavigation(currentPage - 1)}
-                                        disabled={currentPage <= 1}
-                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage > 1 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
-                                        title="Page précédente"
-                                    >
-                                        <ChevronLeft className="w-6 h-6" />
-                                        <span className="text-xs font-medium">Précédent</span>
-                                    </button>
-                                    
-                                    <button 
-                                        onClick={() => handleNavigation(1)}
-                                        className="flex flex-col items-center p-2 rounded-full text-orange-600 hover:text-orange-800 hover:bg-orange-100 transition-colors"
-                                        title="Retour à l'accueil"
-                                    >
-                                        <Home className="w-6 h-6" />
-                                        <span className="text-xs font-medium">Accueil</span>
-                                    </button>
-                                    
-                                    <button 
-                                        onClick={() => currentPage < 4 && handleNavigation(currentPage + 1)}
-                                        disabled={currentPage >= 4}
-                                        className={`flex flex-col items-center p-2 rounded-full transition-colors ${currentPage < 4 ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-100' : 'text-gray-400 cursor-not-allowed'}`}
-                                        title="Page suivante"
-                                    >
-                                        <ChevronRight className="w-6 h-6" />
-                                        <span className="text-xs font-medium">Suivant</span>
-                                    </button>
-                                </div>
-                            )}
+                            <h1 className="text-4xl font-bold text-amber-900 mb-2">🐘 Mémoire du Mékong</h1>
+                            <p className="text-amber-700">V9.0 • Architecture modulaire • 23 août 2025</p>
                         </div>
 
-                        {/* Notifications */}
-                        {currentPage === 1 && showFullPage && notifications.length > 0 && (
-                            <div className="mb-4">
-                                {notifications.map((notif, idx) => (
-                                    <div key={idx} className="bg-blue-100 border-l-4 border-blue-500 p-3 rounded">
-                                        <p className="text-blue-800">🔔 {notif}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                            
-                            {/* PAGE 1 - SÉLECTION MODE ET UTILISATEUR */}
-                            {currentPage === 1 && !showFullPage && (
-                                <div className="space-y-8">
-                                    
-                                    {!selectedMode && (
-                                        <div className="max-w-md mx-auto space-y-3">
-                                            <h3 className="text-lg font-semibold text-amber-900 text-center">Choisissez votre mode de session</h3>
-                                            <div className="space-y-3">
-                                                <button
-                                                    onClick={() => handleModeSelection('duo')}
-                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
-                                                >
-                                                    <Users className="w-6 h-6 text-amber-600" />
-                                                    <div>
-                                                        <span className="font-medium text-lg">Duo</span>
-                                                        <p className="text-sm text-gray-600">Session intensive à deux (présentiel)</p>
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleModeSelection('solo')}
-                                                    className="flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left hover:bg-amber-50 hover:border-amber-300 transition-all"
-                                                >
-                                                    <User className="w-6 h-6 text-amber-600" />
-                                                    <div>
-                                                        <span className="font-medium text-lg">Solo</span>
-                                                        <p className="text-sm text-gray-600">Lancer un ping-pong (asynchrone)</p>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {selectedMode === 'solo' && showUserSelection && !showFullPage && (
-                                        <div className="max-w-md mx-auto space-y-3">
-                                            <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
-                                            <div className="space-y-3">
-                                                <button
-                                                    onClick={() => handleUserSelection('Tom')}
-                                                    className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserColors('Tom').bg} ${getUserColors('Tom').border}`}
-                                                >
-                                                    <span className="text-3xl">🐘</span>
-                                                    <span className={`font-medium text-lg ${getUserColors('Tom').text}`}>Tom l'éléphantau</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleUserSelection('Lambert')}
-                                                    className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserColors('Lambert').bg} ${getUserColors('Lambert').border}`}
-                                                >
-                                                    <span className="text-3xl">🐘</span>
-                                                    <span className={`font-medium text-lg ${getUserColors('Lambert').text}`}>Lambert, le Vieil éléphant</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* PAGE 1 - SESSIONS PRÉCÉDENTES */}
-                            {currentPage === 1 && showFullPage && (
-                                <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <h3 className="text-lg font-semibold text-amber-900">Sessions précédentes</h3>
-                                        {sessions.length === 0 ? (
-                                            <div className="text-center py-8">
-                                                <p className="text-gray-500 mb-4">Aucune session enregistrée</p>
-                                                <button
-                                                    onClick={() => setCurrentPage(2)}
-                                                    className="px-6 py-3 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg font-medium"
-                                                >
-                                                    Créer votre première session
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div className="flex justify-between items-center mb-4">
-                                                    <span className="text-sm text-gray-600">{sessions.length} session(s)</span>
-                                                    <button
-                                                        onClick={() => setCurrentPage(2)}
-                                                        className="px-4 py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg font-medium"
-                                                    >
-                                                        Nouvelle session
-                                                    </button>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {sessions.map((session, index) => (
-                                                        <div 
-                                                            key={session.id}
-                                                            className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-                                                        >
-                                                            <div 
-                                                                onClick={() => openSession(session)}
-                                                                className="flex items-center space-x-3 flex-1 cursor-pointer"
-                                                            >
-                                                                {getStatusIcon(session.status)}
-                                                                <div>
-                                                                    <span className="font-medium">{getSessionDisplayName(session)}</span>
-                                                                    <p className="text-sm text-gray-600">
-                                                                        {session.mode} • {session.lastModifiedBy || session.user} • {new Date(session.date).toLocaleDateString('fr-FR')}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center space-x-2">
-                                                                <button
-                                                                    onClick={exportToGoogleDocs}
-                                                                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
-                                                                    title="Export Google Docs"
-                                                                >
-                                                                    ⬇️
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* PAGE 2 - SÉLECTION DES JEUX */}
-                            {currentPage === 2 && (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-lg font-semibold text-amber-900">
-                                            Jeux {selectedMode === 'duo' ? 'présentiel' : 'distanciel'} disponibles
-                                        </h3>
-                                        <button
-                                            onClick={() => {
-                                                const games = selectedMode === 'duo' ? presentielGames : distancielGames;
-                                                const randomGame = games[Math.floor(Math.random() * games.length)];
-                                                selectGame(randomGame);
-                                            }}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-purple-200 hover:bg-purple-300 text-purple-800 rounded-lg"
-                                        >
-                                            <Shuffle className="w-4 h-4" />
-                                            <span>Au hasard</span>
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="grid gap-4">
-                                        {(selectedMode === 'duo' ? presentielGames : distancielGames).map(game => {
-                                            const IconComponent = game.icon;
-                                            return (
-                                                <button 
-                                                    key={game.id}
-                                                    onClick={() => selectGame(game)}
-                                                    className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all hover:border-amber-300 hover:bg-amber-50 text-left w-full"
-                                                >
-                                                    <div className="flex items-start space-x-3">
-                                                        <IconComponent className="w-6 h-6 text-amber-600 mt-1 flex-shrink-0" />
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between items-start mb-1">
-                                                                <h4 className="font-medium text-amber-900">{game.title}</h4>
-                                                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                                                    {game.duration}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-sm text-gray-600">{game.description}</p>
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* PAGE 3 - SESSION ACTIVE */}
-                            {currentPage === 3 && currentSession && (
-                                <div className="space-y-6">
-                                    <div className="bg-amber-50 p-4 rounded-lg">
-                                        <div className="flex items-start space-x-3">
-                                            {React.createElement(currentSession.game.icon || BookOpen, { 
-                                                className: "w-8 h-8 text-amber-600 mt-1 flex-shrink-0" 
-                                            })}
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-2 mb-2">
-                                                    {isEditingSessionName ? (
-                                                        <div className="flex items-center space-x-2 flex-1">
-                                                            <input 
-                                                                type="text"
-                                                                defaultValue={getSessionDisplayName(currentSession)}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        updateSessionName(e.target.value);
-                                                                    } else if (e.key === 'Escape') {
-                                                                        setIsEditingSessionName(false);
-                                                                    }
-                                                                }}
-                                                                className="flex-1 px-2 py-1 border rounded text-lg font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                                                autoFocus
-                                                            />
-                                                            <button 
-                                                                onClick={() => {
-                                                                    const input = document.querySelector('input[type="text"]');
-                                                                    if (input) updateSessionName(input.value);
-                                                                }}
-                                                                className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                                                            >
-                                                                ✓
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => setIsEditingSessionName(false)}
-                                                                className="px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center space-x-2 flex-1">
-                                                            <h3 className="text-lg font-semibold text-amber-900 flex-1">
-                                                                {getSessionDisplayName(currentSession)}
-                                                            </h3>
-                                                            <button 
-                                                                onClick={() => setIsEditingSessionName(true)}
-                                                                className="text-amber-600 hover:text-amber-800 p-1 rounded hover:bg-amber-200"
-                                                            >
-                                                                <Edit className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <p className="text-amber-700 mb-2">
-                                                    {currentSession.game?.description || 'Aucune description disponible'}
-                                                </p>
-                                                <div className="flex items-center space-x-4 text-sm text-amber-600">
-                                                    <span>Mode: {currentSession.mode}</span>
-                                                    <span>Durée: {currentSession.game?.duration}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-{/* Affichage photo si session créée depuis photo - NOUVEAU */}
-{currentSession.photo && (
-    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <h4 className="font-medium text-blue-900 mb-3 flex items-center space-x-2">
-            <Camera className="w-5 h-5" />
-            <span>Photo de référence - Jour {currentSession.photo.dayNumber}</span>
-        </h4>
-        <div className="flex items-start space-x-4">
-            {/* Miniature photo */}
-            <div 
-                className="flex-shrink-0 cursor-pointer group"
-                onClick={() => openPhotoFullscreen(currentSession.photo)}
-            >
-                <div className="w-32 h-32 rounded-lg overflow-hidden shadow hover:shadow-lg transition-all">
-                    <img 
-                        src={currentSession.photo.url}
-                        alt={currentSession.photo.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                </div>
-                <div className="text-xs text-center text-blue-600 mt-1">
-                    Cliquer pour agrandir
-                </div>
-            </div>
-            
-            {/* Infos photo */}
-            <div className="flex-1">
-                <div className="bg-white p-3 rounded border">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                            <span className="font-medium text-gray-700">Nom :</span>
-                            <div className="text-gray-600">{currentSession.photo.name}</div>
-                        </div>
-                        <div>
-                            <span className="font-medium text-gray-700">Source :</span>
-                            <div className="text-gray-600">
-                                {currentSession.photo.type === 'google' ? 'Google Photos' : 'Mastodon'}
-                            </div>
-                        </div>
-                        <div>
-                            <span className="font-medium text-gray-700">Jour :</span>
-                            <div className="text-gray-600">J{currentSession.photo.dayNumber}</div>
-                        </div>
-                        {currentSession.photo.size && (
-                            <div>
-                                <span className="font-medium text-gray-700">Taille :</span>
-                                <div className="text-gray-600">{Math.round(currentSession.photo.size / 1024)}KB</div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                
-                {/* Actions photo */}
-                <div className="flex space-x-2 mt-2">
-                    <button
-                        onClick={() => {
-                            // Voir toutes les photos du même jour
-                            const dayPhotos = getPhotosForDay(currentSession.photo.dayNumber);
-                            if (dayPhotos.length > 1) {
-                                setPhotoFilters({ 
-                                    source: 'all', 
-                                    day: currentSession.photo.dayNumber, 
-                                    searchTerm: '' 
-                                });
-                                setCurrentPage(4);
-                            } else {
-                                alert(`Pas d'autres photos pour le jour ${currentSession.photo.dayNumber}`);
-                            }
-                        }}
-                        className="px-3 py-1 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded text-sm"
-                    >
-                        📸 Autres photos J{currentSession.photo.dayNumber}
-                    </button>
-                    
-                    <button
-                        onClick={() => {
-                            // Voir le post Mastodon correspondant si il existe
-                            const posts = getCurrentPosts();
-                            const correspondingPost = posts.find(post => post.dayNumber === currentSession.photo.dayNumber);
-                            if (correspondingPost) {
-                                setCurrentMastodonPost(correspondingPost);
-                                setCurrentPage(4);
-                            } else {
-                                alert(`Pas de post Mastodon pour le jour ${currentSession.photo.dayNumber}`);
-                            }
-                        }}
-                        className="px-3 py-1 bg-green-200 hover:bg-green-300 text-green-800 rounded text-sm"
-                    >
-                        📝 Post J{currentSession.photo.dayNumber}
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-)}
-
-
-                                    <div className="space-y-3">
-                                        <h4 className="font-medium text-amber-900">Notes et souvenirs</h4>
-                                        
-                                        <div className="space-y-3">
-                                            {currentSession.notes && currentSession.notes.length > 0 ? (
-                                                currentSession.notes.map((note, index) => (
-                                                    <div key={note.id} className={`border rounded-lg p-3 ${note.isEditing ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 cursor-pointer hover:bg-gray-100'} transition-colors`}>
-                                                        {note.isEditing ? (
-                                                            <div className="space-y-2">
-                                                                <textarea 
-                                                                    value={note.content || ''}
-                                                                    onChange={(e) => {
-                                                                        setCurrentSession({
-                                                                            ...currentSession,
-                                                                            notes: currentSession.notes.map(n => 
-                                                                                n.id === note.id ? { ...n, content: e.target.value } : n
-                                                                            )
-                                                                        });
-                                                                        setHasUnsavedChanges(true);
-                                                                    }}
-                                                                    className="w-full h-32 p-3 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                                                    placeholder="Notez ici vos souvenirs, réflexions, détails..."
-                                                                    autoFocus
-                                                                />
-                                                                <div className="flex space-x-2">
-                                                                    <button 
-                                                                        onClick={() => updateNote(note.id, note.content || '')}
-                                                                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                                                                    >
-                                                                        Sauvegarder
-                                                                    </button>
-                                                                    <button 
-                                                                        onClick={() => cancelEditNote(note.id)}
-                                                                        className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
-                                                                    >
-                                                                        Annuler
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div 
-                                                                onClick={() => editNote(note.id)}
-                                                                className="cursor-pointer"
-                                                            >
-                                                                <div className="flex justify-between items-start mb-2">
-                                                                    <span className="text-xs text-gray-500">
-                                                                        Note #{index + 1} • {note.author || 'Auteur inconnu'} • {note.timestamp ? new Date(note.timestamp).toLocaleString('fr-FR') : 'Date inconnue'}
-                                                                    </span>
-                                                                    <button 
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            deleteNote(note.id);
-                                                                        }}
-                                                                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-100"
-                                                                        title="Supprimer la note"
-                                                                    >
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                    </button>
-                                                                </div>
-                                                                <p className="text-gray-700 whitespace-pre-wrap">{note.content || 'Note vide - cliquez pour éditer'}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <p className="text-gray-500 text-center py-4">Aucune note pour le moment. Cliquez sur "Écrire" pour commencer.</p>
-                                            )}
-                                            
-                                            <div className="flex justify-center pt-2">
-                                                <button 
-                                                    onClick={addNote}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
-                                                >
-                                                    <BookOpen className="w-4 h-4" />
-                                                    <span>Écrire</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-center space-x-4 pt-4 border-t">
-                                        {selectedMode === 'solo' ? (
-                                            <>
-                                                <button 
-                                                    onClick={inviteOtherUser}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
-                                                >
-                                                    <ArrowUpRight className="w-4 h-4" />
-                                                    <span>Ping-pong</span>
-                                                </button>
-                                                <button 
-                                                    onClick={closeSession}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-red-200 hover:bg-red-300 text-red-800 rounded-lg"
-                                                >
-                                                    <Lock className="w-4 h-4" />
-                                                    <span>Clore l'échange</span>
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button 
-                                                    onClick={pauseSession}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-orange-200 hover:bg-orange-300 text-orange-800 rounded-lg"
-                                                >
-                                                    <Pause className="w-4 h-4" />
-                                                    <span>Pause</span>
-                                                </button>
-                                                <button 
-                                                    onClick={closeSession}
-                                                    className="flex items-center space-x-2 px-4 py-2 bg-red-200 hover:bg-red-300 text-red-800 rounded-lg"
-                                                >
-                                                    <Lock className="w-4 h-4" />
-                                                    <span>Terminer</span>
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                            
-
-
-                            {/* PAGE 4 - SOUVENIRS MASTODON */}
-                            {currentPage === 4 && (
-                                <div className="space-y-6">
-                                    {/* Section Upload/Info */}
-                                    {!mastodonData && (
-                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
-                                            <div className="text-center space-y-4">
-                                                <h3 className="text-lg font-semibold text-blue-900 flex items-center justify-center space-x-2">
-                                                    <Upload className="w-6 h-6" />
-                                                    <span>Charger vos posts Mastodon</span>
-                                                </h3>
-                                                <p className="text-blue-700">
-                                                    Sélectionnez votre fichier <code className="bg-blue-100 px-2 py-1 rounded">outbox.json</code> pour charger vos 275 posts de voyage
-                                                </p>
-                                                <div className="flex justify-center">
-                                                    <label className="flex items-center space-x-2 px-6 py-3 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg cursor-pointer transition-colors">
-                                                        <FileText className="w-5 h-5" />
-                                                        <span>{isLoadingFile ? 'Chargement...' : 'Choisir outbox.json'}</span>
-                                                        <input 
-                                                            type="file" 
-                                                            accept=".json"
-                                                            onChange={handleFileUpload}
-                                                            className="hidden"
-                                                            disabled={isLoadingFile}
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    /* === SECTION UPLOAD PHOTOS GOOGLE AMÉLIORÉE === */}
-<div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-    <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-green-900 flex items-center space-x-2">
-            <Camera className="w-6 h-6" />
-            <span>Photos Google Photos</span>
-        </h3>
-        
-        {/* Détection photos existantes */}
-        {(() => {
-            const existingStats = hasExistingPhotos();
-            const currentStats = getPhotoStats();
-            
-            // Si on a des photos existantes sauvées mais pas chargées
-            if (existingStats && currentStats.google === 0) {
-                return (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div className="flex items-start space-x-3">
-                            <div className="text-yellow-600">⚠️</div>
-                            <div className="flex-1">
-                                <h4 className="font-medium text-yellow-800 mb-2">
-                                    Photos précédemment chargées détectées
-                                </h4>
-                                <p className="text-yellow-700 text-sm mb-3">
-                                    {existingStats.google} photos dans {existingStats.foldersList?.length || 0} dossiers 
-                                    (dernier upload : {new Date(existingStats.lastUpload).toLocaleDateString('fr-FR')})
-                                </p>
-                                <div className="flex space-x-2">
-                                    <label className="px-4 py-2 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded cursor-pointer text-sm">
-                                        🔗 Re-lier photos existantes
-                                        <input 
-                                            type="file" 
-                                            multiple
-                                            webkitdirectory="true"
-                                            onChange={(e) => handleGooglePhotosUpload(e, true)}
-                                            className="hidden"
-                                            accept="image/*"
-                                        />
-                                    </label>
-                                    <label className="px-4 py-2 bg-green-200 hover:bg-green-300 text-green-800 rounded cursor-pointer text-sm">
-                                        📁 Ajouter nouveaux dossiers
-                                        <input 
-                                            type="file" 
-                                            multiple
-                                            webkitdirectory="true"
-                                            onChange={(e) => handleGooglePhotosUpload(e, false)}
-                                            className="hidden"
-                                            accept="image/*"
-                                        />
-                                    </label>
-                                </div>
-                                <p className="text-xs text-yellow-600 mt-2">
-                                    💡 Re-sélectionnez vos dossiers OneDrive pour restaurer l'accès aux photos
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-            
-            return null;
-        })()}
-        
-        {/* Statistiques photos */}
-        {(() => {
-            const stats = getPhotoStats();
-            return (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div className="bg-white p-3 rounded-lg border border-green-200">
-                        <div className="text-2xl font-bold text-green-700">{stats.google}</div>
-                        <div className="text-xs text-green-600">Google Photos</div>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border border-blue-200">
-                        <div className="text-2xl font-bold text-blue-700">{stats.mastodon}</div>
-                        <div className="text-xs text-blue-600">Photos Mastodon</div>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border border-amber-200">
-                        <div className="text-2xl font-bold text-amber-700">{stats.total}</div>
-                        <div className="text-xs text-amber-600">Total photos</div>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border border-purple-200">
-                        <div className="text-2xl font-bold text-purple-700">{stats.days}</div>
-                        <div className="text-xs text-purple-600">Jours couverts</div>
-                    </div>
-                </div>
-            );
-        })()}
-        
-        {/* Upload progress */}
-        {isUploadingPhotos && (
-            <div className="bg-white p-4 rounded-lg border border-green-200">
-                <div className="flex items-center space-x-3 mb-2">
-                    <RefreshCw className="w-5 h-5 text-green-600 animate-spin" />
-                    <span className="text-green-800 font-medium">
-                        {(() => {
-                            const existingStats = hasExistingPhotos();
-                            return existingStats && getPhotoStats().google === 0 
-                                ? "Re-linkage en cours..." 
-                                : "Upload en cours...";
-                        })()}
-                    </span>
-                </div>
-                <div className="w-full bg-green-200 rounded-full h-2">
-                    <div 
-                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${photoUploadProgress}%` }}
-                    ></div>
-                </div>
-                <div className="text-right text-sm text-green-600 mt-1">{photoUploadProgress}%</div>
-            </div>
-        )}
-        
-        {/* Bouton upload (seulement si pas de photos existantes non-linkées) */}
-        {(() => {
-            const existingStats = hasExistingPhotos();
-            const currentStats = getPhotoStats();
-            
-            if (existingStats && currentStats.google === 0) {
-                return null; // Masqué si on a des photos à re-lier
-            }
-            
-            return (
-                <div className="text-center">
-                    <p className="text-green-700 mb-3">
-                        Sélectionnez vos dossiers <code className="bg-green-100 px-2 py-1 rounded">001-Lieu</code>, <code className="bg-green-100 px-2 py-1 rounded">025-Lieu</code>...
-                    </p>
-                    <label className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg cursor-pointer transition-colors">
-                        <Upload className="w-5 h-5" />
-                        <span>{isUploadingPhotos ? 'Upload...' : 'Choisir dossiers photos'}</span>
-                        <input 
-                            type="file" 
-                            multiple
-                            webkitdirectory="true"
-                            onChange={(e) => handleGooglePhotosUpload(e, false)}
-                            className="hidden"
-                            disabled={isUploadingPhotos}
-                            accept="image/*"
+                        {/* Navigation */}
+                        <Navigation 
+                            currentPage={currentPage}
+                            currentUser={currentUser}
+                            onPageChange={setCurrentPage}
+                            onUserChange={setCurrentUser}
                         />
-                    </label>
-                    <p className="text-xs text-green-600 mt-2">
-                        💡 Maintenez Ctrl/Cmd pour sélectionner plusieurs dossiers
-                    </p>
-                </div>
-            );
-        })()}
-    </div>
-</div>
 
-                                    {/* === SECTION NAVIGATION ET FILTRES PHOTOS - NOUVEAU === */}
-                                    {(getPhotoStats().total > 0) && (
-                                        <div className="space-y-4">
-                                            {/* Filtres photos */}
-                                            <div className="bg-gray-50 p-4 rounded-lg border">
-                                                <div className="flex flex-wrap items-center gap-4">
-                                                    {/* Filtre source */}
-                                                    <div className="flex items-center space-x-2">
-                                                        <label className="text-sm font-medium text-gray-700">Source :</label>
-                                                        <select 
-                                                            value={photoFilters.source}
-                                                            onChange={(e) => setPhotoFilters(prev => ({ ...prev, source: e.target.value }))}
-                                                            className="px-3 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                                        >
-                                                            <option value="all">Toutes ({getPhotoStats().total})</option>
-                                                            <option value="google">Google ({getPhotoStats().google})</option>
-                                                            <option value="mastodon">Mastodon ({getPhotoStats().mastodon})</option>
-                                                        </select>
-                                                    </div>
-                                                    
-                                                    {/* Filtre jour */}
-                                                    <div className="flex items-center space-x-2">
-                                                        <label className="text-sm font-medium text-gray-700">Jour :</label>
-                                                        <input 
-                                                            type="number"
-                                                            min="1"
-                                                            max="135"
-                                                            placeholder="J001"
-                                                            value={photoFilters.day || ''}
-                                                            onChange={(e) => setPhotoFilters(prev => ({ 
-                                                                ...prev, 
-                                                                day: e.target.value ? parseInt(e.target.value) : null 
-                                                            }))}
-                                                            className="w-20 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                                        />
-                                                    </div>
-                                                    
-                                                    {/* Recherche */}
-                                                    <div className="flex items-center space-x-2 flex-1">
-                                                        <Search className="w-4 h-4 text-gray-400" />
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Rechercher photos..."
-                                                            value={photoFilters.searchTerm}
-                                                            onChange={(e) => setPhotoFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-                                                            className="flex-1 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                                        />
-                                                    </div>
-                                                    
-                                                    {/* Reset filtres */}
-                                                    <button
-                                                        onClick={() => setPhotoFilters({ source: 'all', day: null, searchTerm: '' })}
-                                                        className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm"
-                                                    >
-                                                        Reset
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Grille photos */}
-                                            {(() => {
-                                                const filteredPhotos = getFilteredPhotos();
-                                                
-                                                if (filteredPhotos.length === 0) {
-                                                    return (
-                                                        <div className="text-center py-8">
-                                                            <Camera className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                                            <p className="text-gray-500">Aucune photo ne correspond aux filtres</p>
-                                                        </div>
-                                                    );
-                                                }
-                                                
-                                                return (
-                                                    <div className="space-y-4">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-sm text-gray-600">
-                                                                {filteredPhotos.length} photo(s) affichée(s)
-                                                            </span>
-                                                            <div className="flex items-center space-x-2">
-                                                                <button
-                                                                    onClick={() => setPhotoViewMode(photoViewMode === 'grid' ? 'carousel' : 'grid')}
-                                                                    className="px-3 py-1 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded text-sm"
-                                                                >
-                                                                    {photoViewMode === 'grid' ? '📷 Carrousel' : '🔲 Grille'}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {photoViewMode === 'grid' ? (
-                                                            // Vue grille
-                                                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                                                {filteredPhotos.map((photo) => (
-                                                                    <div 
-                                                                        key={photo.id}
-                                                                        onClick={() => openPhotoFullscreen(photo)}
-                                                                        className="relative group cursor-pointer bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition-all"
-                                                                    >
-                                                                        <div className="aspect-square">
-                                                                            <img 
-                                                                                src={photo.url}
-                                                                                alt={photo.name}
-                                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                                                loading="lazy"
-                                                                            />
-                                                                        </div>
-                                                                        
-                                                                        {/* Overlay info */}
-                                                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all">
-                                                                            <div className="absolute bottom-0 left-0 right-0 p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                                <div className="text-xs truncate">J{photo.dayNumber}</div>
-                                                                                <div className="text-xs truncate">{photo.name}</div>
-                                                                            </div>
-                                                                        </div>
-                                                                        
-                                                                        {/* Badge type */}
-                                                                        <div className={`absolute top-1 right-1 px-1 py-0.5 rounded text-xs font-bold ${
-                                                                            photo.type === 'google' 
-                                                                                ? 'bg-green-500 text-white' 
-                                                                                : 'bg-blue-500 text-white'
-                                                                        }`}>
-                                                                            {photo.type === 'google' ? 'G' : 'M'}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            // Vue carrousel
-                                                            <div className="bg-white rounded-lg p-4 border">
-                                                                <div className="text-center mb-4">
-                                                                    <span className="text-sm text-gray-600">
-                                                                        Mode carrousel - Cliquez sur une photo pour l'agrandir
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex space-x-3 overflow-x-auto pb-3">
-                                                                    {filteredPhotos.map((photo) => (
-                                                                        <div 
-                                                                            key={photo.id}
-                                                                            onClick={() => openPhotoFullscreen(photo)}
-                                                                            className="flex-shrink-0 cursor-pointer group"
-                                                                        >
-                                                                            <div className="w-32 h-32 rounded-lg overflow-hidden shadow hover:shadow-lg transition-all">
-                                                                                <img 
-                                                                                    src={photo.url}
-                                                                                    alt={photo.name}
-                                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                                                    loading="lazy"
-                                                                                />
-                                                                            </div>
-                                                                            <div className="text-center mt-1">
-                                                                                <div className="text-xs text-gray-600">J{photo.dayNumber}</div>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
-                                            
-                                            {/* Modal fullscreen photo */}
-                                            {photoViewMode === 'fullscreen' && currentPhotoView && (
-                                                <div 
-                                                    className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
-                                                    onClick={closePhotoFullscreen}
-                                                >
-                                                    <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
-                                                        {/* Navigation */}
-                                                        <button
-                                                            onClick={() => navigatePhoto('prev')}
-                                                            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full"
-                                                        >
-                                                            <ChevronLeft className="w-6 h-6" />
-                                                        </button>
-                                                        
-                                                        <button
-                                                            onClick={() => navigatePhoto('next')}
-                                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full"
-                                                        >
-                                                            <ChevronRight className="w-6 h-6" />
-                                                        </button>
-                                                        
-                                                        {/* Fermeture */}
-                                                        <button
-                                                            onClick={closePhotoFullscreen}
-                                                            className="absolute top-4 right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full"
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                        
-                                                        {/* Image */}
-                                                        <img 
-                                                            src={currentPhotoView.url}
-                                                            alt={currentPhotoView.name}
-                                                            className="max-w-full max-h-full object-contain"
-                                                        />
-                                                        
-                                                        {/* Info photo */}
-                                                        <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded">
-                                                            <div className="flex justify-between items-center">
-                                                                <div>
-                                                                    <div className="font-medium">J{currentPhotoView.dayNumber} - {currentPhotoView.name}</div>
-                                                                    <div className="text-sm opacity-75">
-                                                                        Source: {currentPhotoView.type === 'google' ? 'Google Photos' : 'Mastodon'}
-                                                                        {currentPhotoView.size && ` • ${Math.round(currentPhotoView.size / 1024)}KB`}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex items-center space-x-2">
-                                                                    <button
-                                                                        onClick={() => createSessionFromPhoto(currentPhotoView)}
-                                                                        className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm"
-                                                                    >
-                                                                        💭 Session
-                                                                    </button>
-                                                                    <div className="text-sm opacity-75">
-                                                                        {getFilteredPhotos().findIndex(p => p.id === currentPhotoView.id) + 1} / {getFilteredPhotos().length}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Section navigation et recherche */}
-                                    {mastodonData && (
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center">
-                                                <h3 className="text-lg font-semibold text-blue-900 flex items-center space-x-2">
-                                                    <Cloud className="w-6 h-6" />
-                                                    <span>Souvenirs Mastodon</span>
-                                                </h3>
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="text-sm text-gray-600">
-                                                        {getCurrentPosts().length} post(s)
-                                                    </span>
-                                                    <button
-                                                        onClick={getRandomPost}
-                                                        className="flex items-center space-x-2 px-3 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
-                                                    >
-                                                        <RefreshCw className="w-4 h-4" />
-                                                        <span>Hasard</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Barre de recherche */}
-                                            <div className="relative">
-                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Rechercher dans vos souvenirs... (lieu, mot-clé, émotion)"
-                                                    value={searchTerm}
-                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                                />
-                                            </div>
-
-                                            {/* Navigation entre posts */}
-                                            {getCurrentPosts().length > 0 && (
-                                                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                                                    <button
-                                                        onClick={() => navigatePost('prev')}
-                                                        className="flex items-center space-x-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg"
-                                                    >
-                                                        <ChevronLeft className="w-4 h-4" />
-                                                        <span>Précédent</span>
-                                                    </button>
-                                                    
-                                                    <span className="text-sm text-gray-600">
-                                                        {currentPostIndex + 1} / {getCurrentPosts().length}
-                                                    </span>
-                                                    
-                                                    <button
-                                                        onClick={() => navigatePost('next')}
-                                                        className="flex items-center space-x-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg"
-                                                    >
-                                                        <span>Suivant</span>
-                                                        <ChevronRight className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Affichage du post courant */}
-                                    {currentMastodonPost && (
-                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
-                                            <div className="space-y-4">
-                                                {/* Métadonnées du post */}
-                                                <div className="flex items-center justify-between border-b border-blue-200 pb-3">
-                                                    <div className="flex items-center space-x-3">
-                                                        <Calendar className="w-5 h-5 text-blue-600" />
-                                                        <span className="text-sm font-medium text-blue-800">
-                                                            Jour {currentMastodonPost.dayNumber || '?'}
-                                                        </span>
-                                                        <span className="text-sm text-blue-600">
-                                                            {formatDate(currentMastodonPost.date)}
-                                                        </span>
-                                                    </div>
-                                                    {currentMastodonPost.images && currentMastodonPost.images.length > 0 && (
-                                                        <div className="flex items-center space-x-1 text-sm text-blue-600">
-                                                            <Camera className="w-4 h-4" />
-                                                            <span>{currentMastodonPost.images.length} photo(s)</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                
-                                                {/* Contenu du post */}
-                                                <div 
-                                                    className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm select-text"
-                                                    style={{ userSelect: 'text' }}
-                                                >
-                                                    <p className="text-gray-800 leading-relaxed text-base whitespace-pre-line">
-                                                        {currentMastodonPost.text}
-                                                    </p>
-                                                </div>
-                                                
-                                                {/* Actions */}
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <p className="text-blue-600">
-                                                        💡 Vous pouvez sélectionner et copier le texte ci-dessus
-                                                    </p>
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                // Ajouter ce post à une session de remémoration
-                                                                const newSession = {
-                                                                    id: Date.now(),
-                                                                    mode: 'solo',
-                                                                    user: selectedUser || 'Utilisateur',
-                                                                    game: { title: `Souvenir J${currentMastodonPost.dayNumber}`, description: 'Session basée sur un post Mastodon' },
-                                                                    date: new Date().toISOString(),
-                                                                    status: 'active',
-                                                                    participants: [],
-                                                                    notes: [{
-                                                                        id: Date.now(),
-                                                                        content: `Post Mastodon J${currentMastodonPost.dayNumber}:\n\n${currentMastodonPost.text}`,
-                                                                        timestamp: new Date().toISOString(),
-                                                                        author: 'Système',
-                                                                        isEditing: false
-                                                                    }],
-                                                                    photo: null
-                                                                };
-                                                                setCurrentSession(newSession);
-                                                                setCurrentPage(3);
-                                                            }}
-                                                            className="flex items-center space-x-1 px-3 py-2 bg-green-200 hover:bg-green-300 text-green-800 rounded-lg"
-                                                        >
-                                                            <BookOpen className="w-4 h-4" />
-                                                            <span>Créer session</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Message par défaut si pas de post */}
-                                    {!currentMastodonPost && mastodonData && getCurrentPosts().length === 0 && (
-                                        <div className="text-center py-8">
-                                            <p className="text-gray-500 mb-4">Aucun post ne correspond à votre recherche</p>
-                                            <button
-                                                onClick={() => setSearchTerm('')}
-                                                className="px-4 py-2 bg-blue-200 hover:bg-blue-300 text-blue-800 rounded-lg"
-                                            >
-                                                Effacer la recherche
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* Info sur les données chargées */}
-                                    {mastodonData && (
-                                        <div className="text-center text-sm text-gray-600 border-t pt-4">
-                                            <p>
-                                                📊 {mastodonData.totalItems} posts chargés • 
-                                                Dernière mise à jour : {formatDate(mastodonData.loadedAt)}
-                                            </p>
-                                            <a 
-                                                href="https://mastodon.in.th/@mekongtandem"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-500 hover:text-blue-700 underline ml-2"
-                                            >
-                                                Voir le compte Mastodon original
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
+                        {/* Main Content */}
+                        <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                            {currentPage === 'home' && (
+                                <HomePage 
+                                    currentUser={currentUser}
+                                    currentMode={currentMode}
+                                    onModeChange={handleModeChange}
+                                    onPageChange={setCurrentPage}
+                                />
                             )}
-
+                            {currentPage === 'sessions' && <SessionsPage />}
+                            {currentPage === 'memories' && <MemoriesPage />}
+                            {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
                         </div>
 
-                        {/* FOOTER */}
+                        {/* Footer */}
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
-                            <div className="flex justify-center items-center space-x-2 text-xs mt-1 opacity-75">
-                                <span>✅ Version 8.4 • 📱 Multi-appareils • ☁️ Mastodon intégré</span>
-                                <button
-                                    onClick={() => {
-                                        if (confirm('⚠️ ATTENTION !\n\nCette action va supprimer DÉFINITIVEMENT toutes vos sessions et données sauvegardées (y compris les posts Mastodon).\n\nÊtes-vous absolument certain de vouloir continuer ?')) {
-                                            localStorage.removeItem('mekong-sessions');
-                                            localStorage.removeItem('mekong-mastodon');
-                                            setSessions([]);
-                                            setMastodonData(null);
-                                            resetOnboarding();
-                                            alert('✅ Toutes les données ont été effacées !');
-                                        }
-                                    }}
-                                    className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-bold ml-2"
-                                    title="Effacer toutes les données"
-                                >
-                                    🚨 RESET
-                                </button>
-                            </div>
+                            <p className="text-xs opacity-75 mt-1">
+                                ✅ Core + Navigation • ⏳ Sessions + Photos + Mastodon
+                            </p>
                         </div>
                     </div>
                 </div>
             );
-        }; // Fin du composant MemoireMekong
+        };
 
-        // === RENDU REACT 18 ===
+        // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
     </script>
 </body>
 </html>
-
