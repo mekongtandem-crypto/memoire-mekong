@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2.4</title>
+    <title>🐘 Mémoire du Mékong V0.2.5</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -191,13 +191,25 @@
         };
 
         const renderGameIcon = (gameId, className = "w-6 h-6 text-amber-600") => {
-            const IconComponent = getGameIcon(gameId);
-            if (!IconComponent || typeof IconComponent !== 'function') {
-                console.log('renderGameIcon: IconComponent invalide', IconComponent, 'pour gameId', gameId);
-                return React.createElement(BookOpen, { className });
-            }
-            return React.createElement(IconComponent, { className });
-        };
+    		try {
+        		const game = GAMES.find(g => g.id === gameId);
+        		if (!game || !game.icon) {
+            		console.warn('renderGameIcon: Jeu non trouvé pour gameId:', gameId);
+            		return React.createElement(BookOpen, { className });
+        		}
+        
+        		const IconComponent = game.icon;
+        		if (typeof IconComponent !== 'function') {
+            		console.warn('renderGameIcon: Icon n\'est pas une fonction:', IconComponent);
+            		return React.createElement(BookOpen, { className });
+        		}
+        
+        		return React.createElement(IconComponent, { className });
+    		} catch (error) {
+        		console.error('renderGameIcon: Erreur lors du rendu:', error);
+        		return React.createElement(BookOpen, { className });
+    		}
+		};
 
         const getGameById = (gameId) => {
             return GAMES.find(g => g.id === gameId);
