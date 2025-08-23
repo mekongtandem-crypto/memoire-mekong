@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2.5</title>
+    <title>🐘 Mémoire du Mékong V0.2.6</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -159,7 +159,21 @@
 
         // ===== SESSION STORAGE =====
         const SessionStorage = {
-            getSessions: () => Storage.get('sessions', []),
+            getSessions: () => {
+    			const sessions = Storage.get('sessions', []);
+    			// Nettoyer les sessions corrompues
+    			return sessions.filter(session => {
+        			const isValid = session && 
+                       			typeof session.id !== 'undefined' && 
+                       			typeof session.gameId === 'number' && 
+                       			session.gameId > 0 &&
+                       			Array.isArray(session.notes);
+        			if (!isValid) {
+            			console.warn('Session corrompue supprimée:', session);
+        			}
+        			return isValid;
+    			});
+			},
             saveSession: (session) => {
                 const sessions = SessionStorage.getSessions();
                 const existingIndex = sessions.findIndex(s => s.id === session.id);
