@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.3.0</title>
+    <title>🐘 Mémoire du Mékong V0.3.1</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
 	<script src="https://accounts.google.com/gsi/client"></script>
+	<script>
+	window.onload = () => {
+  		google.accounts.id.initialize({
+    		client_id: '817414333860-27hgi2m4di1p79p6nqt03ke1aivn7ubc.apps.googleusercontent.com'
+  		});
+		};
+	</script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
