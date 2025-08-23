@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2.7</title>
+    <title>🐘 Mémoire du Mékong V0.2.8</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -651,12 +651,12 @@
                         <div className="flex justify-between items-center">
                             <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
                             <button
-                                onClick={() => setSessionView('catalog')}
-                                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                            >
-                                <Plus className="w-4 h-4" />
-                                <span>Nouvelle session</span>
-                            </button>
+    							onClick={() => onPageChange('games')}
+    							className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+							>
+   								<Plus className="w-4 h-4" />
+    							<span>Choisir un jeu</span>
+							</button>
                         </div>
 
                         {sessions.length === 0 ? (
@@ -1026,6 +1026,17 @@
                                     onPageChange={setCurrentPage}
                                 />
                             )}
+							{currentPage === 'games' && (
+    							<GamesPage 
+        							currentUser={currentUser}
+        							onPageChange={setCurrentPage}
+        							onGameSelect={(game) => {
+            							// Créer session et rediriger vers Sessions
+            							setCurrentPage('sessions');
+            							// La logique de création sera gérée dans SessionsPage
+        							}}
+    							/>
+							)}
                             {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} />}
                             {currentPage === 'memories' && <MemoriesPage />}
                             {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
