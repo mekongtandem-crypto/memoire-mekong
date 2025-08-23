@@ -439,7 +439,7 @@ const CloudSessionStorage = {
     			loadSessions();
 			}, []);
 
-            const createSession = (game, user) => {
+            const createSession = async (game, user) => {
                 console.log('createSession appelée avec:', { game, user });
                 
                 if (!game || !game.id) {
