@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2.8</title>
+    <title>🐘 Mémoire du Mékong V0.2.9</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -305,64 +305,77 @@
         };
 
         // ===== NAVIGATION COMPONENT =====
-        const Navigation = ({ currentPage, currentUser, onPageChange, onUserChange }) => (
-            <div className="bg-white/90 backdrop-blur rounded-xl shadow-lg p-4 mb-6">
-                <div className="flex justify-between items-center">
-                    {/* User Button */}
-                    <div>
-                        {currentUser ? (
-                            <button
-                                onClick={() => onUserChange('')}
-                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
-                                title="Changer d'utilisateur"
-                            >
-                                <span>{USERS[currentUser]?.emoji}</span>
-                                <span className={`font-medium ${getUserStyle(currentUser).text}`}>
-                                    {USERS[currentUser]?.name}
-                                </span>
-                                <ChevronRight className="w-4 h-4 opacity-60" />
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => onPageChange('home')}
-                                className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-all"
-                                title="Choisir un utilisateur"
-                            >
-                                <User className="w-4 h-4 text-gray-500" />
-                                <span className="font-medium text-gray-600">Utilisateur</span>
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Page Navigation */}
-                    <div className="flex items-center space-x-1">
-                        {['home', 'games', 'sessions', 'memories', 'settings'].map((page) => {
-    						const icons = { home: Home, games: Play, sessions: BookOpen, memories: Cloud, settings: Settings };
-    						const labels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', memories: 'Mémoires', settings: 'Réglages' };
-                            const Icon = icons[page];
-                            
-                            return (
-                                <button
-                                    key={page}
-                                    onClick={() => onPageChange(page)}
-                                    disabled={!currentUser && page !== 'home'}
-                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                                        currentPage === page 
-                                            ? 'bg-amber-200 text-amber-800' 
-                                            : !currentUser && page !== 'home'
-                                            ? 'text-gray-400 cursor-not-allowed'
-                                            : 'hover:bg-gray-100 text-gray-600'
-                                    }`}
-                                >
-                                    <Icon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{labels[page]}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+        const Navigation = ({ currentPage, currentUser, onPageChange, onUserChange, onBack }) => (
+    <div className="bg-white/90 backdrop-blur rounded-xl shadow-lg p-3 mb-4">
+        <div className="flex justify-between items-center">
+            {/* User Button + Back Navigation */}
+            <div className="flex items-center space-x-2">
+                {/* Back Button (si nécessaire) */}
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
+                        title="Retour"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                )}
+                
+                {/* User Selection */}
+                {currentUser ? (
+                    <button
+                        onClick={() => onUserChange('')}
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg border text-sm ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
+                        title="Changer d'utilisateur"
+                    >
+                        <span className="text-lg">{USERS[currentUser]?.emoji}</span>
+                        <span className={`font-medium hidden sm:inline ${getUserStyle(currentUser).text}`}>
+                            {USERS[currentUser]?.name.split(' ')[0]} {/* Juste le prénom */}
+                        </span>
+                        <ChevronRight className="w-4 h-4 opacity-60" />
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => onPageChange('home')}
+                        className="flex items-center space-x-2 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-sm"
+                    >
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-gray-600 hidden sm:inline">Utilisateur</span>
+                    </button>
+                )}
             </div>
-        );
+
+            {/* Page Navigation - Icônes empilées sur mobile */}
+            <div className="flex items-center space-x-1">
+                {['home', 'games', 'sessions', 'memories', 'settings'].map((page) => {
+                    const icons = { home: Home, games: Play, sessions: BookOpen, memories: Cloud, settings: Settings };
+                    const labels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', memories: 'Mémoires', settings: 'Réglages' };
+                    const shortLabels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', memories: 'Photos', settings: 'Config' };
+                    const Icon = icons[page];
+                    
+                    return (
+                        <button
+                            key={page}
+                            onClick={() => onPageChange(page)}
+                            disabled={!currentUser && page !== 'home'}
+                            className={`flex flex-col items-center px-2 py-2 rounded-lg transition-all text-xs ${
+                                currentPage === page 
+                                    ? 'bg-amber-200 text-amber-800' 
+                                    : !currentUser && page !== 'home'
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'hover:bg-gray-100 text-gray-600'
+                            }`}
+                        >
+                            <Icon className="w-5 h-5 mb-1" />
+                            <span className="font-medium hidden sm:inline">{shortLabels[page]}</span>
+                            <span className="font-medium sm:hidden">{shortLabels[page].slice(0,4)}</span>
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    </div>
+);
 
         // ===== MAIN PAGES =====
         const HomePage = ({ currentUser, onUserChange, onPageChange }) => (
@@ -1004,10 +1017,10 @@
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
                     <div className="max-w-6xl mx-auto">
                         {/* Header */}
-                        <div className="text-center mb-6">
-                            <h1 className="text-4xl font-bold text-amber-900 mb-2">🐘 Mémoire du Mékong</h1>
-                            <p className="text-amber-700">V0.2.3 • Debug approfondi • 23 août 2025</p>
-                        </div>
+						<div className="text-center mb-4">
+    						<h1 className="text-2xl md:text-3xl font-bold text-amber-900">🐘 Mémoire du Mékong</h1>
+    						<p className="text-xs text-amber-600 mt-1">V0.3.0</p>
+						</div>
 
                         {/* Navigation */}
                         <Navigation 
