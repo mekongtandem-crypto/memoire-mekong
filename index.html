@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.2.9</title>
+    <title>🐘 Mémoire du Mékong V0.2.10</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -735,37 +735,51 @@
             // Vue: Session active
             if (sessionView === 'active' && currentSession) {
                 return (
-                    <div className="flex flex-col h-screen max-h-[80vh] fade-in">
-                        {/* Header */}
-                        <div className="flex items-center space-x-4 mb-4">
-                            <button
-                                onClick={() => setSessionView('list')}
-                                className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                <span>Sessions</span>
-                            </button>
-                        </div>
+    				<div className="flex flex-col h-screen max-h-[85vh] fade-in">
+        			{/* Header compact */}
 
-                        {/* Session Header */}
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex-shrink-0">
-                            <div className="flex items-start space-x-3">
-                                {renderGameIcon(currentSession.gameId, "w-8 h-8 text-amber-600")}
-                                <div className="flex-1">
-                                    <h2 className="text-lg font-bold text-amber-900 mb-1">
-                                        {currentSession.gameTitle || 'Session sans titre'}
-                                    </h2>
-                                    <p className="text-amber-700 text-sm mb-2">
-                                        {currentSession.gameDescription || 'Aucune description'}
-                                    </p>
-                                    <div className="flex items-center space-x-3 text-xs text-amber-600">
-                                        <span>{currentSession.gameDuration || 'Durée inconnue'}</span>
-                                        <span>•</span>
-                                        <span>{formatDate(currentSession.createdAt)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Session Header - Compact */}
+<div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
+    <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+            {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
+            <div>
+                <h2 className="font-bold text-amber-900 text-base">
+                    {currentSession.gameTitle || 'Session sans titre'}
+                </h2>
+                <div className="text-xs text-amber-600">
+                    {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
+                </div>
+            </div>
+        </div>
+        {/* Menu session compact */}
+        <div className="flex space-x-1">
+            {currentUser !== 'duo' && (
+                <button
+                    onClick={inviteOtherUser}
+                    className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                    title="Inviter"
+                >
+                    <Send className="w-4 h-4" />
+                </button>
+            )}
+            <button
+                onClick={pauseSession}
+                className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
+                title="Pause"
+            >
+                <Pause className="w-4 h-4" />
+            </button>
+            <button
+                onClick={closeSession}
+                className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
+                title="Terminer"
+            >
+                <Play className="w-4 h-4" />
+            </button>
+        </div>
+    </div>
+</div>
 
                         {/* Messages Container */}
                         <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
@@ -898,33 +912,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        {/* Session Actions */}
-                        <div className="flex justify-center space-x-3 mt-4 pt-3 border-t border-gray-200 flex-shrink-0">
-                            {currentUser !== 'duo' && (
-                                <button
-                                    onClick={inviteOtherUser}
-                                    className="flex items-center space-x-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm"
-                                >
-                                    <Send className="w-4 h-4" />
-                                    <span>Inviter</span>
-                                </button>
-                            )}
-                            <button
-                                onClick={pauseSession}
-                                className="flex items-center space-x-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm"
-                            >
-                                <Pause className="w-4 h-4" />
-                                <span>Pause</span>
-                            </button>
-                            <button
-                                onClick={closeSession}
-                                className="flex items-center space-x-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm"
-                            >
-                                <Play className="w-4 h-4" />
-                                <span>Terminer</span>
-                            </button>
-                        </div>
                     </div>
                 );
             }
@@ -1019,16 +1006,17 @@
                         {/* Header */}
 						<div className="text-center mb-4">
     						<h1 className="text-2xl md:text-3xl font-bold text-amber-900">🐘 Mémoire du Mékong</h1>
-    						<p className="text-xs text-amber-600 mt-1">V0.3.0</p>
+    						<p className="text-xs text-amber-600 mt-1">V0.2.10</p>
 						</div>
 
                         {/* Navigation */}
-                        <Navigation 
-                            currentPage={currentPage}
-                            currentUser={currentUser}
-                            onPageChange={setCurrentPage}
-                            onUserChange={setCurrentUser}
-                        />
+						<Navigation 
+    						currentPage={currentPage}
+    						currentUser={currentUser}
+    						onPageChange={setCurrentPage}
+    						onUserChange={setCurrentUser}
+    						onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
+						/>
 
                         {/* Main Content */}
                         <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
