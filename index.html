@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.3.2</title>
+    <title>🐘 Mémoire du Mékong V0.3.3</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -472,59 +472,60 @@ const CloudSessionStorage = {
 			}, []);
 
             const createSession = async (game, user) => {
-                console.log('createSession appelée avec:', { game, user });
-                
-                if (!game || !game.id) {
-                    console.error('createSession: jeu invalide', game);
-                    return;
-                }
-                
-                const newSession = {
-                    id: Date.now(),
-                    gameId: Number(game.id), // S'assurer que c'est un nombre
-                    gameTitle: game.title || 'Titre inconnu',
-                    gameDescription: game.description || 'Description inconnue',
-                    gameDuration: game.duration || 'Durée inconnue',
-                    user: user,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    status: 'active',
-                    notes: [], // S'assurer que notes est toujours un tableau
-                    participants: [user]
-                    // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
-                };
-                
-                console.log('Nouvelle session créée:', newSession);
-                await CloudSessionStorage.saveSession(newSession);
+    			console.log('createSession appelée avec:', { game, user });
+    
+    			if (!game || !game.id) {
+        			console.error('createSession: jeu invalide', game);
+        			return;
+    			}
+    
+    			const newSession = {
+        			id: Date.now(),
+        			gameId: Number(game.id), // S'assurer que c'est un nombre
+        			gameTitle: game.title || 'Titre inconnu',
+        			gameDescription: game.description || 'Description inconnue',
+        			gameDuration: game.duration || 'Durée inconnue',
+        			user: user,
+        			createdAt: new Date().toISOString(),
+        			updatedAt: new Date().toISOString(),
+        			status: 'active',
+        			notes: [], // S'assurer que notes est toujours un tableau
+        			participants: [user]
+        			// NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
+    			};
+    
+    			console.log('Nouvelle session créée:', newSession);
+    
+    			await CloudSessionStorage.saveSession(newSession);
     			const sessions = await CloudSessionStorage.getSessions();
     			setSessions(sessions);
     			setCurrentSession(newSession);
-    			setSessionView('active');
+    			setSessionView('active'); // ✅ CRUCIAL : Aller direct dans le chat !
 			};
 
             const updateSession = async (updatedSession) => {
-    // S'assurer que notes existe toujours
-    const sessionToSave = {
-        ...updatedSession, 
-        notes: updatedSession.notes || [],
-        updatedAt: new Date().toISOString()
-    };
+    			// S'assurer que notes existe toujours
+    			const sessionToSave = {
+        			...updatedSession, 
+        			notes: updatedSession.notes || [],
+        			updatedAt: new Date().toISOString()
+    			};
     
-    await CloudSessionStorage.saveSession(sessionToSave);
-    const sessions = await CloudSessionStorage.getSessions();
-    setSessions(sessions);
-    setCurrentSession(sessionToSave);
-};
+    			await CloudSessionStorage.saveSession(sessionToSave);
+    			const sessions = await CloudSessionStorage.getSessions();
+    			setSessions(sessions);
+    			setCurrentSession(sessionToSave);
+			};
 
-const deleteSession = async (sessionId) => {
-    await CloudSessionStorage.deleteSession(sessionId);
-    const sessions = await CloudSessionStorage.getSessions();
-    setSessions(sessions);
-    if (currentSession?.id === sessionId) {
-        setCurrentSession(null);
-        setSessionView('list');
-    }
-};
+			const deleteSession = async (sessionId) => {
+    			await CloudSessionStorage.deleteSession(sessionId);
+    			const sessions = await CloudSessionStorage.getSessions();
+    			setSessions(sessions);
+    			if (currentSession?.id === sessionId) {
+        			setCurrentSession(null);
+        			setSessionView('list');
+    			}
+			};
 
             return {
                 currentSession, setCurrentSession,
@@ -885,6 +886,20 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
             const [editingMessage, setEditingMessage] = React.useState(null);
             const [editContent, setEditContent] = React.useState('');
             const messagesEndRef = React.useRef(null);
+            
+            const messagesEndRef = React.useRef(null);
+
+			// Détecter si un jeu est en attente de création de session
+			React.useEffect(() => {
+   			 if (window.pendingGameSession && window.pendingGameSession.user === currentUser) {
+        			console.log('Création session automatique depuis jeu:', window.pendingGameSession);
+        			createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+        			delete window.pendingGameSession; // Nettoyer
+    			}
+			useSessionState}, [currentUser, createSession]);
+
+// Auto-scroll vers le bas des messages
+React.useEffect(() => {
 
             // Auto-scroll vers le bas des messages
             React.useEffect(() => {
@@ -1391,9 +1406,10 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
         							currentUser={currentUser}
         							onPageChange={setCurrentPage}
         							onGameSelect={(game) => {
+            							// Créer la session ET rediriger
             							setCurrentPage('sessions');
-            							// Pass le jeu sélectionné en paramètre URL-like
-           							 window.selectedGame = game;
+            							// Signal pour SessionsPage de créer une session
+            							window.pendingGameSession = { game, user: currentUser };
         							}}
     							/>
 							)}
