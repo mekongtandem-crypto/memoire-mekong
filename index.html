@@ -888,23 +888,20 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
             const messagesEndRef = React.useRef(null);
 
 			// Détecter si un jeu est en attente de création de session
-			React.useEffect(() => {
-   			 if (window.pendingGameSession && window.pendingGameSession.user === currentUser) {
-        			console.log('Création session automatique depuis jeu:', window.pendingGameSession);
-        			createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-        			delete window.pendingGameSession; // Nettoyer
-    			}
-			useSessionState}, [currentUser, createSession]);
+React.useEffect(() => {
+    if (window.pendingGameSession && window.pendingGameSession.user === currentUser) {
+        console.log('Création session automatique depuis jeu:', window.pendingGameSession);
+        createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+        delete window.pendingGameSession; // Nettoyer
+    }
+}, [currentUser, createSession]);
 
 // Auto-scroll vers le bas des messages
 React.useEffect(() => {
-
-            // Auto-scroll vers le bas des messages
-            React.useEffect(() => {
-                if (currentSession?.notes && messagesEndRef.current) {
-                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-                }
-            }, [currentSession?.notes?.length]);
+    if (currentSession?.notes && messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+}, [currentUser, createSession]);
 
             const formatTime = (dateString) => {
                 return new Date(dateString).toLocaleTimeString('fr-FR', { 
