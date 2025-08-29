@@ -1955,72 +1955,81 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         };
 		
 // ===== MAIN APP =====
-const MemoireMekong = () => {
-    const {
-        currentPage, setCurrentPage,
-        currentUser, setCurrentUser,
-        resetApp
-    } = useAppState();
+// ===== MAIN APP (VERSION FINALE CORRIGÉE) =====
+        const MemoireMekong = () => {
+            const {
+                currentPage, setCurrentPage,
+                currentUser, setCurrentUser,
+                resetApp
+            } = useAppState();
 
-    const { isConnected } = useGoogleAuth();
-    const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
+            const { isConnected } = useGoogleAuth();
+            const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
 
-    const [currentChatSession, setCurrentChatSession] = React.useState(null);
-    const [toast, setToast] = React.useState({ message: '', type: '' });
+            const [currentChatSession, setCurrentChatSession] = React.useState(null);
+            const [toast, setToast] = React.useState({ message: '', type: '' });
 
-    React.useEffect(() => {
-        const autoSync = async () => {
-            if (isConnected) {
-                try {
-                    console.log('🔄 Tentative de synchronisation automatique...');
-                    await syncSessions();
-                } catch (error) {
-                    setToast({ message: "Échec de la synchronisation automatique.", type: 'error' });
+            // Synchronisation automatique au chargement et lors de la connexion
+            React.useEffect(() => {
+                const autoSync = async () => {
+                    if (isConnected) {
+                        try {
+                            console.log('🔄 Tentative de synchronisation automatique...');
+                            await syncSessions();
+                        } catch (error) {
+                            setToast({ message: "Échec de la synchronisation automatique.", type: 'error' });
+                        }
+                    }
+                };
+                autoSync();
+            }, [isConnected, syncSessions]);
+
+            // Gérer la création automatique de session depuis les jeux/mémoires
+            React.useEffect(() => {
+                const handlePendingSession = async () => {
+                    if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
+                        const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+                        if (newSession) {
+                            setCurrentChatSession(newSession);
+                        }
+                    }
+                };
+                
+                if (currentPage === 'chat') {
+                    handlePendingSession();
                 }
-            }
-        };
-        autoSync();
-    }, [isConnected, syncSessions]);
+            }, [currentUser, currentPage, createSession]);
 
-    React.useEffect(() => {
-        const handlePendingSession = async () => {
-            if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
-                const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-                if (newSession) { setCurrentChatSession(newSession); }
-            }
-        };
-        if (currentPage === 'chat') { handlePendingSession(); }
-    }, [currentUser, currentPage, createSession]);
+            const handleSessionSelect = (session) => {
+                setCurrentChatSession(session);
+                setCurrentPage('chat');
+            };
 
-    const handleSessionSelect = (session) => {
-        setCurrentChatSession(session);
-        setCurrentPage('chat');
-    };
+            const handleBackToSessions = () => {
+                setCurrentChatSession(null);
+                setCurrentPage('sessions');
+            };
 
-    const handleBackToSessions = () => {
-        setCurrentChatSession(null);
-        setCurrentPage('sessions');
-    };
+            const handleUpdateSession = async (updatedSession) => {
+                try {
+                    await updateSession(updatedSession);
+                    setCurrentChatSession(updatedSession);
+                } catch (error) {
+                    setToast({ message: error.message, type: 'error' });
+                    // Met à jour l'interface avec les données locales même si le cloud a échoué
+                    const localSessions = Storage.get('sessions', []);
+                    setSessions(localSessions); 
+                    setCurrentChatSession(updatedSession);
+                }
+            };
 
-    const handleUpdateSession = async (updatedSession) => {
-        try {
-            await updateSession(updatedSession);
-            setCurrentChatSession(updatedSession);
-        } catch (error) {
-            setToast({ message: error.message, type: 'error' });
-            const localSessions = Storage.get('sessions', []);
-            setSessions(localSessions); 
-            setCurrentChatSession(updatedSession);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
+                    <div className="max-w-6xl mx-auto">
+                        {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.4c - modify GoogleSync</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.4b - modify GoogleSync</p>
                         </div>
 
                         {/* Navigation */}
@@ -2084,14 +2093,17 @@ const MemoireMekong = () => {
                                 Sessions/Chat séparés • Module Mastodon fonctionnel
                             </p>
                         </div>
-            <Toast 
-                message={toast.message} 
-                type={toast.type} 
-                onDismiss={() => setToast({ message: '', type: '' })} 
-            />
-        </div>
-    );
-};
+                    </div>
+                    
+                    {/* Le composant Toast est ajouté ici */}
+                    <Toast 
+                        message={toast.message} 
+                        type={toast.type} 
+                        onDismiss={() => setToast({ message: '', type: '' })} 
+                    />
+                </div>
+            );
+        };
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
