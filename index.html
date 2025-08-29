@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.3b - UX moove GoggleConnect</title>
+    <title>🐘 Mémoire du Mékong V0.4.4 - SyncButton </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -304,7 +304,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.3b '
+                version: '0.4.4 '
             });
             
             const existingFile = await this.findMekongFile();
@@ -1007,18 +1007,45 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         });
     };
 
+	const handleSync = async () => {
+    	setIsSyncing(true);
+    	try {
+        	const cloudSessions = await GoogleDriveAPI.loadSessions();
+        	if (cloudSessions && cloudSessions.length > 0) {
+            	Storage.set('sessions', cloudSessions);
+            	alert(`${cloudSessions.length} sessions synchronisées depuis Google Drive`);
+            	window.location.reload();
+        	} else {
+            	alert('Aucune session trouvée sur Google Drive');
+        	}
+    	} catch (error) {
+        	alert('Erreur de synchronisation. Vérifiez votre connexion Google Drive.');
+    	}
+    	setIsSyncing(false);
+	};
+
     return (
-        <div className="space-y-6 fade-in">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
-                <button
-                    onClick={() => onPageChange('games')}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Choisir un jeu</span>
-                </button>
-            </div>
+        <div className="flex justify-between items-center">
+    		<h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
+    		<div className="flex space-x-2">
+        		<button
+            		onClick={handleSync}
+            		disabled={isSyncing}
+            		className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded-lg"
+            		title="Synchroniser avec Google Drive"
+        		>
+            		<Cloud className="w-4 h-4" />
+            		<span>{isSyncing ? 'Synchro...' : 'Synchroniser'}</span>
+        		</button>
+        		<button
+            		onClick={() => onPageChange('games')}
+            		className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+        		>
+            		<Plus className="w-4 h-4" />
+            		<span>Choisir un jeu</span>
+        		</button>
+    		</div>
+		</div>
 
             {sessions.length === 0 ? (
                 <div className="text-center py-12">
@@ -1938,7 +1965,7 @@ const MemoireMekong = () => {
                 {/* Header */}
                 <div className="text-center mb-4">
                     <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                    <p className="text-xs text-amber-600 mt-1">V0.4.3b - UX moove GoggleConnect</p>
+                    <p className="text-xs text-amber-600 mt-1">V0.4.4 addSyncButton</p>
                 </div>
 
                 {/* Navigation */}
