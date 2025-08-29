@@ -998,6 +998,8 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
 // Page Session
 const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     const { sessions, deleteSession, renderGameIcon } = useSessionState();
+    const [isSyncing, setIsSyncing] = React.useState(false);
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('fr-FR', { 
             day: 'numeric', 
@@ -1007,45 +1009,47 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         });
     };
 
-	const handleSync = async () => {
-    	setIsSyncing(true);
-    	try {
-        	const cloudSessions = await GoogleDriveAPI.loadSessions();
-        	if (cloudSessions && cloudSessions.length > 0) {
-            	Storage.set('sessions', cloudSessions);
-            	alert(`${cloudSessions.length} sessions synchronisées depuis Google Drive`);
-            	window.location.reload();
-        	} else {
-            	alert('Aucune session trouvée sur Google Drive');
-        	}
-    	} catch (error) {
-        	alert('Erreur de synchronisation. Vérifiez votre connexion Google Drive.');
-    	}
-    	setIsSyncing(false);
-	};
+    const handleSync = async () => {
+        setIsSyncing(true);
+        try {
+            const cloudSessions = await GoogleDriveAPI.loadSessions();
+            if (cloudSessions && cloudSessions.length > 0) {
+                Storage.set('sessions', cloudSessions);
+                alert(`${cloudSessions.length} sessions synchronisées depuis Google Drive`);
+                window.location.reload();
+            } else {
+                alert('Aucune session trouvée sur Google Drive');
+            }
+        } catch (error) {
+            console.error('Erreur synchronisation:', error);
+            alert('Erreur de synchronisation. Vérifiez votre connexion Google Drive.');
+        }
+        setIsSyncing(false);
+    };
 
     return (
-        <div className="flex justify-between items-center">
-    		<h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
-    		<div className="flex space-x-2">
-        		<button
-            		onClick={handleSync}
-            		disabled={isSyncing}
-            		className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded-lg"
-            		title="Synchroniser avec Google Drive"
-        		>
-            		<Cloud className="w-4 h-4" />
-            		<span>{isSyncing ? 'Synchro...' : 'Synchroniser'}</span>
-        		</button>
-        		<button
-            		onClick={() => onPageChange('games')}
-            		className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-        		>
-            		<Plus className="w-4 h-4" />
-            		<span>Choisir un jeu</span>
-        		</button>
-    		</div>
-		</div>
+        <div className="space-y-6 fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
+                <div className="flex space-x-2">
+                    <button
+                        onClick={handleSync}
+                        disabled={isSyncing}
+                        className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded-lg"
+                        title="Synchroniser avec Google Drive"
+                    >
+                        <Cloud className="w-4 h-4" />
+                        <span>{isSyncing ? 'Synchro...' : 'Synchroniser'}</span>
+                    </button>
+                    <button
+                        onClick={() => onPageChange('games')}
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Choisir un jeu</span>
+                    </button>
+                </div>
+            </div>
 
             {sessions.length === 0 ? (
                 <div className="text-center py-12">
@@ -1071,51 +1075,47 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         const style = statusStyles[session.status] || statusStyles.active;
 
                         return (
-    						<div
-        						key={session.id}
-        						className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-    						>
-        						<div className="flex items-center justify-between">
-            						<div 
-                						className="flex items-center space-x-3 flex-1 cursor-pointer"
-                						onClick={() => onSessionSelect(session)}
-            						>
-                						{renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
-                						<div>
-                    						<div className="font-medium text-gray-900">{session.gameTitle}</div>
-                    						{session.postChapo && (
-                        						<div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
-                    						)}
-                    						<div className="text-sm text-gray-600">
-    											{USERS[session.user]?.name} • Dernière activité: {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
-											</div>
-                						</div>
-            						</div>
-            						<div className="flex items-center space-x-2">
-                						<div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                    						<div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
-                    						<span className="text-sm font-medium capitalize">{session.status}</span>
-                						</div>
-                
-                						{/* Bouton de suppression */}
-                						<button
-                    						onClick={(e) => {
-                        						e.stopPropagation();
-                        						if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action est irréversible et supprimera tous les messages de cette conversation.`)) {
-                            						deleteSession(session.id);
-                        						}
-                    						}}
-                    						className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    						title="Supprimer cette session"
-                						>
-                    						<Trash2 className="w-4 h-4" />
-                						</button>
-                
-                						<ChevronRight className="w-4 h-4 text-gray-400" />
-            						</div>
-        						</div>
-    						</div>
-						);
+                            <div key={session.id} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                                <div className="flex items-center justify-between">
+                                    <div 
+                                        className="flex items-center space-x-3 flex-1 cursor-pointer"
+                                        onClick={() => onSessionSelect(session)}
+                                    >
+                                        {renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
+                                        <div>
+                                            <div className="font-medium text-gray-900">{session.gameTitle}</div>
+                                            {session.postChapo && (
+                                                <div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
+                                            )}
+                                            <div className="text-sm text-gray-600">
+                                                {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
+                                            <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
+                                            <span className="text-sm font-medium capitalize">{session.status}</span>
+                                        </div>
+                                        
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action supprimera tous les messages.`)) {
+                                                    deleteSession(session.id);
+                                                }
+                                            }}
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Supprimer cette session"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                        
+                                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
                     })}
                 </div>
             )}
@@ -1123,7 +1123,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     );
 };
 // Page Chat
-		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
+	const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
     const [editContent, setEditContent] = React.useState('');
