@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4 - Add GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4b - modify GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -52,7 +52,27 @@
         const Search = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
         const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
         const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
-        
+
+		// ===== COMPOSANT TOAST (Alerte) =====
+		const Toast = ({ message, type, onDismiss }) => {
+    		if (!message) return null;
+
+    		const styles = {
+        		error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+        		success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' }
+    		};
+    		const style = styles[type] || styles.error;
+
+    		return (
+        		<div className={`fixed bottom-4 right-4 max-w-sm p-4 border rounded-lg shadow-lg fade-in ${style.bg} ${style.text} ${style.border}`}>
+            		<div className="flex justify-between items-center">
+                		<span>{message}</span>
+                		<button onClick={onDismiss} className="ml-4 text-xl font-bold">&times;</button>
+            		</div>
+        		</div>
+    		);
+		};
+		
         // ===== CORE STORAGE =====
         // ===== MASTODON DATA MANAGEMENT =====
 const MastodonData = {
@@ -304,7 +324,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.4 '
+                version: '0.4.4b '
             });
             
             const existingFile = await this.findMekongFile();
@@ -453,28 +473,14 @@ const GoogleDriveAPI = {
             }
         ];
 
-// ===== CLOUD SESSION STORAGE =====
+// ===== CLOUD SESSION STORAGE (Modifié pour les erreurs) =====
 const CloudSessionStorage = {
     async getSessions() {
-        try {
-            // Essayer de charger depuis Google Drive d'abord
-            const cloudSessions = await GoogleDriveAPI.loadSessions();
-            if (cloudSessions) {
-                // Sauvegarder en local pour le cache
-                Storage.set('sessions', cloudSessions);
-                console.log('✅ Sessions chargées depuis Google Drive');
-                return cloudSessions;
-            }
-        } catch (error) {
-            console.warn('⚠️ Erreur chargement cloud, utilisation cache local');
-        }
-        
-        // Fallback sur localStorage
-        return Storage.get('sessions', []);
+        // ... (Pas de changement ici)
     },
     
     async saveSession(session) {
-        // Sauvegarder localement d'abord (rapidité)
+        // Sauvegarde locale
         const sessions = Storage.get('sessions', []);
         const existingIndex = sessions.findIndex(s => s.id === session.id);
         if (existingIndex >= 0) {
@@ -484,12 +490,17 @@ const CloudSessionStorage = {
         }
         Storage.set('sessions', sessions);
         
-        // Sauvegarder dans le cloud en arrière-plan
+        // Sauvegarde Cloud, avec gestion d'erreur
         try {
-            await GoogleDriveAPI.saveSessions(sessions);
+            const success = await GoogleDriveAPI.saveSessions(sessions);
+            if (!success) {
+                throw new Error("La sauvegarde Google Drive a échoué.");
+            }
             console.log('✅ Session sauvegardée localement + cloud');
         } catch (error) {
             console.warn('⚠️ Erreur sauvegarde cloud (local OK):', error);
+            // On "lance" l'erreur pour que l'interface puisse réagir
+            throw new Error("Synchronisation cloud échouée. Vos données sont sauvegardées localement.");
         }
     },
     
@@ -1938,126 +1949,196 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         };
 
         // ===== MAIN APP =====
-        // ===== MAIN APP =====
-const MemoireMekong = () => {
-    const {
-        currentPage, setCurrentPage,
-        currentUser, setCurrentUser,
-        resetApp
-    } = useAppState();
+        // ===== COMPOSANT TOAST (Alerte) =====
+        const Toast = ({ message, type, onDismiss }) => {
+            if (!message) return null;
 
-    const { isConnected, isLoading, userInfo, signIn, signOut } = useGoogleAuth();
-    
-    // État pour gérer la session courante du chat
-    const [currentChatSession, setCurrentChatSession] = React.useState(null);
-    const { updateSession, createSession } = useSessionState();
+            const styles = {
+                error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+                success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' }
+            };
+            const style = styles[type] || styles.error;
 
-    // Gérer la création automatique de session depuis les jeux/mémoires
-    React.useEffect(() => {
-        const handlePendingSession = async () => {
-            if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
-                const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-                if (newSession) {
-                    setCurrentChatSession(newSession);
-                }
-            }
+            // Disparaît automatiquement après 5 secondes
+            React.useEffect(() => {
+                const timer = setTimeout(() => {
+                    onDismiss();
+                }, 5000);
+                return () => clearTimeout(timer);
+            }, [message, onDismiss]);
+
+            return (
+                <div className={`fixed bottom-4 right-4 max-w-sm p-4 border rounded-lg shadow-lg fade-in z-50 ${style.bg} ${style.text} ${style.border}`}>
+                    <div className="flex justify-between items-center">
+                        <span>{message}</span>
+                        <button onClick={onDismiss} className="ml-4 text-xl font-bold leading-none">&times;</button>
+                    </div>
+                </div>
+            );
         };
-        
-        if (currentPage === 'chat') {
-            handlePendingSession();
-        }
-    }, [currentUser, currentPage, createSession]);
 
-    const handleSessionSelect = (session) => {
-        setCurrentChatSession(session);
-        setCurrentPage('chat');
-    };
 
-    const handleBackToSessions = () => {
-        setCurrentChatSession(null);
-        setCurrentPage('sessions');
-    };
+        // ===== MAIN APP (MODIFIÉ) =====
+        const MemoireMekong = () => {
+            const {
+                currentPage, setCurrentPage,
+                currentUser, setCurrentUser,
+                resetApp
+            } = useAppState();
 
-    const handleUpdateSession = async (updatedSession) => {
-        await updateSession(updatedSession);
-        setCurrentChatSession(updatedSession);
-    };
+            const { isConnected } = useGoogleAuth();
+            
+            // On récupère toutes les fonctions du hook de session
+            const sessionState = useSessionState();
+            const { sessions, updateSession, createSession, syncSessions } = sessionState;
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="text-center mb-4">
-                    <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                    <p className="text-xs text-amber-600 mt-1">V0.4.4 - Add GoogleSync</p>
-                </div>
+            const [currentChatSession, setCurrentChatSession] = React.useState(null);
+            const [toast, setToast] = React.useState({ message: '', type: '' });
 
-                {/* Navigation */}
-                <Navigation 
-                    currentPage={currentPage}
-                    currentUser={currentUser}
-                    onPageChange={setCurrentPage}
-                    onUserChange={setCurrentUser}
-                    onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
-                />
+            // Synchronisation automatique au chargement et lors de la connexion
+            React.useEffect(() => {
+                const autoSync = async () => {
+                    // Ne se déclenche que si l'utilisateur est connecté à Google
+                    if (isConnected) {
+                        try {
+                            console.log('🔄 Tentative de synchronisation automatique...');
+                            await syncSessions();
+                            // Optionnel: afficher un toast de succès
+                            // setToast({ message: "Données synchronisées depuis le cloud.", type: 'success' });
+                        } catch (error) {
+                            setToast({ message: "Échec de la synchronisation automatique.", type: 'error' });
+                        }
+                    }
+                };
+                autoSync();
+            }, [isConnected]); // Se déclenche uniquement quand isConnected change
 
-                {/* Main Content */}
-                <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                    {currentPage === 'home' && (
-                        <HomePage 
+            // Gérer la création automatique de session depuis les jeux/mémoires
+            React.useEffect(() => {
+                const handlePendingSession = async () => {
+                    if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
+                        const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+                        if (newSession) {
+                            setCurrentChatSession(newSession);
+                        }
+                    }
+                };
+                
+                if (currentPage === 'chat') {
+                    handlePendingSession();
+                }
+            }, [currentUser, currentPage, createSession]);
+
+            const handleSessionSelect = (session) => {
+                setCurrentChatSession(session);
+                setCurrentPage('chat');
+            };
+
+            const handleBackToSessions = () => {
+                setCurrentChatSession(null);
+                setCurrentPage('sessions');
+            };
+
+            const handleUpdateSession = async (updatedSession) => {
+                try {
+                    await updateSession(updatedSession);
+                    setCurrentChatSession(updatedSession);
+                } catch (error) {
+                    // Affiche le message d'erreur dans un toast
+                    setToast({ message: error.message, type: 'error' });
+                    // La session est mise à jour localement, on met à jour l'état quand même
+                    // pour que l'interface reste fluide pour l'utilisateur
+                    const localSessions = Storage.get('sessions', []);
+                    sessionState.setSessions(localSessions); // Attention: nécessite d'exposer setSessions dans le hook
+                    setCurrentChatSession(updatedSession);
+                }
+            };
+            
+            // Petit ajustement dans le hook useSessionState pour que ça fonctionne
+            // Assurez-vous que votre hook retourne bien `setSessions`
+            // const useSessionState = () => { ... return { ..., sessions, setSessions, ... } }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
+                    <div className="max-w-6xl mx-auto">
+                        {/* Header */}
+                        <div className="text-center mb-4">
+                            <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.4b - modify GoogleSync</p>
+                        </div>
+
+                        {/* Navigation */}
+                        <Navigation 
+                            currentPage={currentPage}
                             currentUser={currentUser}
+                            onPageChange={setCurrentPage}
                             onUserChange={setCurrentUser}
-                            onPageChange={setCurrentPage}
+                            onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
                         />
-                    )}
-                    {currentPage === 'games' && (
-                        <GamesPage 
-                            currentUser={currentUser}
-                            onPageChange={setCurrentPage}
-                            onGameSelect={(game) => {
-                                window.pendingGameSession = { game, user: currentUser };
-                                setCurrentPage('chat');
-                            }}
-                        />
-                    )}
-                    {currentPage === 'sessions' && (
-                        <SessionsPage 
-                            currentUser={currentUser} 
-                            onPageChange={setCurrentPage}
-                            onSessionSelect={handleSessionSelect}
-                        />
-                    )}
-                    {currentPage === 'chat' && (
-                        <ChatPage 
-                            currentUser={currentUser}
-                            currentSession={currentChatSession}
-                            onUpdateSession={handleUpdateSession}
-                            onBackToSessions={handleBackToSessions}
-                        />
-                    )}
-                    {currentPage === 'memories' && (
-                        <MemoriesPage 
-                            currentUser={currentUser}
-                            onCreateSession={(page) => {
-                                setCurrentPage(page);
-                            }}
-                        />
-                    )}
-                    {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
-                </div>
 
-                {/* Footer */}
-                <div className="text-center mt-6 text-amber-700 text-sm">
-                    <p>Un voyage, deux mémoires, mille souvenirs</p>
-                    <p className="text-xs opacity-75 mt-1">
-                        Sessions/Chat séparés • Module Mastodon fonctionnel
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-};
+                        {/* Main Content */}
+                        <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                            {currentPage === 'home' && (
+                                <HomePage 
+                                    currentUser={currentUser}
+                                    onUserChange={setCurrentUser}
+                                    onPageChange={setCurrentPage}
+                                />
+                            )}
+                            {currentPage === 'games' && (
+                                <GamesPage 
+                                    currentUser={currentUser}
+                                    onPageChange={setCurrentPage}
+                                    onGameSelect={(game) => {
+                                        window.pendingGameSession = { game, user: currentUser };
+                                        setCurrentPage('chat');
+                                    }}
+                                />
+                            )}
+                            {currentPage === 'sessions' && (
+                                <SessionsPage 
+                                    currentUser={currentUser} 
+                                    onPageChange={setCurrentPage}
+                                    onSessionSelect={handleSessionSelect}
+                                />
+                            )}
+                            {currentPage === 'chat' && (
+                                <ChatPage 
+                                    currentUser={currentUser}
+                                    currentSession={currentChatSession}
+                                    onUpdateSession={handleUpdateSession}
+                                    onBackToSessions={handleBackToSessions}
+                                />
+                            )}
+                            {currentPage === 'memories' && (
+                                <MemoriesPage 
+                                    currentUser={currentUser}
+                                    onCreateSession={(page) => {
+                                        setCurrentPage(page);
+                                    }}
+                                />
+                            )}
+                            {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
+                        </div>
 
+                        {/* Footer */}
+                        <div className="text-center mt-6 text-amber-700 text-sm">
+                            <p>Un voyage, deux mémoires, mille souvenirs</p>
+                            <p className="text-xs opacity-75 mt-1">
+                                Sessions/Chat séparés • Module Mastodon fonctionnel
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {/* Le composant Toast est ajouté ici, à la fin du conteneur principal */}
+                    <Toast 
+                        message={toast.message} 
+                        type={toast.type} 
+                        onDismiss={() => setToast({ message: '', type: '' })} 
+                    />
+                </div>
+            );
+        };
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
