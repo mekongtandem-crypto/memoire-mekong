@@ -1007,8 +1007,8 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             minute: '2-digit'
         });
     };
-
-    return (
+    
+return (
     <div
         key={session.id}
         className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
@@ -1054,6 +1054,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         </div>
     </div>
 );
+};
 // Page Chat
 		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
