@@ -1060,8 +1060,8 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         						<div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
                     						)}
                     						<div className="text-sm text-gray-600">
-                        						{USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
-                    						</div>
+    											{USERS[session.user]?.name} • Dernière activité: {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
+											</div>
                 						</div>
             						</div>
             						<div className="flex items-center space-x-2">
