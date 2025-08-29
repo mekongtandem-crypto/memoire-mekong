@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.5b - Modify GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.5c - Modify GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -343,12 +343,13 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.4e'
-            });
+                version: '0.4.5'
+            }, null, 2);
             
             const existingFile = await this.findMekongFile();
             
             if (existingFile) {
+                // Mise à jour fichier existant
                 const response = await gapi.client.request({
                     path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
                     method: 'PATCH',
@@ -359,17 +360,42 @@ const GoogleDriveAPI = {
                 console.log('✅ Sessions sauvegardées (MAJ)');
                 return true;
             } else {
-                const fileMetadata = { name: 'mekong_sessions.json' };
-                const response = await gapi.client.drive.files.create({
-                    resource: fileMetadata,
-                    media: { mimeType: 'application/json', body: data },
-                    fields: 'id'
+                // Création nouveau fichier - CORRECTION ICI
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
+
+                const metadata = {
+                    'name': 'mekong_sessions.json',
+                    'parents': []  // Racine du Drive
+                };
+
+                const multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    JSON.stringify(metadata) +
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    data +
+                    close_delim;
+
+                const request = gapi.client.request({
+                    'path': 'https://www.googleapis.com/upload/drive/v3/files',
+                    'method': 'POST',
+                    'params': {'uploadType': 'multipart'},
+                    'headers': {
+                        'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+                    },
+                    'body': multipartRequestBody
                 });
-                console.log('✅ Sessions sauvegardées (NOUVEAU)');
+
+                const response = await request;
+                console.log('✅ Sessions sauvegardées (NOUVEAU)', response.result);
                 return true;
             }
         } catch (error) {
-            console.error('❌ Erreur sauvegarde:', error);
+            console.error('❌ Erreur sauvegarde détaillée:', error);
+            console.error('❌ Détails erreur:', error.body, error.status);
             return false;
         }
     },
