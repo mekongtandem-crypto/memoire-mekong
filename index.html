@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4l - Debug boucle GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4m - Debug GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -224,11 +224,8 @@ const GOOGLE_CONFIG = {
     // MODIFICATION CI-DESSOUS
     SCOPES: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
-// ===== GOOGLE DRIVE API - VERSION FINALE (AVEC FETCH) =====
+// ===== GOOGLE DRIVE API - VERSION DÉFINITIVE ET SIMPLIFIÉE =====
 const GoogleDriveAPI = {
-    // Note: on ne gère plus l'état de connexion ici, le hook s'en chargera.
-    
-    // On garde une référence au token pour que les fonctions puissent l'utiliser.
     accessToken: null,
 
     async findMekongFile() {
@@ -238,11 +235,11 @@ const GoogleDriveAPI = {
             const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)`, {
                 headers: { 'Authorization': `Bearer ${this.accessToken}` }
             });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
             const data = await response.json();
             return data.files[0] || null;
         } catch (error) {
-            console.error('❌ Erreur recherche fichier (fetch):', error);
+            console.error('❌ Erreur recherche fichier:', error);
             return null;
         }
     },
@@ -250,69 +247,59 @@ const GoogleDriveAPI = {
     async saveSessions(sessions) {
         if (!this.accessToken) return false;
         try {
-            const data = JSON.stringify({ 
+            const fileContent = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString()
             });
             
-            const existingFile = await this.findMekongFile();
+            let file = await this.findMekongFile();
             
-            if (existingFile) {
-                // La mise à jour du fichier existant est correcte
-                const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${this.accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: data
-                });
-                if (!updateResponse.ok) throw new Error(`HTTP error! status: ${updateResponse.status}`);
-                console.log('✅ Sessions sauvegardées (MAJ via fetch)');
-            } else {
-                // CORRECTION DE LA LOGIQUE DE CRÉATION
-                const fileMetadata = { 
+            // Si le fichier n'existe pas, on le crée d'abord.
+            if (!file) {
+                console.log("Fichier non trouvé, tentative de création...");
+                const metadata = { 
                     name: 'mekong_sessions.json',
-                    parents: ['root']
+                    parents: ['root'], // Crucial pour la visibilité
+                    mimeType: 'application/json'
                 };
 
-                // Étape 1 : Créer le fichier avec ses métadonnées (nom, emplacement)
-                // L'URL ici est corrigée, on n'utilise plus uploadType=media
                 const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${this.accessToken}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(fileMetadata)
+                    body: JSON.stringify(metadata)
                 });
-                
+
                 if (!createResponse.ok) {
                     const errorBody = await createResponse.text();
                     throw new Error(`Erreur création métadonnées: ${createResponse.status} - ${errorBody}`);
                 }
                 
-                const file = await createResponse.json();
-
-                // Étape 2 : Envoyer le contenu (les sessions) dans le fichier qui vient d'être créé
-                const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${file.id}?uploadType=media`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${this.accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: data
-                });
-
-                if (!updateResponse.ok) {
-                     const errorBody = await updateResponse.text();
-                    throw new Error(`Erreur upload contenu: ${updateResponse.status} - ${errorBody}`);
-                }
-                console.log('✅ Sessions sauvegardées (NOUVEAU FICHIER via fetch)');
+                file = await createResponse.json();
+                console.log(`✅ Fichier vide créé avec succès (ID: ${file.id})`);
             }
+
+            // Que le fichier soit nouveau ou ancien, on met à jour son contenu.
+            const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${file.id}?uploadType=media`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: fileContent
+            });
+
+            if (!updateResponse.ok) {
+                const errorBody = await updateResponse.text();
+                throw new Error(`Erreur mise à jour contenu: ${updateResponse.status} - ${errorBody}`);
+            }
+            console.log('✅ Contenu sauvegardé avec succès sur le Drive.');
+            
             return true;
         } catch (error) {
-            console.error('❌ Erreur sauvegarde (fetch):', error);
+            console.error('❌ Erreur sauvegarde:', error);
             return false;
         }
     },
@@ -322,18 +309,18 @@ const GoogleDriveAPI = {
         try {
             const file = await this.findMekongFile();
             if (!file) {
-                console.log("Aucun fichier de session trouvé sur le Drive (fetch).");
+                console.log("Aucun fichier de session trouvé dans le Drive.");
                 return null;
             }
             const response = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
                 headers: { 'Authorization': `Bearer ${this.accessToken}` }
             });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) throw new Error(`Erreur HTTP chargement: ${response.status}`);
             const data = await response.json();
-            console.log('✅ Sessions chargées depuis Google Drive (fetch)');
+            console.log('✅ Sessions chargées depuis Google Drive');
             return data.sessions || [];
         } catch (error) {
-            console.error('❌ Erreur chargement (fetch):', error);
+            console.error('❌ Erreur chargement:', error);
             return null;
         }
     }
