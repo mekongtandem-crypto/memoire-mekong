@@ -200,10 +200,10 @@ const MastodonData = {
 // ===== GOOGLE DRIVE API - VERSION 2024 =====
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyAwg7AjeYANY0txP7Ir2Qxnc2Kjk-cPwyU',
-    CLIENT_ID: '817414333860-27hgi2m4di1p79p6nqt03ke1aivn7ubc.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.file'
+    CLIENT_ID: '817414333860-27hgi1p79p6nqt03ke1aivn7ubc.apps.googleusercontent.com',
+    // MODIFICATION CI-DESSOUS
+    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
-
 const GoogleDriveAPI = {
     isSignedIn: false,
     isInitialized: false,
