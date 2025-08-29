@@ -901,7 +901,7 @@ React.useEffect(() => {
     if (currentSession?.notes && messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-}, [currentUser, createSession]);
+}, [currentSession?.notes]);
 
             const formatTime = (dateString) => {
                 return new Date(dateString).toLocaleTimeString('fr-FR', { 
@@ -1274,7 +1274,7 @@ React.useEffect(() => {
                 );
         }
             return null;
-           
+		};           
 
 
         const MemoriesPage = () => (
