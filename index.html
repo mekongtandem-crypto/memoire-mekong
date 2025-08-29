@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.5 - Debug GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4e - Modify GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -26,7 +26,8 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">// ===== ICONS LUCIDE =====
+    <script type="text/babel">
+        // ===== ICONS LUCIDE =====
         const Home = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>;
         const Users = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-2-2"/></svg>;
         const User = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
@@ -52,21 +53,29 @@
         const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
         const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
 
-        // ===== CONFIGURATION =====
-        const GOOGLE_CONFIG = {
-            CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-            SCOPES: 'https://www.googleapis.com/auth/drive'
-        };
+		// ===== COMPOSANT TOAST (Alerte) =====
+		const Toast = ({ message, type, onDismiss }) => {
+    		if (!message) return null;
 
-        // ===== MODULES DE DONNÉES =====
-        const Storage = {
-            get: (key, defaultValue = null) => { try { const item = localStorage.getItem(`mekong_${key}`); return item ? JSON.parse(item) : defaultValue; } catch { return defaultValue; } },
-            set: (key, value) => { try { localStorage.setItem(`mekong_${key}`, JSON.stringify(value)); return true; } catch { return false; } },
-            remove: (key) => localStorage.removeItem(`mekong_${key}`),
-            clear: () => Object.keys(localStorage).forEach(key => key.startsWith('mekong_') && localStorage.removeItem(key))
-        };
+    		const styles = {
+        		error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+        		success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' }
+    		};
+    		const style = styles[type] || styles.error;
 
-        const MastodonData = {
+    		return (
+        		<div className={`fixed bottom-4 right-4 max-w-sm p-4 border rounded-lg shadow-lg fade-in ${style.bg} ${style.text} ${style.border}`}>
+            		<div className="flex justify-between items-center">
+                		<span>{message}</span>
+                		<button onClick={onDismiss} className="ml-4 text-xl font-bold">&times;</button>
+            		</div>
+        		</div>
+    		);
+		};
+		
+        // ===== CORE STORAGE =====
+        // ===== MASTODON DATA MANAGEMENT =====
+const MastodonData = {
     // Parser le fichier outbox.json
     parseOutbox: (jsonData) => {
     try {
@@ -186,89 +195,191 @@
         };
     }
 };
-        
-        // ===== API GOOGLE DRIVE (SIMPLIFIÉE AVEC FETCH) =====
-        const GoogleDriveAPI = {
-            accessToken: null,
-
-            async findMekongFile() {
-                if (!this.accessToken) return null;
+        const Storage = {
+            get: (key, defaultValue = null) => {
                 try {
-                    const query = encodeURIComponent("name='mekong_sessions.json' and 'root' in parents and trashed=false");
-                    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)`, {
-                        headers: { 'Authorization': `Bearer ${this.accessToken}` }
-                    });
-                    if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
-                    const data = await response.json();
-                    return data.files[0] || null;
-                } catch (error) {
-                    console.error('❌ Erreur recherche fichier:', error);
-                    return null;
-                }
+                    const item = localStorage.getItem(`mekong_${key}`);
+                    return item ? JSON.parse(item) : defaultValue;
+                } catch { return defaultValue; }
             },
-            
-            async saveSessions(sessions) {
-                if (!this.accessToken) return false;
+            set: (key, value) => {
                 try {
-                    const fileContent = JSON.stringify({ sessions, lastUpdated: new Date().toISOString() });
-                    let file = await this.findMekongFile();
-
-                    if (!file) {
-                        console.log("Fichier non trouvé, tentative de création...");
-                        const metadata = { name: 'mekong_sessions.json', parents: ['root'], mimeType: 'application/json' };
-                        const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${this.accessToken}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify(metadata)
-                        });
-                        if (!createResponse.ok) {
-                            const errorBody = await createResponse.text();
-                            throw new Error(`Erreur création métadonnées: ${createResponse.status} - ${errorBody}`);
-                        }
-                        file = await createResponse.json();
-                        console.log(`✅ Fichier vide créé (ID: ${file.id})`);
-                    }
-
-                    const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${file.id}?uploadType=media`, {
-                        method: 'PATCH',
-                        headers: { 'Authorization': `Bearer ${this.accessToken}`, 'Content-Type': 'application/json' },
-                        body: fileContent
-                    });
-                    if (!updateResponse.ok) {
-                        const errorBody = await updateResponse.text();
-                        throw new Error(`Erreur mise à jour contenu: ${updateResponse.status} - ${errorBody}`);
-                    }
-                    console.log('✅ Contenu sauvegardé sur le Drive.');
+                    localStorage.setItem(`mekong_${key}`, JSON.stringify(value));
                     return true;
-                } catch (error) {
-                    console.error('❌ Erreur sauvegarde:', error);
-                    return false;
-                }
+                } catch { return false; }
             },
-            
-            async loadSessions() {
-                if (!this.accessToken) return null;
-                try {
-                    const file = await this.findMekongFile();
-                    if (!file) {
-                        console.log("Aucun fichier de session trouvé.");
-                        return null;
-                    }
-                    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
-                        headers: { 'Authorization': `Bearer ${this.accessToken}` }
-                    });
-                    if (!response.ok) throw new Error(`Erreur HTTP chargement: ${response.status}`);
-                    const data = await response.json();
-                    console.log('✅ Sessions chargées depuis le Drive.');
-                    return data.sessions || [];
-                } catch (error) {
-                    console.error('❌ Erreur chargement:', error);
-                    return null;
-                }
+            remove: (key) => localStorage.removeItem(`mekong_${key}`),
+            clear: () => {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('mekong_')) localStorage.removeItem(key);
+                });
             }
         };
+        
 
-        // ===== HOOKS REACT =====
+// ===== GOOGLE DRIVE API - VERSION 2024 =====
+const GOOGLE_CONFIG = {
+    API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
+    CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
+    // MODIFICATION CI-DESSOUS
+    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
+};
+const GoogleDriveAPI = {
+    isSignedIn: false,
+    isInitialized: false,
+    tokenClient: null,
+    
+    async init() {
+        if (this.isInitialized) return;
+        
+        try {
+            // Charger uniquement l'API Google Drive (pas auth2)
+            await new Promise((resolve) => {
+                gapi.load('client', resolve);
+            });
+            
+            await gapi.client.init({
+                apiKey: GOOGLE_CONFIG.API_KEY,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+            });
+            
+            // Initialiser le client OAuth2 (nouvelle méthode)
+            this.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CONFIG.CLIENT_ID,
+                scope: GOOGLE_CONFIG.SCOPES,
+                callback: (response) => {
+                    if (response.error) {
+                        console.error('❌ Erreur token:', response);
+                        return;
+                    }
+                    this.isSignedIn = true;
+                    console.log('✅ Token reçu, connecté à Google Drive');
+                }
+            });
+            
+            this.isInitialized = true;
+            console.log('✅ Google Drive API initialisée (version 2024)');
+        } catch (error) {
+            console.error('❌ Erreur init Google Drive API:', error);
+        }
+    },
+    
+    async signIn() {
+        if (!this.isInitialized) await this.init();
+        
+        return new Promise((resolve) => {
+            if (!this.tokenClient) {
+                console.error('❌ Token client non initialisé');
+                resolve(false);
+                return;
+            }
+            
+            // Modifier le callback temporairement
+            this.tokenClient.callback = (response) => {
+                if (response.error) {
+                    console.error('❌ Erreur connexion:', response);
+                    resolve(false);
+                    return;
+                }
+                this.isSignedIn = true;
+                console.log('✅ Connecté à Google Drive');
+                resolve(true);
+            };
+            
+            this.tokenClient.requestAccessToken();
+        });
+    },
+    
+    async signOut() {
+        const token = gapi.client.getToken();
+        if (token) {
+            google.accounts.oauth2.revoke(token.access_token);
+            gapi.client.setToken('');
+        }
+        this.isSignedIn = false;
+        console.log('✅ Déconnecté de Google Drive');
+    },
+    
+    async findMekongFile() {
+        if (!this.isSignedIn) return null;
+        try {
+            const response = await gapi.client.drive.files.list({
+                q: "name='mekong_sessions.json' and trashed=false",
+                fields: 'files(id, name)'
+            });
+            return response.result.files[0] || null;
+        } catch (error) {
+            console.error('❌ Erreur recherche fichier:', error);
+            return null;
+        }
+    },
+    
+    async saveSessions(sessions) {
+        if (!this.isSignedIn) {
+            console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
+            return false;
+        }
+        
+        try {
+            const data = JSON.stringify({ 
+                sessions, 
+                lastUpdated: new Date().toISOString(),
+                version: '0.4.4b '
+            });
+            
+            const existingFile = await this.findMekongFile();
+            
+            if (existingFile) {
+                // Mettre à jour fichier existant
+                const response = await gapi.client.request({
+                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
+                    method: 'PATCH',
+                    params: { uploadType: 'media' },
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data
+                });
+                console.log('✅ Sessions sauvegardées (MAJ)');
+                return true;
+            } else {
+                // Créer nouveau fichier
+                const fileMetadata = { name: 'mekong_sessions.json' };
+                const response = await gapi.client.drive.files.create({
+                    resource: fileMetadata,
+                    media: { mimeType: 'application/json', body: data },
+                    fields: 'id'
+                });
+                console.log('✅ Sessions sauvegardées (NOUVEAU)');
+                return true;
+            }
+        } catch (error) {
+            console.error('❌ Erreur sauvegarde:', error);
+            return false;
+        }
+    },
+    
+    async loadSessions() {
+        if (!this.isSignedIn) return null;
+        
+        try {
+            const file = await this.findMekongFile();
+            if (!file) return null;
+            
+            const response = await gapi.client.drive.files.get({
+                fileId: file.id,
+                alt: 'media'
+            });
+            
+            const data = JSON.parse(response.body);
+            console.log('✅ Sessions chargées depuis Google Drive');
+            return data.sessions || [];
+        } catch (error) {
+            console.error('❌ Erreur chargement:', error);
+            return null;
+        }
+    }
+};
+
+        // ===== CORE STATES =====
         const useAppState = () => {
             const [currentPage, setCurrentPage] = React.useState('home');
             const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', ''));
@@ -290,7 +401,221 @@
                 resetApp
             };
         };
-        const useSessionState = () => {
+
+        // ===== USER CONFIG =====
+        const USERS = {
+            tom: { name: 'Tom l\'éléphantau', color: 'blue', emoji: '🐘' },
+            lambert: { name: 'Lambert, le Vieil éléphant', color: 'green', emoji: '🐘' },
+            duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' }
+        };
+
+        const getUserStyle = (userKey) => {
+            const user = USERS[userKey];
+            if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' };
+            
+            const styles = {
+                blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' },
+                green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' },
+                amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' }
+            };
+            return styles[user.color] || styles.blue;
+        };
+
+        // ===== GAMES CATALOG =====
+        const GAMES = [
+            { 
+                id: 1, 
+                title: "Photo roulette", 
+                duration: "15 min", 
+                type: "présentiel",
+                icon: Camera, 
+                description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient en mémoire" 
+            },
+            { 
+                id: 2, 
+                title: "Timeline aveugle", 
+                duration: "20 min", 
+                type: "présentiel",
+                icon: Clock, 
+                description: "Reconstituez la chronologie d'une étape sans regarder les dates" 
+            },
+            { 
+                id: 3, 
+                title: "Interview journaliste", 
+                duration: "25 min", 
+                type: "présentiel",
+                icon: Mic, 
+                description: "L'un interviewe l'autre sur une étape précise du voyage" 
+            },
+            { 
+                id: 4, 
+                title: "Photo sans légende", 
+                duration: "async", 
+                type: "distanciel",
+                icon: Camera, 
+                description: "Envoyez une photo, l'autre devine le contexte et ses souvenirs" 
+            },
+            { 
+                id: 5, 
+                title: "Mot déclencheur", 
+                duration: "async", 
+                type: "distanciel",
+                icon: Zap, 
+                description: "Un mot-clé pour déclencher un souvenir chez l'autre" 
+            },
+            { 
+                id: 6, 
+                title: "Géolocalisation mystère", 
+                duration: "async", 
+                type: "distanciel",
+                icon: MapPin, 
+                description: "Partagez une position GPS, l'autre raconte ce lieu" 
+            }
+        ];
+
+// ===== CLOUD SESSION STORAGE (Modifié pour les erreurs) =====
+const CloudSessionStorage = {
+    async getSessions() {
+        try {
+            const cloudSessions = await GoogleDriveAPI.loadSessions();
+            if (cloudSessions) {
+                Storage.set('sessions', cloudSessions);
+                console.log('✅ Sessions chargées depuis Google Drive');
+                return cloudSessions;
+            }
+        } catch (error) {
+            console.warn('⚠️ Erreur chargement cloud, utilisation cache local');
+        }
+        return Storage.get('sessions', []);
+    },
+    
+    async saveSession(session) {
+        const sessions = Storage.get('sessions', []);
+        const existingIndex = sessions.findIndex(s => s.id === session.id);
+        if (existingIndex >= 0) {
+            sessions[existingIndex] = session;
+        } else {
+            sessions.unshift(session);
+        }
+        Storage.set('sessions', sessions);
+        
+        try {
+            const success = await GoogleDriveAPI.saveSessions(sessions);
+            if (!success) {
+                throw new Error("La sauvegarde Google Drive a échoué.");
+            }
+            console.log('✅ Session sauvegardée localement + cloud');
+        } catch (error) {
+            console.warn('⚠️ Erreur sauvegarde cloud (local OK):', error);
+            throw new Error("Synchronisation cloud échouée. Vos données sont sauvegardées localement.");
+        }
+    },
+    
+    async deleteSession(sessionId) {
+        const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId);
+        Storage.set('sessions', sessions);
+        
+        try {
+            await GoogleDriveAPI.saveSessions(sessions);
+            console.log('✅ Session supprimée localement + cloud');
+        } catch (error) {
+            console.warn('⚠️ Erreur suppression cloud (local OK):', error);
+            throw new Error("Suppression cloud échouée. La session est supprimée localement.");
+        }
+    },
+
+	async forceSyncFromCloud() {
+        try {
+            const cloudSessions = await GoogleDriveAPI.loadSessions();
+            if (cloudSessions) {
+                Storage.set('sessions', cloudSessions);
+                console.log('✅ Synchronisation forcée depuis Google Drive');
+                return cloudSessions;
+            } else {
+                console.log('⚠️ Aucune donnée cloud trouvée');
+                return Storage.get('sessions', []);
+            }
+        } catch (error) {
+            console.error('❌ Erreur synchronisation:', error);
+            throw error;
+        }
+    }
+};
+
+// ===== SESSION STORAGE =====
+        const SessionStorage = {
+            getSessions: () => {
+    			const sessions = Storage.get('sessions', []);
+    			// Nettoyer les sessions corrompues
+    			return sessions.filter(session => {
+        			const isValid = session && 
+                       			typeof session.id !== 'undefined' && 
+                       			typeof session.gameId === 'number' && 
+                       			session.gameId > 0 &&
+                       			Array.isArray(session.notes);
+        			if (!isValid) {
+            			console.warn('Session corrompue supprimée:', session);
+        			}
+        			return isValid;
+    			});
+			},
+            saveSession: (session) => {
+                const sessions = SessionStorage.getSessions();
+                const existingIndex = sessions.findIndex(s => s.id === session.id);
+                if (existingIndex >= 0) {
+                    sessions[existingIndex] = session;
+                } else {
+                    sessions.unshift(session);
+                }
+                Storage.set('sessions', sessions);
+            },
+            deleteSession: (sessionId) => {
+                const sessions = SessionStorage.getSessions().filter(s => s.id !== sessionId);
+                Storage.set('sessions', sessions);
+            }
+        };
+
+        // ===== SESSION HELPERS =====
+        const getGameIcon = (gameId) => {
+            if (!gameId || typeof gameId !== 'number') {
+                console.log('getGameIcon: gameId invalide', gameId);
+                return BookOpen; // Sécurité si gameId undefined/invalide
+            }
+            const game = GAMES.find(g => g.id === gameId);
+            if (!game) {
+                console.log('getGameIcon: jeu non trouvé pour gameId', gameId);
+                return BookOpen;
+            }
+            return game.icon;
+        };
+
+        const renderGameIcon = (gameId, className = "w-6 h-6 text-amber-600") => {
+    		try {
+        		const game = GAMES.find(g => g.id === gameId);
+        		if (!game || !game.icon) {
+            		console.warn('renderGameIcon: Jeu non trouvé pour gameId:', gameId);
+            		return React.createElement(BookOpen, { className });
+        		}
+        
+        		const IconComponent = game.icon;
+        		if (typeof IconComponent !== 'function') {
+            		console.warn('renderGameIcon: Icon n\'est pas une fonction:', IconComponent);
+            		return React.createElement(BookOpen, { className });
+        		}
+        
+        		return React.createElement(IconComponent, { className });
+    		} catch (error) {
+        		console.error('renderGameIcon: Erreur lors du rendu:', error);
+        		return React.createElement(BookOpen, { className });
+    		}
+		};
+
+        const getGameById = (gameId) => {
+            return GAMES.find(g => g.id === gameId);
+        };
+
+// ===== SESSION HOOKS (LÉGÈRE MODIFICATION) =====
+const useSessionState = () => {
     const [currentSession, setCurrentSession] = React.useState(null);
     const [sessions, setSessions] = React.useState([]);
 
@@ -380,62 +705,77 @@
         syncSessions
     };
 };
-        
-        const useGoogleAuth = () => {
-            const [isConnected, setIsConnected] = React.useState(false);
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [userInfo, setUserInfo] = React.useState(null);
-            const [tokenClient, setTokenClient] = React.useState(null);
 
-            React.useEffect(() => {
-                const client = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CONFIG.CLIENT_ID,
-                    scope: GOOGLE_CONFIG.SCOPES,
-                    callback: async (tokenResponse) => {
-                        if (tokenResponse.error) {
-                            console.error("Erreur d'authentification:", tokenResponse.error);
-                            setIsConnected(false);
-                            return;
-                        }
-                        try {
-                            GoogleDriveAPI.accessToken = tokenResponse.access_token;
-                            const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                                headers: { 'Authorization': `Bearer ${tokenResponse.access_token}` }
-                            });
-                            if (!response.ok) throw new Error('Impossible de récupérer les infos utilisateur.');
-                            const profile = await response.json();
-                            setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
-                            setIsConnected(true);
-                            console.log("✅ Connexion réussie.");
-                        } catch (error) {
-                            console.error("❌ Erreur post-connexion:", error);
-                            setIsConnected(false);
-                        } finally {
-                            setIsLoading(false);
-                        }
-                    },
-                });
-                setTokenClient(client);
-                setIsLoading(false);
-            }, []);
 
-            const signIn = () => {
-                if (tokenClient) {
-                    setIsLoading(true);
-                    tokenClient.requestAccessToken({ prompt: 'consent' });
-                }
-            };
+// ===== GOOGLE AUTH HOOK (CORRIGÉ) =====
+const useGoogleAuth = () => {
+    const [isConnected, setIsConnected] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [userInfo, setUserInfo] = React.useState(null);
 
-            const signOut = () => {
-                GoogleDriveAPI.accessToken = null;
-                setIsConnected(false);
-                setUserInfo(null);
-            };
-
-            return { isConnected, isLoading, userInfo, signIn, signOut };
+    // Initialisation de l'API Google Drive au montage du composant
+    React.useEffect(() => {
+        const initGoogle = async () => {
+            setIsLoading(true);
+            await GoogleDriveAPI.init();
+            // La vérification de connexion se fera via le token, pas via une instance
+            setIsLoading(false);
         };
+        initGoogle();
+    }, []);
 
-        // ===== COMPOSANTS UI =====
+    const signIn = async () => {
+        setIsLoading(true);
+        try {
+            const success = await GoogleDriveAPI.signIn();
+            if (success) {
+                // Le token est maintenant stocké dans gapi.client
+                const token = gapi.client.getToken();
+                
+                // Utiliser le token pour récupérer les informations de l'utilisateur
+                const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { 'Authorization': `Bearer ${token.access_token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Impossible de récupérer les informations utilisateur.');
+                }
+                
+                const profile = await response.json();
+                
+                setUserInfo({
+                    name: profile.name,
+                    email: profile.email,
+                    picture: profile.picture
+                });
+                setIsConnected(true);
+                setIsLoading(false);
+                return true;
+
+            } else {
+                throw new Error('La connexion à Google Drive a échoué.');
+            }
+        } catch (error) {
+            console.error("❌ Erreur lors de la connexion ou de la récupération du profil:", error);
+            setIsConnected(false);
+            setUserInfo(null);
+            setIsLoading(false);
+            return false;
+        }
+    };
+
+    const signOut = async () => {
+        await GoogleDriveAPI.signOut();
+        setIsConnected(false);
+        setUserInfo(null);
+    };
+
+    return { isConnected, isLoading, userInfo, signIn, signOut };
+};
+
+
+
+        // ===== NAVIGATION COMPONENT =====
         const Navigation = ({ currentPage, currentUser, onPageChange, onUserChange, onBack }) => (
     <div className="bg-white/90 backdrop-blur rounded-xl shadow-lg p-3 mb-4">
         <div className="flex justify-between items-center">
@@ -507,7 +847,9 @@
         </div>
     </div>
 );
-        const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => {
+
+// ===== GOOGLE CONNECTION COMPONENT =====
+const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => {
     if (isLoading) {
         return (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -565,6 +907,10 @@
         </div>
     );
 };
+
+
+
+        // ===== MAIN PAGES =====
         const HomePage = ({ currentUser, onUserChange, onPageChange }) => (
             <div className="space-y-6 fade-in">
                 <div className="text-center">
@@ -704,7 +1050,9 @@
         </div>
     </div>
 );
-        const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
+		
+// Page Session
+const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('fr-FR', { 
@@ -815,7 +1163,8 @@
         </div>
     );
 };
-        const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
+// Page Chat
+		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
     const [editContent, setEditContent] = React.useState('');
@@ -1134,7 +1483,8 @@
             </div>
         </div>
     );
-}; 
+};        
+/// Pages Memoire
         const MemoriesPage = ({ currentUser, onCreateSession }) => {
             const [currentPost, setCurrentPost] = React.useState(null);
             const [searchQuery, setSearchQuery] = React.useState('');
@@ -1434,6 +1784,7 @@
                 </div>
             );
         };
+
         const SettingsPage = ({ onReset }) => {
             const [importStatus, setImportStatus] = React.useState('');
             const [isImporting, setIsImporting] = React.useState(false);
@@ -1602,13 +1953,20 @@
                 </div>
             );
         };
-
-        // ===== COMPOSANT PRINCIPAL =====
+		
+// ===== MAIN APP =====
+// ===== MAIN APP (VERSION FINALE CORRIGÉE) =====
         const MemoireMekong = () => {
-            const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
-            const authProps = useGoogleAuth();
-            const { sessions, setSessions, createSession, updateSession, deleteSession, syncSessions } = useSessionState(authProps.isConnected);
-			const [currentChatSession, setCurrentChatSession] = React.useState(null);
+            const {
+                currentPage, setCurrentPage,
+                currentUser, setCurrentUser,
+                resetApp
+            } = useAppState();
+
+            const { isConnected } = useGoogleAuth();
+            const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
+
+            const [currentChatSession, setCurrentChatSession] = React.useState(null);
             const [toast, setToast] = React.useState({ message: '', type: '' });
 
             // Synchronisation automatique au chargement et lors de la connexion
@@ -1748,7 +2106,7 @@
         };
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<MemoireMekong />);
-        </script>
+        root.render(React.createElement(MemoireMekong));
+    </script>
 </body>
 </html>
