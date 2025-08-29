@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4j - Debug boucle GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4k - Debug boucle GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -224,69 +224,31 @@ const GOOGLE_CONFIG = {
     // MODIFICATION CI-DESSOUS
     SCOPES: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
-// ===== GOOGLE DRIVE API - VERSION 2024 (CORRECTION FINALE DE L'APPEL API) =====
+// ===== GOOGLE DRIVE API - VERSION FINALE (AVEC FETCH) =====
 const GoogleDriveAPI = {
-    isSignedIn: false,
-    isInitialized: false,
-    tokenClient: null,
+    // Note: on ne gère plus l'état de connexion ici, le hook s'en chargera.
     
-    async init(onTokenResponse) {
-        if (this.isInitialized) return;
-        try {
-            await new Promise((resolve) => gapi.load('client', resolve));
-            await gapi.client.init({
-                apiKey: GOOGLE_CONFIG.API_KEY,
-                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-            });
-            this.tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CONFIG.CLIENT_ID,
-                scope: GOOGLE_CONFIG.SCOPES,
-                callback: onTokenResponse,
-            });
-            this.isInitialized = true;
-            console.log('✅ Google Drive API initialisée (version 2024)');
-        } catch (error) {
-            console.error('❌ Erreur init Google Drive API:', error);
-        }
-    },
-    
-    async signIn() {
-        if (!this.isInitialized || !this.tokenClient) return;
-        this.tokenClient.requestAccessToken({ prompt: 'consent' });
-    },
-    
-    async signOut() {
-        const token = gapi.client.getToken();
-        if (token) {
-            google.accounts.oauth2.revoke(token.access_token);
-            gapi.client.setToken(null);
-        }
-        this.isSignedIn = false;
-        console.log('✅ Déconnecté de Google Drive');
-    },
-    
+    // On garde une référence au token pour que les fonctions puissent l'utiliser.
+    accessToken: null,
+
     async findMekongFile() {
-        if (!this.isSignedIn) return null;
+        if (!this.accessToken) return null;
         try {
-            // Utilisation de gapi.client.request pour plus de robustesse
-            const response = await gapi.client.request({
-                path: 'https://www.googleapis.com/drive/v3/files',
-                params: {
-                    q: "name='mekong_sessions.json' and 'root' in parents and trashed=false",
-                    fields: 'files(id, name)'
-                }
+            const query = encodeURIComponent("name='mekong_sessions.json' and 'root' in parents and trashed=false");
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)`, {
+                headers: { 'Authorization': `Bearer ${this.accessToken}` }
             });
-            // La structure de la réponse de .request est directement le résultat
-            return response.result.files[0] || null;
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            return data.files[0] || null;
         } catch (error) {
-            // Les erreurs de .request sont souvent dans result.error
-            console.error('❌ Erreur recherche fichier:', error.result?.error || error);
+            console.error('❌ Erreur recherche fichier (fetch):', error);
             return null;
         }
     },
     
     async saveSessions(sessions) {
-        if (!this.isSignedIn) return false;
+        if (!this.accessToken) return false;
         try {
             const data = JSON.stringify({ 
                 sessions, 
@@ -296,69 +258,72 @@ const GoogleDriveAPI = {
             const existingFile = await this.findMekongFile();
             
             if (existingFile) {
-                // La mise à jour utilise déjà .request, c'est le bon modèle
-                await gapi.client.request({
-                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
+                // Mise à jour du fichier existant
+                const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`, {
                     method: 'PATCH',
-                    params: { uploadType: 'media' },
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
                     body: data
                 });
-                console.log('✅ Sessions sauvegardées (MAJ)');
+                if (!updateResponse.ok) throw new Error(`HTTP error! status: ${updateResponse.status}`);
+                console.log('✅ Sessions sauvegardées (MAJ via fetch)');
             } else {
-                // Création du fichier avec gapi.client.request
-                const boundary = '-------314159265358979323846';
-                const delimiter = "\r\n--" + boundary + "\r\n";
-                const close_delim = "\r\n--" + boundary + "--";
-
+                // Création d'un nouveau fichier
                 const fileMetadata = { 
                     name: 'mekong_sessions.json',
                     parents: ['root'],
                     mimeType: 'application/json'
                 };
 
-                const multipartRequestBody =
-                    delimiter +
-                    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-                    JSON.stringify(fileMetadata) +
-                    delimiter +
-                    'Content-Type: application/json\r\n\r\n' +
-                    data +
-                    close_delim;
-                
-                await gapi.client.request({
-                    path: 'https://www.googleapis.com/upload/drive/v3/files',
+                const createResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=media', {
                     method: 'POST',
-                    params: { uploadType: 'multipart' },
-                    headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
-                    body: multipartRequestBody
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(fileMetadata)
                 });
-                console.log('✅ Sessions sauvegardées (NOUVEAU FICHIER)');
+                if (!createResponse.ok) throw new Error(`Erreur création métadonnées: ${createResponse.status}`);
+                
+                const file = await createResponse.json();
+
+                const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${file.id}?uploadType=media`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: data
+                });
+                if (!updateResponse.ok) throw new Error(`Erreur upload contenu: ${updateResponse.status}`);
+                console.log('✅ Sessions sauvegardées (NOUVEAU FICHIER via fetch)');
             }
             return true;
         } catch (error) {
-            console.error('❌ Erreur sauvegarde:', error.result?.error || error);
+            console.error('❌ Erreur sauvegarde (fetch):', error);
             return false;
         }
     },
     
     async loadSessions() {
-        if (!this.isSignedIn) return null;
+        if (!this.accessToken) return null;
         try {
             const file = await this.findMekongFile();
             if (!file) {
-                console.log("Aucun fichier de session trouvé sur le Drive.");
+                console.log("Aucun fichier de session trouvé sur le Drive (fetch).");
                 return null;
             }
-            const response = await gapi.client.drive.files.get({
-                fileId: file.id,
-                alt: 'media'
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+                headers: { 'Authorization': `Bearer ${this.accessToken}` }
             });
-            const data = JSON.parse(response.body);
-            console.log('✅ Sessions chargées depuis Google Drive');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            console.log('✅ Sessions chargées depuis Google Drive (fetch)');
             return data.sessions || [];
         } catch (error) {
-            console.error('❌ Erreur chargement:', error.result?.error || error);
+            console.error('❌ Erreur chargement (fetch):', error);
             return null;
         }
     }
@@ -681,60 +646,57 @@ const useSessionState = () => {
 };
 
 
-// ===== GOOGLE AUTH HOOK (CORRIGÉ) =====
-// ===== GOOGLE AUTH HOOK (CORRECTION FINALE DU TOKEN) =====
+// ===== GOOGLE AUTH HOOK - VERSION FINALE (AVEC FETCH) =====
 const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [userInfo, setUserInfo] = React.useState(null);
+    const [tokenClient, setTokenClient] = React.useState(null);
 
-    // Ce callback gère la réponse de Google après la tentative de connexion
-    const handleTokenResponse = React.useCallback(async (tokenResponse) => {
-        if (tokenResponse.error) {
-            console.error("Erreur d'authentification:", tokenResponse.error);
-            setIsConnected(false);
-            setIsLoading(false);
-            return;
-        }
-        try {
-            // L'ÉTAPE CRUCIALE : on donne le jeton à l'archiviste (gapi) !
-            gapi.client.setToken(tokenResponse);
-            GoogleDriveAPI.isSignedIn = true;
+    React.useEffect(() => {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CONFIG.CLIENT_ID,
+            scope: GOOGLE_CONFIG.SCOPES,
+            callback: async (tokenResponse) => {
+                if (tokenResponse.error) {
+                    console.error("Erreur d'authentification:", tokenResponse.error);
+                    setIsConnected(false);
+                    return;
+                }
+                try {
+                    // On stocke le token d'accès pour que nos fonctions fetch puissent l'utiliser
+                    GoogleDriveAPI.accessToken = tokenResponse.access_token;
 
-            // Une fois le token défini, on récupère les infos de l'utilisateur
-            const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { 'Authorization': `Bearer ${tokenResponse.access_token}` }
-            });
-            if (!response.ok) throw new Error('Impossible de récupérer les infos utilisateur.');
-            
-            const profile = await response.json();
-            setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
-            setIsConnected(true);
-            console.log("✅ Connexion et récupération du profil réussies.");
-        } catch (error) {
-            console.error("❌ Erreur après réception du token:", error);
-            setIsConnected(false);
-        } finally {
-            setIsLoading(false);
-        }
+                    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                        headers: { 'Authorization': `Bearer ${tokenResponse.access_token}` }
+                    });
+                    if (!response.ok) throw new Error('Impossible de récupérer les infos utilisateur.');
+                    
+                    const profile = await response.json();
+                    setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
+                    setIsConnected(true);
+                    console.log("✅ Connexion réussie (fetch).");
+                } catch (error) {
+                    console.error("❌ Erreur post-connexion (fetch):", error);
+                    setIsConnected(false);
+                } finally {
+                    setIsLoading(false);
+                }
+            },
+        });
+        setTokenClient(client);
+        setIsLoading(false);
     }, []);
 
-    // Initialisation de l'API au montage du composant
-    React.useEffect(() => {
-        const init = async () => {
-            await GoogleDriveAPI.init(handleTokenResponse);
-            setIsLoading(false);
-        };
-        init();
-    }, [handleTokenResponse]);
-
-    const signIn = async () => {
-        setIsLoading(true);
-        GoogleDriveAPI.signIn(); // Déclenche la popup de connexion
+    const signIn = () => {
+        if (tokenClient) {
+            setIsLoading(true);
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
     };
 
-    const signOut = async () => {
-        await GoogleDriveAPI.signOut();
+    const signOut = () => {
+        GoogleDriveAPI.accessToken = null;
         setIsConnected(false);
         setUserInfo(null);
     };
