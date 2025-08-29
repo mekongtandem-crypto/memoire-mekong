@@ -691,46 +691,62 @@ const useSessionState = () => {
 };
 
 
-// ===== GOOGLE AUTH HOOK =====
+// ===== GOOGLE AUTH HOOK (CORRIGÉ) =====
 const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [userInfo, setUserInfo] = React.useState(null);
 
+    // Initialisation de l'API Google Drive au montage du composant
     React.useEffect(() => {
         const initGoogle = async () => {
+            setIsLoading(true);
             await GoogleDriveAPI.init();
-            setIsConnected(GoogleDriveAPI.isSignedIn);
+            // La vérification de connexion se fera via le token, pas via une instance
             setIsLoading(false);
-            
-            if (GoogleDriveAPI.isSignedIn) {
-                const authInstance = gapi.auth2.getAuthInstance();
-                const user = authInstance.currentUser.get();
-                const profile = user.getBasicProfile();
-                setUserInfo({
-                    name: profile.getName(),
-                    email: profile.getEmail(),
-                    picture: profile.getImageUrl()
-                });
-            }
         };
         initGoogle();
     }, []);
 
     const signIn = async () => {
-    setIsLoading(true);
-    const success = await GoogleDriveAPI.signIn();
-    setIsConnected(success);
-    if (success) {
-        setUserInfo({
-            name: 'Utilisateur connecté',
-            email: 'Google Drive activé',
-            picture: null
-        });
-    }
-    setIsLoading(false);
-    return success;
-};
+        setIsLoading(true);
+        try {
+            const success = await GoogleDriveAPI.signIn();
+            if (success) {
+                // Le token est maintenant stocké dans gapi.client
+                const token = gapi.client.getToken();
+                
+                // Utiliser le token pour récupérer les informations de l'utilisateur
+                const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { 'Authorization': `Bearer ${token.access_token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Impossible de récupérer les informations utilisateur.');
+                }
+                
+                const profile = await response.json();
+                
+                setUserInfo({
+                    name: profile.name,
+                    email: profile.email,
+                    picture: profile.picture
+                });
+                setIsConnected(true);
+                setIsLoading(false);
+                return true;
+
+            } else {
+                throw new Error('La connexion à Google Drive a échoué.');
+            }
+        } catch (error) {
+            console.error("❌ Erreur lors de la connexion ou de la récupération du profil:", error);
+            setIsConnected(false);
+            setUserInfo(null);
+            setIsLoading(false);
+            return false;
+        }
+    };
 
     const signOut = async () => {
         await GoogleDriveAPI.signOut();
