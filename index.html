@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4f - Debug GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4f - Debug boucle GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -614,7 +614,7 @@ const CloudSessionStorage = {
             return GAMES.find(g => g.id === gameId);
         };
 
-// ===== SESSION HOOKS (LÉGÈRE MODIFICATION) =====
+// ===== SESSION HOOKS (CORRIGÉ POUR LA BOUCLE INFINIE) =====
 const useSessionState = () => {
     const [currentSession, setCurrentSession] = React.useState(null);
     const [sessions, setSessions] = React.useState([]);
@@ -627,76 +627,65 @@ const useSessionState = () => {
         loadSessions();
     }, []);
 
-    const createSession = async (game, user) => {
-        console.log('createSession appelée avec:', { game, user });
-
+    const createSession = React.useCallback(async (game, user) => {
         if (!game || !game.id) {
             console.error('createSession: jeu invalide', game);
             return;
         }
-
         const newSession = {
             id: Date.now(),
-            gameId: Number(game.id), // S'assurer que c'est un nombre
+            gameId: Number(game.id),
             gameTitle: game.title || 'Titre inconnu',
             gameDescription: game.description || 'Description inconnue',
             gameDuration: game.duration || 'Durée inconnue',
-            postChapo: window.pendingGameSession?.postChapo || null, // Chapo du post
+            postChapo: window.pendingGameSession?.postChapo || null,
             user: user,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             status: 'active',
-            notes: [], // S'assurer que notes est toujours un tableau
+            notes: [],
             participants: [user]
-            // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
         };
-
-        console.log('Nouvelle session créée:', newSession);
-
         await CloudSessionStorage.saveSession(newSession);
-        const sessions = await CloudSessionStorage.getSessions();
-        setSessions(sessions);
+        const newSessions = await CloudSessionStorage.getSessions();
+        setSessions(newSessions);
         setCurrentSession(newSession);
-        
-        // Nettoyer la session en attente
         if (window.pendingGameSession) {
             delete window.pendingGameSession;
         }
-        
         return newSession;
-    };
+    }, []);
 
-    const updateSession = async (updatedSession) => {
+    const updateSession = React.useCallback(async (updatedSession) => {
         const sessionToSave = {
             ...updatedSession, 
             notes: updatedSession.notes || [],
             updatedAt: new Date().toISOString()
         };
-        // Lève une erreur si le cloud échoue, qui sera attrapée par l'UI
         await CloudSessionStorage.saveSession(sessionToSave);
         const newSessions = await CloudSessionStorage.getSessions();
         setSessions(newSessions);
         setCurrentSession(sessionToSave);
-    };
+    }, []);
 
-    const deleteSession = async (sessionId) => {
+    const deleteSession = React.useCallback(async (sessionId) => {
         await CloudSessionStorage.deleteSession(sessionId);
-        const sessions = await CloudSessionStorage.getSessions();
-        setSessions(sessions);
+        const newSessions = await CloudSessionStorage.getSessions();
+        setSessions(newSessions);
         if (currentSession?.id === sessionId) {
             setCurrentSession(null);
         }
-    };
-    
-    const syncSessions = async () => {
+    }, [currentSession]);
+
+    const syncSessions = React.useCallback(async () => {
         const syncedSessions = await CloudSessionStorage.forceSyncFromCloud();
         setSessions(syncedSessions);
         return syncedSessions;
-    };
+    }, []);
 
     return {
         currentSession, setCurrentSession,
-        sessions, setSessions, // On expose setSessions
+        sessions, setSessions,
         createSession,
         updateSession,
         deleteSession,
