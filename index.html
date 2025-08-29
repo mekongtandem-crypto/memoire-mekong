@@ -604,19 +604,19 @@ const CloudSessionStorage = {
     			}
     
     			const newSession = {
-        			id: Date.now(),
-        			gameId: Number(game.id), // S'assurer que c'est un nombre
-        			gameTitle: game.title || 'Titre inconnu',
-        			gameDescription: game.description || 'Description inconnue',
-        			gameDuration: game.duration || 'Durée inconnue',
-        			user: user,
-        			createdAt: new Date().toISOString(),
-        			updatedAt: new Date().toISOString(),
-        			status: 'active',
-        			notes: [], // S'assurer que notes est toujours un tableau
-        			participants: [user]
-        			// NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
-    			};
+    				id: Date.now(),
+    				gameId: Number(game.id),
+    				gameTitle: game.title || 'Titre inconnu',
+    				gameDescription: game.description || 'Description inconnue',
+    				gameDuration: game.duration || 'Durée inconnue',
+    				postChapo: window.pendingGameSession?.postChapo || null, // Nouveau: chapo du post
+    				user: user,
+    				createdAt: new Date().toISOString(),
+    				updatedAt: new Date().toISOString(),
+    				status: 'active',
+    				notes: [],
+    				participants: [user]
+				};
     
     			console.log('Nouvelle session créée:', newSession);
     
@@ -1229,6 +1229,12 @@ React.useEffect(() => {
                 <h2 className="font-bold text-amber-900 text-base">
                     {currentSession.gameTitle || 'Session sans titre'}
                 </h2>
+                {/* Nouveau: Affichage du chapo */}
+                {currentSession.postChapo && (
+                    <p className="text-sm text-amber-700 mt-1 italic">
+                        "{currentSession.postChapo}"
+                    </p>
+                )}
                 <div className="text-xs text-amber-600">
                     {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
                 </div>
@@ -1453,22 +1459,31 @@ React.useEffect(() => {
             };
 
             const createSessionFromPost = (post) => {
-                // Créer une session basée sur le post Mastodon
-                const game = {
-                    id: 7, // ID spécial pour les sessions depuis Mastodon
-                    title: `Jour ${post.dayNumber} - Souvenir`,
-                    description: `Discussion autour du post du jour ${post.dayNumber}`,
-                    duration: "libre",
-                    type: "mémoire",
-                    icon: BookOpen
-                };
-                
-                window.pendingGameSession = { game, user: currentUser };
-                
-                if (onCreateSession) {
-                    onCreateSession('sessions');
-                }
-            };
+    // Créer une session basée sur le post Mastodon
+    const game = {
+        id: 7, // ID spécial pour les sessions depuis Mastodon
+        title: `Jour ${post.dayNumber} - Souvenir`,
+        description: `Discussion autour du post du jour ${post.dayNumber}`,
+        duration: "libre",
+        type: "mémoire",
+        icon: BookOpen
+    };
+    
+    // Ajouter le contenu du post comme chapo
+    const postPreview = post.content.length > 200 
+        ? post.content.slice(0, 200) + '...' 
+        : post.content;
+    
+    window.pendingGameSession = { 
+        game, 
+        user: currentUser,
+        postChapo: postPreview  // Nouveau: chapo depuis le post
+    };
+    
+    if (onCreateSession) {
+        onCreateSession('sessions');
+    }
+};
 
             if (!isImported) {
                 return (
