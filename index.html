@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.5 - Modify GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.5b - Modify GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -214,15 +214,8 @@ const MastodonData = {
                     if (key.startsWith('mekong_')) localStorage.removeItem(key);
                 });
             }
-        };
-        
-// ===== GOOGLE DRIVE API - VERSION 2024 =====
-const GOOGLE_CONFIG = {
-    API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
-    CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
-// ===== GOOGLE DRIVE API - VERSION 2024 =====
+
 const GoogleDriveAPI = {
     isSignedIn: false,
     isInitialized: false,
@@ -232,6 +225,9 @@ const GoogleDriveAPI = {
         if (this.isInitialized) return;
         
         try {
+            console.log('🔄 Initialisation Google Drive API...');
+            console.log('Config:', GOOGLE_CONFIG); // Debug
+            
             await new Promise((resolve) => {
                 gapi.load('client', resolve);
             });
@@ -275,7 +271,6 @@ const GoogleDriveAPI = {
                 console.log('✅ Token OAuth reçu');
                 this.isSignedIn = true;
                 
-                // Test immédiat de l'API pour vérifier que tout fonctionne
                 try {
                     await gapi.client.drive.files.list({ pageSize: 1 });
                     console.log('✅ API Drive fonctionnelle');
@@ -287,7 +282,6 @@ const GoogleDriveAPI = {
                 }
             };
             
-            // Vérifier si on a déjà un token valide
             const token = gapi.client.getToken();
             if (token) {
                 console.log('🔄 Token existant trouvé, test de validité...');
@@ -306,6 +300,16 @@ const GoogleDriveAPI = {
                 this.tokenClient.requestAccessToken({ prompt: 'consent' });
             }
         });
+    },
+    
+    async signOut() {
+        const token = gapi.client.getToken();
+        if (token) {
+            google.accounts.oauth2.revoke(token.access_token);
+            gapi.client.setToken('');
+        }
+        this.isSignedIn = false;
+        console.log('✅ Déconnecté de Google Drive');
     },
     
     async findMekongFile() {
@@ -332,13 +336,12 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.5 '
+                version: '0.4.4e'
             });
             
             const existingFile = await this.findMekongFile();
             
             if (existingFile) {
-                // Mettre à jour fichier existant
                 const response = await gapi.client.request({
                     path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
                     method: 'PATCH',
@@ -349,7 +352,6 @@ const GoogleDriveAPI = {
                 console.log('✅ Sessions sauvegardées (MAJ)');
                 return true;
             } else {
-                // Créer nouveau fichier
                 const fileMetadata = { name: 'mekong_sessions.json' };
                 const response = await gapi.client.drive.files.create({
                     resource: fileMetadata,
