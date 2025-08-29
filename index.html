@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4k - Debug boucle GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4l - Debug boucle GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -258,7 +258,7 @@ const GoogleDriveAPI = {
             const existingFile = await this.findMekongFile();
             
             if (existingFile) {
-                // Mise à jour du fichier existant
+                // La mise à jour du fichier existant est correcte
                 const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`, {
                     method: 'PATCH',
                     headers: {
@@ -270,14 +270,15 @@ const GoogleDriveAPI = {
                 if (!updateResponse.ok) throw new Error(`HTTP error! status: ${updateResponse.status}`);
                 console.log('✅ Sessions sauvegardées (MAJ via fetch)');
             } else {
-                // Création d'un nouveau fichier
+                // CORRECTION DE LA LOGIQUE DE CRÉATION
                 const fileMetadata = { 
                     name: 'mekong_sessions.json',
-                    parents: ['root'],
-                    mimeType: 'application/json'
+                    parents: ['root']
                 };
 
-                const createResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=media', {
+                // Étape 1 : Créer le fichier avec ses métadonnées (nom, emplacement)
+                // L'URL ici est corrigée, on n'utilise plus uploadType=media
+                const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${this.accessToken}`,
@@ -285,10 +286,15 @@ const GoogleDriveAPI = {
                     },
                     body: JSON.stringify(fileMetadata)
                 });
-                if (!createResponse.ok) throw new Error(`Erreur création métadonnées: ${createResponse.status}`);
+                
+                if (!createResponse.ok) {
+                    const errorBody = await createResponse.text();
+                    throw new Error(`Erreur création métadonnées: ${createResponse.status} - ${errorBody}`);
+                }
                 
                 const file = await createResponse.json();
 
+                // Étape 2 : Envoyer le contenu (les sessions) dans le fichier qui vient d'être créé
                 const updateResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${file.id}?uploadType=media`, {
                     method: 'PATCH',
                     headers: {
@@ -297,7 +303,11 @@ const GoogleDriveAPI = {
                     },
                     body: data
                 });
-                if (!updateResponse.ok) throw new Error(`Erreur upload contenu: ${updateResponse.status}`);
+
+                if (!updateResponse.ok) {
+                     const errorBody = await updateResponse.text();
+                    throw new Error(`Erreur upload contenu: ${updateResponse.status} - ${errorBody}`);
+                }
                 console.log('✅ Sessions sauvegardées (NOUVEAU FICHIER via fetch)');
             }
             return true;
