@@ -1009,51 +1009,75 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     };
     
 return (
-    <div
-        key={session.id}
-        className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-    >
-        <div className="flex items-center justify-between">
-            <div 
-                className="flex items-center space-x-3 flex-1 cursor-pointer"
-                onClick={() => onSessionSelect(session)}
-            >
-                {renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
-                <div>
-                    <div className="font-medium text-gray-900">{session.gameTitle}</div>
-                    {session.postChapo && (
-                        <div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
-                    )}
-                    <div className="text-sm text-gray-600">
-                        {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
-                    </div>
-                </div>
-            </div>
-            <div className="flex items-center space-x-2">
-                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                    <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
-                    <span className="text-sm font-medium capitalize">{session.status}</span>
-                </div>
-                
-                {/* Bouton de suppression */}
+        <div className="space-y-6 fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action est irréversible et supprimera tous les messages de cette conversation.`)) {
-                            deleteSession(session.id);
-                        }
-                    }}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Supprimer cette session"
+                    onClick={() => onPageChange('games')}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
                 >
-                    <Trash2 className="w-4 h-4" />
+                    <Plus className="w-4 h-4" />
+                    <span>Choisir un jeu</span>
                 </button>
-                
-                <ChevronRight className="w-4 h-4 text-gray-400" />
             </div>
+
+            {sessions.length === 0 ? (
+                <div className="text-center py-12">
+                    <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session</h3>
+                    <p className="text-gray-600 mb-6">Créez votre première session de remémoration</p>
+                    <button
+                        onClick={() => onPageChange('games')}
+                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                    >
+                        Choisir un jeu
+                    </button>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {sessions.map((session) => {
+                        const statusStyles = {
+                            active: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
+                            paused: { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
+                            pending: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
+                            completed: { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-500' }
+                        };
+                        const style = statusStyles[session.status] || statusStyles.active;
+
+                        return (
+                            <div
+                                key={session.id}
+                                className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
+                                onClick={() => onSessionSelect(session)}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        {renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
+                                        <div>
+                                            <div className="font-medium text-gray-900">{session.gameTitle}</div>
+                                            {session.postChapo && (
+                                                <div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
+                                            )}
+                                            <div className="text-sm text-gray-600">
+                                                {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
+                                            <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
+                                            <span className="text-sm font-medium capitalize">{session.status}</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
-    </div>
-);
+    );
 };
 // Page Chat
 		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
