@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4e - Modify GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4f - Modify GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -324,7 +324,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.4b '
+                version: '0.4.4f '
             });
             
             const existingFile = await this.findMekongFile();
@@ -1785,177 +1785,6 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             );
         };
 
-        const SettingsPage = ({ onReset }) => {
-            const [importStatus, setImportStatus] = React.useState('');
-            const [isImporting, setIsImporting] = React.useState(false);
-            const fileInputRef = React.useRef(null);
-
-			// Ajouter les hooks Google Auth
-    		const { isConnected, isLoading, userInfo, signIn, signOut } = useGoogleAuth();
-
-            const stats = MastodonData.getStats();
-            const isImported = MastodonData.isImported();
-
-            const handleFileImport = async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                setIsImporting(true);
-                setImportStatus('Lecture du fichier...');
-
-                try {
-                    const text = await file.text();
-                    setImportStatus('Analyse des données...');
-                    
-                    const posts = MastodonData.parseOutbox(text);
-                    MastodonData.savePosts(posts);
-                    
-                    setImportStatus(`Succès ! ${posts.length} posts importés`);
-                    setTimeout(() => setImportStatus(''), 3000);
-                } catch (error) {
-                    console.error('Erreur import:', error);
-                    setImportStatus(`Erreur: ${error.message}`);
-                    setTimeout(() => setImportStatus(''), 5000);
-                } finally {
-                    setIsImporting(false);
-                    // Réinitialiser l'input file
-                    if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                    }
-                }
-            };
-
-            const clearMastodonData = () => {
-                if (confirm('Supprimer toutes les données Mastodon importées ?')) {
-                    Storage.remove('mastodon_posts');
-                    Storage.remove('mastodon_imported_at');
-                    setImportStatus('Données Mastodon supprimées');
-                    setTimeout(() => setImportStatus(''), 3000);
-                }
-            };
-
-            return (
-                <div className="space-y-6 fade-in">
-                    <h2 className="text-2xl font-bold text-amber-900">Réglages</h2>
-
-					{/* Bandeau Google Drive déplacé ici */}
-            		<GoogleConnection 
-                		isConnected={isConnected}
-                		isLoading={isLoading}
-                		userInfo={userInfo}
-                		onSignIn={signIn}
-                		onSignOut={signOut}
-            		/>
-					
-                    {/* Import Mastodon */}
-                    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
-                        
-                        {isImported ? (
-                            <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="font-medium text-green-900">Blog importé avec succès</div>
-                                        <div className="text-sm text-green-700">
-                                            {stats.totalPosts} posts • Jours {stats.dayRange?.min}-{stats.dayRange?.max}
-                                        </div>
-                                        <div className="text-xs text-green-600 mt-1">
-                                            Importé le {new Date(stats.importedAt).toLocaleDateString('fr-FR')}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={clearMastodonData}
-                                        className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm"
-                                    >
-                                        Supprimer
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <p className="text-gray-600">
-                                    Importez votre fichier outbox.json pour explorer vos posts Mastodon
-                                </p>
-                                
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept=".json"
-                                        onChange={handleFileImport}
-                                        className="hidden"
-                                        id="mastodon-file"
-                                        disabled={isImporting}
-                                    />
-                                    <label
-                                        htmlFor="mastodon-file"
-                                        className={`cursor-pointer flex flex-col items-center ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    >
-                                        <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                                        <div className="text-lg font-medium text-gray-700">
-                                            {isImporting ? 'Import en cours...' : 'Sélectionner outbox.json'}
-                                        </div>
-                                        <div className="text-sm text-gray-500 mt-1">
-                                            Cliquez pour parcourir vos fichiers
-                                        </div>
-                                    </label>
-                                </div>
-
-                                {importStatus && (
-                                    <div className={`p-3 rounded-lg text-sm ${
-                                        importStatus.includes('Erreur') 
-                                            ? 'bg-red-100 text-red-700 border border-red-200'
-                                            : importStatus.includes('Succès')
-                                            ? 'bg-green-100 text-green-700 border border-green-200'
-                                            : 'bg-blue-100 text-blue-700 border border-blue-200'
-                                    }`}>
-                                        {importStatus}
-                                    </div>
-                                )}
-
-                                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                                    <div className="text-sm text-amber-800">
-                                        <div className="font-medium mb-2">Comment obtenir outbox.json :</div>
-                                        <div className="space-y-1">
-                                            <div>1. Connectez-vous à votre instance Mastodon</div>
-                                            <div>2. Allez dans Préférences → Import et export</div>
-                                            <div>3. Téléchargez "Archive de données"</div>
-                                            <div>4. Extrayez et sélectionnez le fichier outbox.json</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Données générales */}
-                    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Données</h3>
-                        <div>
-                            <button 
-                                onClick={() => {
-                                    if (confirm('Effacer toutes les données sauvegardées (sessions, utilisateur, etc.) ?')) onReset();
-                                }}
-                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium"
-                            >
-                                Reset complet
-                            </button>
-                        </div>
-                        <div className="pt-4 border-t border-gray-200">
-                            <h4 className="font-medium text-gray-700 mb-2">Stockage actuel</h4>
-                            <div className="text-sm text-gray-600 space-y-1">
-                                <div>Utilisateur: {Storage.get('currentUser') || 'Non défini'}</div>
-                                <div>Sessions: {Storage.get('sessions', []).length} session(s) sauvegardée(s)</div>
-                                <div>Posts Mastodon: {MastodonData.getPosts().length} post(s) importé(s)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-		
-// ===== MAIN APP =====
-// ===== MAIN APP (VERSION FINALE CORRIGÉE) =====
         const MemoireMekong = () => {
             const {
                 currentPage, setCurrentPage,
@@ -1963,18 +1792,17 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                 resetApp
             } = useAppState();
 
-            const { isConnected } = useGoogleAuth();
+            // On récupère TOUT ce dont on a besoin depuis le hook ici, et seulement ici.
+            const authProps = useGoogleAuth();
+            
             const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
-
             const [currentChatSession, setCurrentChatSession] = React.useState(null);
             const [toast, setToast] = React.useState({ message: '', type: '' });
 
-            // Synchronisation automatique au chargement et lors de la connexion
             React.useEffect(() => {
                 const autoSync = async () => {
-                    if (isConnected) {
+                    if (authProps.isConnected) {
                         try {
-                            console.log('🔄 Tentative de synchronisation automatique...');
                             await syncSessions();
                         } catch (error) {
                             setToast({ message: "Échec de la synchronisation automatique.", type: 'error' });
@@ -1982,19 +1810,30 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                     }
                 };
                 autoSync();
-            }, [isConnected, syncSessions]);
+            }, [authProps.isConnected, syncSessions]);
 
-            // Gérer la création automatique de session depuis les jeux/mémoires
-            React.useEffect(() => {
-                const handlePendingSession = async () => {
-                    if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
-                        const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-                        if (newSession) {
-                            setCurrentChatSession(newSession);
-                        }
+            const handleUpdateSession = async (updatedSession) => {
+                try {
+                    await updateSession(updatedSession);
+                    setCurrentChatSession(updatedSession);
+                } catch (error) {
+                    setToast({ message: error.message, type: 'error' });
+                    const localSessions = Storage.get('sessions', []);
+                    setSessions(localSessions); 
+                    setCurrentChatSession(updatedSession);
+                }
+            };
+
+            // Le reste de la logique (handlePendingSession, etc.) reste identique
+            const handlePendingSession = async () => {
+                if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
+                    const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+                    if (newSession) {
+                        setCurrentChatSession(newSession);
                     }
-                };
-                
+                }
+            };
+            React.useEffect(() => {
                 if (currentPage === 'chat') {
                     handlePendingSession();
                 }
@@ -2010,29 +1849,9 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                 setCurrentPage('sessions');
             };
 
-            const handleUpdateSession = async (updatedSession) => {
-                try {
-                    await updateSession(updatedSession);
-                    setCurrentChatSession(updatedSession);
-                } catch (error) {
-                    setToast({ message: error.message, type: 'error' });
-                    // Met à jour l'interface avec les données locales même si le cloud a échoué
-                    const localSessions = Storage.get('sessions', []);
-                    setSessions(localSessions); 
-                    setCurrentChatSession(updatedSession);
-                }
-            };
-
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
                     <div className="max-w-6xl mx-auto">
-                        {/* Header */}
-                        <div className="text-center mb-4">
-                            <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.4b - modify GoogleSync</p>
-                        </div>
-
-                        {/* Navigation */}
                         <Navigation 
                             currentPage={currentPage}
                             currentUser={currentUser}
@@ -2041,61 +1860,22 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                             onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
                         />
 
-                        {/* Main Content */}
                         <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                            {currentPage === 'home' && (
-                                <HomePage 
-                                    currentUser={currentUser}
-                                    onUserChange={setCurrentUser}
-                                    onPageChange={setCurrentPage}
-                                />
-                            )}
-                            {currentPage === 'games' && (
-                                <GamesPage 
-                                    currentUser={currentUser}
-                                    onPageChange={setCurrentPage}
-                                    onGameSelect={(game) => {
-                                        window.pendingGameSession = { game, user: currentUser };
-                                        setCurrentPage('chat');
-                                    }}
-                                />
-                            )}
-                            {currentPage === 'sessions' && (
-                                <SessionsPage 
-                                    currentUser={currentUser} 
-                                    onPageChange={setCurrentPage}
-                                    onSessionSelect={handleSessionSelect}
-                                />
-                            )}
-                            {currentPage === 'chat' && (
-                                <ChatPage 
-                                    currentUser={currentUser}
-                                    currentSession={currentChatSession}
-                                    onUpdateSession={handleUpdateSession}
-                                    onBackToSessions={handleBackToSessions}
-                                />
-                            )}
-                            {currentPage === 'memories' && (
-                                <MemoriesPage 
-                                    currentUser={currentUser}
-                                    onCreateSession={(page) => {
-                                        setCurrentPage(page);
-                                    }}
-                                />
-                            )}
-                            {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
+                            {/* ... Le rendu des autres pages reste identique ... */}
+                            {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
+                            {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => { window.pendingGameSession = { game, user: currentUser }; setCurrentPage('chat'); }} />}
+                            {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} />}
+                            {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession} onUpdateSession={handleUpdateSession} onBackToSessions={handleBackToSessions} />}
+                            {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page) => setCurrentPage(page)} />}
+                            
+                            {/* On passe les props d'authentification à la page de réglages */}
+                            {currentPage === 'settings' && <SettingsPage onReset={resetApp} authProps={authProps} />}
                         </div>
 
-                        {/* Footer */}
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>Un voyage, deux mémoires, mille souvenirs</p>
-                            <p className="text-xs opacity-75 mt-1">
-                                Sessions/Chat séparés • Module Mastodon fonctionnel
-                            </p>
                         </div>
                     </div>
-                    
-                    {/* Le composant Toast est ajouté ici */}
                     <Toast 
                         message={toast.message} 
                         type={toast.type} 
