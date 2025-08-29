@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4i - Debug boucle GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4j - Debug boucle GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -224,7 +224,7 @@ const GOOGLE_CONFIG = {
     // MODIFICATION CI-DESSOUS
     SCOPES: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
-// ===== GOOGLE DRIVE API - VERSION 2024 (CORRECTION FINALE DU TOKEN) =====
+// ===== GOOGLE DRIVE API - VERSION 2024 (CORRECTION FINALE DE L'APPEL API) =====
 const GoogleDriveAPI = {
     isSignedIn: false,
     isInitialized: false,
@@ -238,14 +238,11 @@ const GoogleDriveAPI = {
                 apiKey: GOOGLE_CONFIG.API_KEY,
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
             });
-            
-            // Le callback est maintenant passé en paramètre pour plus de flexibilité
             this.tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CONFIG.CLIENT_ID,
                 scope: GOOGLE_CONFIG.SCOPES,
-                callback: onTokenResponse, // Utilise le callback fourni par le hook
+                callback: onTokenResponse,
             });
-
             this.isInitialized = true;
             console.log('✅ Google Drive API initialisée (version 2024)');
         } catch (error) {
@@ -253,12 +250,8 @@ const GoogleDriveAPI = {
         }
     },
     
-    // signIn devient beaucoup plus simple : il demande juste le token.
     async signIn() {
-        if (!this.isInitialized || !this.tokenClient) {
-            console.error("L'API Google n'est pas prête pour la connexion.");
-            return;
-        }
+        if (!this.isInitialized || !this.tokenClient) return;
         this.tokenClient.requestAccessToken({ prompt: 'consent' });
     },
     
@@ -266,7 +259,7 @@ const GoogleDriveAPI = {
         const token = gapi.client.getToken();
         if (token) {
             google.accounts.oauth2.revoke(token.access_token);
-            gapi.client.setToken(null); // Important de vider le token
+            gapi.client.setToken(null);
         }
         this.isSignedIn = false;
         console.log('✅ Déconnecté de Google Drive');
@@ -275,13 +268,19 @@ const GoogleDriveAPI = {
     async findMekongFile() {
         if (!this.isSignedIn) return null;
         try {
-            const response = await gapi.client.drive.files.list({
-                q: "name='mekong_sessions.json' and 'root' in parents and trashed=false",
-                fields: 'files(id, name)'
+            // Utilisation de gapi.client.request pour plus de robustesse
+            const response = await gapi.client.request({
+                path: 'https://www.googleapis.com/drive/v3/files',
+                params: {
+                    q: "name='mekong_sessions.json' and 'root' in parents and trashed=false",
+                    fields: 'files(id, name)'
+                }
             });
+            // La structure de la réponse de .request est directement le résultat
             return response.result.files[0] || null;
         } catch (error) {
-            console.error('❌ Erreur recherche fichier:', error);
+            // Les erreurs de .request sont souvent dans result.error
+            console.error('❌ Erreur recherche fichier:', error.result?.error || error);
             return null;
         }
     },
@@ -297,28 +296,48 @@ const GoogleDriveAPI = {
             const existingFile = await this.findMekongFile();
             
             if (existingFile) {
+                // La mise à jour utilise déjà .request, c'est le bon modèle
                 await gapi.client.request({
                     path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
                     method: 'PATCH',
                     params: { uploadType: 'media' },
+                    headers: {'Content-Type': 'application/json'},
                     body: data
                 });
                 console.log('✅ Sessions sauvegardées (MAJ)');
             } else {
+                // Création du fichier avec gapi.client.request
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
+
                 const fileMetadata = { 
                     name: 'mekong_sessions.json',
-                    parents: ['root'] 
+                    parents: ['root'],
+                    mimeType: 'application/json'
                 };
-                await gapi.client.drive.files.create({
-                    resource: fileMetadata,
-                    media: { mimeType: 'application/json', body: data },
-                    fields: 'id'
+
+                const multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                    JSON.stringify(fileMetadata) +
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    data +
+                    close_delim;
+                
+                await gapi.client.request({
+                    path: 'https://www.googleapis.com/upload/drive/v3/files',
+                    method: 'POST',
+                    params: { uploadType: 'multipart' },
+                    headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
+                    body: multipartRequestBody
                 });
                 console.log('✅ Sessions sauvegardées (NOUVEAU FICHIER)');
             }
             return true;
         } catch (error) {
-            console.error('❌ Erreur sauvegarde:', error);
+            console.error('❌ Erreur sauvegarde:', error.result?.error || error);
             return false;
         }
     },
@@ -339,7 +358,7 @@ const GoogleDriveAPI = {
             console.log('✅ Sessions chargées depuis Google Drive');
             return data.sessions || [];
         } catch (error) {
-            console.error('❌ Erreur chargement:', error);
+            console.error('❌ Erreur chargement:', error.result?.error || error);
             return null;
         }
     }
