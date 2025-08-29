@@ -58,42 +58,65 @@
 const MastodonData = {
     // Parser le fichier outbox.json
     parseOutbox: (jsonData) => {
-        try {
-            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-            
-            if (!data.orderedItems || !Array.isArray(data.orderedItems)) {
-                throw new Error('Format ActivityPub invalide');
-            }
-
-            const posts = data.orderedItems
-                .filter(item => item.type === 'Create' && item.object?.type === 'Note')
-                .map((item, index) => {
-                    const note = item.object;
-                    const content = note.content || '';
-                    
-                    // Extraire le numéro de jour depuis le titre (Jnnn format)
-                    const dayMatch = content.match(/^J(\d{1,3})\b/);
-                    const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-                    
-                    return {
-                        id: note.id || `post-${index}`,
-                        dayNumber,
-                        content: content.replace(/<[^>]*>/g, ''), // Nettoyer le HTML
-                        published: note.published || item.published,
-                        attachments: note.attachment || [],
-                        url: note.url
-                    };
-                })
-                .filter(post => post.dayNumber !== null) // Garder seulement les posts avec numéro de jour
-                .sort((a, b) => a.dayNumber - b.dayNumber); // Trier par jour
-
-            console.log(`✅ ${posts.length} posts Mastodon importés`);
-            return posts;
-        } catch (error) {
-            console.error('❌ Erreur parsing outbox:', error);
-            throw error;
+    try {
+        const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+        
+        // Gérer la structure ActivityPub complète avec @context
+        let orderedItems;
+        if (data.orderedItems) {
+            orderedItems = data.orderedItems;
+        } else if (data.data && data.data.orderedItems) {
+            orderedItems = data.data.orderedItems;
+        } else {
+            throw new Error('Format ActivityPub invalide - orderedItems non trouvé');
         }
-    },
+
+        if (!Array.isArray(orderedItems)) {
+            throw new Error('orderedItems n\'est pas un tableau');
+        }
+
+        const posts = orderedItems
+            .filter(item => item.type === 'Create' && item.object?.type === 'Note')
+            .map((item, index) => {
+                const note = item.object;
+                const content = note.content || '';
+                
+                // Nettoyer le HTML d'abord
+                const cleanContent = content.replace(/<[^>]*>/g, '');
+                
+                // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
+                const dayMatch = cleanContent.match(/^J(\d{1,3})[\s:]/);
+                const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+                
+                console.log(`Post ${index}: "${cleanContent.slice(0, 50)}" -> Jour: ${dayNumber}`);
+                
+                return {
+                    id: note.id || `post-${index}`,
+                    dayNumber,
+                    content: cleanContent,
+                    published: note.published || item.published,
+                    attachments: note.attachment || [],
+                    url: note.url
+                };
+            })
+            .filter(post => {
+                if (post.dayNumber === null) {
+                    console.log(`Post filtré (pas de numéro): "${post.content.slice(0, 50)}"`);
+                }
+                return post.dayNumber !== null;
+            })
+            .sort((a, b) => a.dayNumber - b.dayNumber);
+
+        console.log(`✅ ${posts.length} posts Mastodon importés`);
+        if (posts.length > 0) {
+            console.log(`Plage de jours: ${posts[0].dayNumber} à ${posts[posts.length-1].dayNumber}`);
+        }
+        return posts;
+    } catch (error) {
+        console.error('❌ Erreur parsing outbox:', error);
+        throw error;
+    }
+},
 
     // Sauvegarder les posts
     savePosts: (posts) => {
@@ -1842,7 +1865,7 @@ React.useEffect(() => {
                         {/* Header */}
 						<div className="text-center mb-4">
     						<h1 className="text-2xl md:text-3xl font-bold text-amber-900">🐘 Mémoire du Mékong</h1>
-    						<p className="text-xs text-amber-600 mt-1">V0.3.0</p>
+    						<p className="text-xs text-amber-600 mt-1">V0.4.0</p>
 						</div>
 
                         {/* Navigation */}
