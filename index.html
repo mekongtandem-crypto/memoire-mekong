@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.0 - Module Mastodon</title>
+    <title>🐘 Mémoire du Mékong V0.4.2 - Page Chat</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -304,7 +304,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.3.0'
+                version: '0.4.2'
             });
             
             const existingFile = await this.findMekongFile();
@@ -582,86 +582,90 @@ const CloudSessionStorage = {
         };
 
         // ===== SESSION HOOKS =====
-        const useSessionState = () => {
-            const [currentSession, setCurrentSession] = React.useState(null);
-            const [sessionView, setSessionView] = React.useState('list'); // 'list', 'catalog', 'active'
-            const [sessions, setSessions] = React.useState([]);
+const useSessionState = () => {
+    const [currentSession, setCurrentSession] = React.useState(null);
+    const [sessions, setSessions] = React.useState([]);
 
-            React.useEffect(() => {
-    			const loadSessions = async () => {
-        			const sessions = await CloudSessionStorage.getSessions();
-        			setSessions(sessions);
-    			};
-    			loadSessions();
-			}, []);
-
-            const createSession = async (game, user) => {
-    			console.log('createSession appelée avec:', { game, user });
-    
-    			if (!game || !game.id) {
-        			console.error('createSession: jeu invalide', game);
-        			return;
-    			}
-    
-    			const newSession = {
-    				id: Date.now(),
-    				gameId: Number(game.id),
-    				gameTitle: game.title || 'Titre inconnu',
-    				gameDescription: game.description || 'Description inconnue',
-    				gameDuration: game.duration || 'Durée inconnue',
-    				postChapo: window.pendingGameSession?.postChapo || null, // Nouveau: chapo du post
-    				user: user,
-    				createdAt: new Date().toISOString(),
-    				updatedAt: new Date().toISOString(),
-    				status: 'active',
-    				notes: [],
-    				participants: [user]
-				};
-    
-    			console.log('Nouvelle session créée:', newSession);
-    
-    			await CloudSessionStorage.saveSession(newSession);
-    			const sessions = await CloudSessionStorage.getSessions();
-    			setSessions(sessions);
-    			setCurrentSession(newSession);
-    			setSessionView('active'); // ✅ CRUCIAL : Aller direct dans le chat !
-			};
-
-            const updateSession = async (updatedSession) => {
-    			// S'assurer que notes existe toujours
-    			const sessionToSave = {
-        			...updatedSession, 
-        			notes: updatedSession.notes || [],
-        			updatedAt: new Date().toISOString()
-    			};
-    
-    			await CloudSessionStorage.saveSession(sessionToSave);
-    			const sessions = await CloudSessionStorage.getSessions();
-    			setSessions(sessions);
-    			setCurrentSession(sessionToSave);
-			};
-
-			const deleteSession = async (sessionId) => {
-    			await CloudSessionStorage.deleteSession(sessionId);
-    			const sessions = await CloudSessionStorage.getSessions();
-    			setSessions(sessions);
-    			if (currentSession?.id === sessionId) {
-        			setCurrentSession(null);
-        			setSessionView('list');
-    			}
-			};
-
-            return {
-                currentSession, setCurrentSession,
-                sessionView, setSessionView,
-                sessions,
-                createSession,
-                updateSession,
-                deleteSession,
-                getGameIcon, // Exposer la fonction helper
-                renderGameIcon // Exposer la fonction de rendu sécurisée
-            };
+    React.useEffect(() => {
+        const loadSessions = async () => {
+            const sessions = await CloudSessionStorage.getSessions();
+            setSessions(sessions);
         };
+        loadSessions();
+    }, []);
+
+    const createSession = async (game, user) => {
+        console.log('createSession appelée avec:', { game, user });
+
+        if (!game || !game.id) {
+            console.error('createSession: jeu invalide', game);
+            return;
+        }
+
+        const newSession = {
+            id: Date.now(),
+            gameId: Number(game.id), // S'assurer que c'est un nombre
+            gameTitle: game.title || 'Titre inconnu',
+            gameDescription: game.description || 'Description inconnue',
+            gameDuration: game.duration || 'Durée inconnue',
+            postChapo: window.pendingGameSession?.postChapo || null, // Chapo du post
+            user: user,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            status: 'active',
+            notes: [], // S'assurer que notes est toujours un tableau
+            participants: [user]
+            // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
+        };
+
+        console.log('Nouvelle session créée:', newSession);
+
+        await CloudSessionStorage.saveSession(newSession);
+        const sessions = await CloudSessionStorage.getSessions();
+        setSessions(sessions);
+        setCurrentSession(newSession);
+        
+        // Nettoyer la session en attente
+        if (window.pendingGameSession) {
+            delete window.pendingGameSession;
+        }
+        
+        return newSession;
+    };
+
+    const updateSession = async (updatedSession) => {
+        // S'assurer que notes existe toujours
+        const sessionToSave = {
+            ...updatedSession, 
+            notes: updatedSession.notes || [],
+            updatedAt: new Date().toISOString()
+        };
+
+        await CloudSessionStorage.saveSession(sessionToSave);
+        const sessions = await CloudSessionStorage.getSessions();
+        setSessions(sessions);
+        setCurrentSession(sessionToSave);
+    };
+
+    const deleteSession = async (sessionId) => {
+        await CloudSessionStorage.deleteSession(sessionId);
+        const sessions = await CloudSessionStorage.getSessions();
+        setSessions(sessions);
+        if (currentSession?.id === sessionId) {
+            setCurrentSession(null);
+        }
+    };
+
+    return {
+        currentSession, setCurrentSession,
+        sessions,
+        createSession,
+        updateSession,
+        deleteSession,
+        getGameIcon, // Exposer la fonction helper
+        renderGameIcon // Exposer la fonction de rendu sécurisée
+    };
+};
 
 
 // ===== GOOGLE AUTH HOOK =====
@@ -759,10 +763,10 @@ const useGoogleAuth = () => {
 
             {/* Page Navigation - Icônes empilées sur mobile */}
             <div className="flex items-center space-x-1">
-                {['home', 'games', 'sessions', 'memories', 'settings'].map((page) => {
-                    const icons = { home: Home, games: Play, sessions: BookOpen, memories: Cloud, settings: Settings };
-                    const labels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', memories: 'Mémoires', settings: 'Réglages' };
-                    const shortLabels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', memories: 'Photos', settings: 'Config' };
+                {['home', 'games', 'sessions', 'chat', 'memories', 'settings'].map((page) => {
+                    const icons = { home: Home, games: Play, sessions: BookOpen, chat: Send, memories: Cloud, settings: Settings };
+                    const labels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', chat: 'Chat', memories: 'Mémoires', settings: 'Réglages' };
+					const shortLabels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', chat: 'Chat', memories: 'Mémoires', settings: 'Config' };
                     const Icon = icons[page];
                     
                     return (
@@ -990,423 +994,413 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
         </div>
     </div>
 );
+		
+// Page Session
+const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
+    const { sessions, deleteSession, renderGameIcon } = useSessionState();
 
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('fr-FR', { 
+            day: 'numeric', 
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
 
+    return (
+        <div className="space-y-6 fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
+                <button
+                    onClick={() => onPageChange('games')}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                >
+                    <Plus className="w-4 h-4" />
+                    <span>Choisir un jeu</span>
+                </button>
+            </div>
 
+            {sessions.length === 0 ? (
+                <div className="text-center py-12">
+                    <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session</h3>
+                    <p className="text-gray-600 mb-6">Créez votre première session de remémoration</p>
+                    <button
+                        onClick={() => onPageChange('games')}
+                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                    >
+                        Choisir un jeu
+                    </button>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {sessions.map((session) => {
+                        const statusStyles = {
+                            active: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
+                            paused: { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
+                            pending: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
+                            completed: { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-500' }
+                        };
+                        const style = statusStyles[session.status] || statusStyles.active;
 
-        const SessionsPage = ({ currentUser, onPageChange }) => {
-            const {
-                currentSession, setCurrentSession,
-                sessionView, setSessionView,
-                sessions,
-                createSession,
-                updateSession,
-                deleteSession,
-                getGameIcon,
-                renderGameIcon
-            } = useSessionState();
-
-            const [newMessageContent, setNewMessageContent] = React.useState('');
-            const [editingMessage, setEditingMessage] = React.useState(null);
-            const [editContent, setEditContent] = React.useState('');
-            const messagesEndRef = React.useRef(null);
-
-			// Détecter si un jeu est en attente de création de session
-React.useEffect(() => {
-    if (window.pendingGameSession && window.pendingGameSession.user === currentUser) {
-        console.log('Création session automatique depuis jeu:', window.pendingGameSession);
-        createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-        delete window.pendingGameSession; // Nettoyer
-    }
-}, [currentUser, createSession]);
-
-// Auto-scroll vers le bas des messages
-React.useEffect(() => {
-    if (currentSession?.notes && messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-}, [currentSession?.notes]);
-
-            const formatTime = (dateString) => {
-                return new Date(dateString).toLocaleTimeString('fr-FR', { 
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            };
-
-            const formatDate = (dateString) => {
-                return new Date(dateString).toLocaleDateString('fr-FR', { 
-                    day: 'numeric', 
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            };
-
-            const sendMessage = async () => {
-                if (!newMessageContent.trim() || !currentSession) return;
-
-                const newMessage = {
-                    id: Date.now(),
-                    content: newMessageContent.trim(),
-                    author: currentUser,
-                    timestamp: new Date().toISOString()
-                };
-
-                const updatedSession = {
-                    ...currentSession,
-                    notes: [...(currentSession.notes || []), newMessage]
-                };
-
-                await updateSession(updatedSession);
-                setNewMessageContent('');
-            };
-
-            const startEditMessage = (message) => {
-                setEditingMessage(message.id);
-                setEditContent(message.content);
-            };
-
-            const saveEditMessage = async (messageId) => {
-                if (!editContent.trim() || !currentSession) return;
-
-                const updatedSession = {
-                    ...currentSession,
-                    notes: (currentSession.notes || []).map(note => 
-                        note.id === messageId 
-                            ? { ...note, content: editContent.trim(), edited: true }
-                            : note
-                    )
-                };
-
-                await updateSession(updatedSession);
-                setEditingMessage(null);
-                setEditContent('');
-            };
-
-            const cancelEdit = () => {
-                setEditingMessage(null);
-                setEditContent('');
-            };
-
-            const deleteMessage = async (messageId) => {
-                if (!confirm('Supprimer ce message ?') || !currentSession) return;
-
-                const updatedSession = {
-                    ...currentSession,
-                    notes: (currentSession.notes || []).filter(note => note.id !== messageId)
-                };
-
-                await updateSession(updatedSession);
-            };
-
-            const inviteOtherUser = async () => {
-                const otherUser = currentUser === 'tom' ? 'lambert' : 'tom';
-                alert(`📨 Invitation envoyée à ${USERS[otherUser]?.name} !`);
-                
-                const updatedSession = {
-                    ...currentSession,
-                    status: 'pending',
-                    lastPingBy: currentUser
-                };
-                await updateSession(updatedSession);
-            };
-
-            const pauseSession = async () => {
-                const updatedSession = {
-                    ...currentSession,
-                    status: 'paused'
-                };
-                await updateSession(updatedSession);
-            };
-
-            const closeSession = async () => {
-                console.log('closeSession appelée pour session:', currentSession?.id);
-                
-                if (!currentSession) {
-                    console.warn('closeSession: aucune session courante');
-                    return;
-                }
-                
-                const updatedSession = {
-                    ...currentSession,
-                    status: 'completed'
-                };
-                
-                console.log('Session à fermer:', updatedSession);
-                
-                await updateSession(updatedSession);
-                setSessionView('list');
-            };
-
-            // Vue: Liste des sessions
-            if (sessionView === 'list') {
-                return (
-                    <div className="space-y-6 fade-in">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
-                            <button
-    							onClick={() => onPageChange('games')}
-    							className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-							>
-   								<Plus className="w-4 h-4" />
-    							<span>Choisir un jeu</span>
-							</button>
-                        </div>
-
-                        {sessions.length === 0 ? (
-                            <div className="text-center py-12">
-                                <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session</h3>
-                                <p className="text-gray-600 mb-6">Créez votre première session de remémoration</p>
-                                <button
-                                    onClick={() => setSessionView('catalog')}
-                                    className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                                >
-                                    Choisir un jeu
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {sessions.map((session) => {
-                                    const statusStyles = {
-                                        active: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
-                                        paused: { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
-                                        pending: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
-                                        completed: { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-500' }
-                                    };
-                                    const style = statusStyles[session.status] || statusStyles.active;
-
-                                    return (
-                                        <div
-                                            key={session.id}
-                                            className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
-                                            onClick={() => {
-                                                setCurrentSession(session);
-                                                setSessionView('active');
-                                            }}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-3">
-												{renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}                                                    <div>
-                                                        <div className="font-medium text-gray-900">{session.gameTitle}</div>
-                                                        <div className="text-sm text-gray-600">
-                                                            {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                                                        <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
-                                                        <span className="text-sm font-medium capitalize">{session.status}</span>
-                                                    </div>
-                                                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                                                </div>
+                        return (
+                            <div
+                                key={session.id}
+                                className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
+                                onClick={() => onSessionSelect(session)}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        {renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
+                                        <div>
+                                            <div className="font-medium text-gray-900">{session.gameTitle}</div>
+                                            {session.postChapo && (
+                                                <div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
+                                            )}
+                                            <div className="text-sm text-gray-600">
+                                                {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
                                             </div>
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
+                                            <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
+                                            <span className="text-sm font-medium capitalize">{session.status}</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
                             </div>
-                        )}
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+// Page Chat
+		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
+    const [newMessageContent, setNewMessageContent] = React.useState('');
+    const [editingMessage, setEditingMessage] = React.useState(null);
+    const [editContent, setEditContent] = React.useState('');
+    const messagesEndRef = React.useRef(null);
+    const { renderGameIcon } = useSessionState();
+
+    // Auto-scroll vers le bas des messages
+    React.useEffect(() => {
+        if (currentSession?.notes && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [currentSession?.notes]);
+
+    if (!currentSession) {
+        return (
+            <div className="text-center py-12">
+                <Send className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session sélectionnée</h3>
+                <button
+                    onClick={onBackToSessions}
+                    className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                >
+                    Retour aux sessions
+                </button>
+            </div>
+        );
+    }
+
+    const formatTime = (dateString) => {
+        return new Date(dateString).toLocaleTimeString('fr-FR', { 
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('fr-FR', { 
+            day: 'numeric', 
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const sendMessage = async () => {
+        if (!newMessageContent.trim()) return;
+
+        const newMessage = {
+            id: Date.now(),
+            content: newMessageContent.trim(),
+            author: currentUser,
+            timestamp: new Date().toISOString()
+        };
+
+        const updatedSession = {
+            ...currentSession,
+            notes: [...(currentSession.notes || []), newMessage]
+        };
+
+        await onUpdateSession(updatedSession);
+        setNewMessageContent('');
+    };
+
+    const startEditMessage = (message) => {
+        setEditingMessage(message.id);
+        setEditContent(message.content);
+    };
+
+    const saveEditMessage = async (messageId) => {
+        if (!editContent.trim()) return;
+
+        const updatedSession = {
+            ...currentSession,
+            notes: (currentSession.notes || []).map(note => 
+                note.id === messageId 
+                    ? { ...note, content: editContent.trim(), edited: true }
+                    : note
+            )
+        };
+
+        await onUpdateSession(updatedSession);
+        setEditingMessage(null);
+        setEditContent('');
+    };
+
+    const cancelEdit = () => {
+        setEditingMessage(null);
+        setEditContent('');
+    };
+
+    const deleteMessage = async (messageId) => {
+        if (!confirm('Supprimer ce message ?')) return;
+
+        const updatedSession = {
+            ...currentSession,
+            notes: (currentSession.notes || []).filter(note => note.id !== messageId)
+        };
+
+        await onUpdateSession(updatedSession);
+    };
+
+    const inviteOtherUser = async () => {
+        const otherUser = currentUser === 'tom' ? 'lambert' : 'tom';
+        alert(`Invitation envoyée à ${USERS[otherUser]?.name} !`);
+        
+        const updatedSession = {
+            ...currentSession,
+            status: 'pending',
+            lastPingBy: currentUser
+        };
+        await onUpdateSession(updatedSession);
+    };
+
+    const pauseSession = async () => {
+        const updatedSession = {
+            ...currentSession,
+            status: 'paused'
+        };
+        await onUpdateSession(updatedSession);
+    };
+
+    const closeSession = async () => {
+        const updatedSession = {
+            ...currentSession,
+            status: 'completed'
+        };
+        
+        await onUpdateSession(updatedSession);
+        onBackToSessions();
+    };
+
+    return (
+        <div className="flex flex-col h-screen max-h-[85vh] fade-in">
+            {/* Session Header */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <button
+                            onClick={onBackToSessions}
+                            className="p-1 hover:bg-amber-200 rounded"
+                            title="Retour aux sessions"
+                        >
+                            <ArrowLeft className="w-5 h-5 text-amber-700" />
+                        </button>
+                        {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
+                        <div>
+                            <h2 className="font-bold text-amber-900 text-base">
+                                {currentSession.gameTitle || 'Session sans titre'}
+                            </h2>
+                            {currentSession.postChapo && (
+                                <p className="text-sm text-amber-700 mt-1 italic">
+                                    "{currentSession.postChapo}"
+                                </p>
+                            )}
+                            <div className="text-xs text-amber-600">
+                                {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
+                            </div>
+                        </div>
                     </div>
-                );
-            }
+                    
+                    {/* Menu session */}
+                    <div className="flex space-x-1">
+                        {currentUser !== 'duo' && (
+                            <button
+                                onClick={inviteOtherUser}
+                                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                                title="Inviter"
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+                        )}
+                        <button
+                            onClick={pauseSession}
+                            className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
+                            title="Pause"
+                        >
+                            <Pause className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={closeSession}
+                            className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
+                            title="Terminer"
+                        >
+                            <Play className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-            
+            {/* Messages Container */}
+            <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
+                {(!currentSession.notes || currentSession.notes.length === 0) ? (
+                    <div className="text-center py-12 text-gray-500">
+                        <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p className="text-lg font-medium mb-2">Aucun message</p>
+                        <p className="text-sm">Commencez la conversation en écrivant vos souvenirs !</p>
+                    </div>
+                ) : (
+                    (currentSession.notes || []).map((message) => {
+                        const isOwnMessage = message.author === currentUser;
+                        const isEditing = editingMessage === message.id;
+                        
+                        const getBubbleStyle = (author) => {
+                            if (author === 'tom') return 'bg-blue-500 text-white';
+                            if (author === 'lambert') return 'bg-green-500 text-white'; 
+                            return 'bg-amber-500 text-white';
+                        };
 
-            // Vue: Session active
-            if (sessionView === 'active' && currentSession) {
-                return (
-    				<div className="flex flex-col h-screen max-h-[85vh] fade-in">
-        			{/* Header compact */}
-
-                        {/* Session Header - Compact */}
-<div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
-    <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-            {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
-            <div>
-                <h2 className="font-bold text-amber-900 text-base">
-                    {currentSession.gameTitle || 'Session sans titre'}
-                </h2>
-                {/* Nouveau: Affichage du chapo */}
-                {currentSession.postChapo && (
-                    <p className="text-sm text-amber-700 mt-1 italic">
-                        "{currentSession.postChapo}"
-                    </p>
+                        return (
+                            <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[70%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
+                                    {!isOwnMessage && (
+                                        <div className="text-xs text-gray-500 mb-1 px-3">
+                                            {USERS[message.author]?.name}
+                                        </div>
+                                    )}
+                                    
+                                    <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
+                                        {isEditing ? (
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    value={editContent}
+                                                    onChange={(e) => setEditContent(e.target.value)}
+                                                    className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none"
+                                                    rows="3"
+                                                    autoFocus
+                                                />
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => saveEditMessage(message.id)}
+                                                        className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium"
+                                                    >
+                                                        Sauver
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelEdit}
+                                                        className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium"
+                                                    >
+                                                        Annuler
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                                    {message.content}
+                                                </p>
+                                                {message.edited && (
+                                                    <span className="text-xs opacity-70 italic">modifié</span>
+                                                )}
+                                                
+                                                {isOwnMessage && (
+                                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => startEditMessage(message)}
+                                                            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs"
+                                                            title="Modifier"
+                                                        >
+                                                            <Edit className="w-3 h-3" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteMessage(message.id)}
+                                                            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1"
+                                                            title="Supprimer"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                    
+                                    <div className={`text-xs text-gray-500 mt-1 px-3 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                                        {formatTime(message.timestamp)}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
                 )}
-                <div className="text-xs text-amber-600">
-                    {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message Input */}
+            <div className="mt-4 flex-shrink-0">
+                <div className="bg-white border border-gray-300 rounded-lg p-3">
+                    <div className="flex space-x-3">
+                        <textarea
+                            value={newMessageContent}
+                            onChange={(e) => setNewMessageContent(e.target.value)}
+                            placeholder="Écrivez vos souvenirs, réflexions, détails qui vous reviennent..."
+                            className="flex-1 resize-none border-none focus:outline-none text-gray-800"
+                            rows="3"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    sendMessage();
+                                }
+                            }}
+                        />
+                        <button
+                            onClick={sendMessage}
+                            disabled={!newMessageContent.trim()}
+                            className="self-end px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center space-x-2"
+                        >
+                            <Send className="w-4 h-4" />
+                            <span>Envoyer</span>
+                        </button>
+                    </div>
+                    <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                        <span>{newMessageContent.length} caractères</span>
+                        <span>Shift+Entrée pour nouvelle ligne</span>
+                    </div>
                 </div>
             </div>
         </div>
-        {/* Menu session compact */}
-        <div className="flex space-x-1">
-            {currentUser !== 'duo' && (
-                <button
-                    onClick={inviteOtherUser}
-                    className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                    title="Inviter"
-                >
-                    <Send className="w-4 h-4" />
-                </button>
-            )}
-            <button
-                onClick={pauseSession}
-                className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
-                title="Pause"
-            >
-                <Pause className="w-4 h-4" />
-            </button>
-            <button
-                onClick={closeSession}
-                className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
-                title="Terminer"
-            >
-                <Play className="w-4 h-4" />
-            </button>
-        </div>
-    </div>
-</div>
-
-                        {/* Messages Container */}
-                        <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
-                            {(!currentSession.notes || currentSession.notes.length === 0) ? (
-                                <div className="text-center py-12 text-gray-500">
-                                    <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                    <p className="text-lg font-medium mb-2">Aucun message</p>
-                                    <p className="text-sm">Commencez la conversation en écrivant vos souvenirs !</p>
-                                </div>
-                            ) : (
-                                (currentSession.notes || []).map((message, index) => {
-                                    const isOwnMessage = message.author === currentUser;
-                                    const isEditing = editingMessage === message.id;
-                                    
-                                    // Couleurs des bulles selon l'utilisateur
-                                    const getBubbleStyle = (author) => {
-                                        if (author === 'tom') return 'bg-blue-500 text-white';
-                                        if (author === 'lambert') return 'bg-green-500 text-white'; 
-                                        return 'bg-amber-500 text-white'; // duo
-                                    };
-
-                                    return (
-                                        <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[70%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
-                                                {/* Nom de l'utilisateur (seulement si ce n'est pas soi) */}
-                                                {!isOwnMessage && (
-                                                    <div className="text-xs text-gray-500 mb-1 px-3">
-                                                        {USERS[message.author]?.name}
-                                                    </div>
-                                                )}
-                                                
-                                                <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
-                                                    {isEditing ? (
-                                                        <div className="space-y-2">
-                                                            <textarea
-                                                                value={editContent}
-                                                                onChange={(e) => setEditContent(e.target.value)}
-                                                                className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none"
-                                                                rows="3"
-                                                                autoFocus
-                                                            />
-                                                            <div className="flex space-x-2">
-                                                                <button
-                                                                    onClick={() => saveEditMessage(message.id)}
-                                                                    className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium"
-                                                                >
-                                                                    Sauver
-                                                                </button>
-                                                                <button
-                                                                    onClick={cancelEdit}
-                                                                    className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium"
-                                                                >
-                                                                    Annuler
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                                                {message.content}
-                                                            </p>
-                                                            {message.edited && (
-                                                                <span className="text-xs opacity-70 italic">modifié</span>
-                                                            )}
-                                                            
-                                                            {/* Menu d'actions (seulement pour ses propres messages) */}
-                                                            {isOwnMessage && (
-                                                                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button
-                                                                        onClick={() => startEditMessage(message)}
-                                                                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs"
-                                                                        title="Modifier"
-                                                                    >
-                                                                        <Edit className="w-3 h-3" />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => deleteMessage(message.id)}
-                                                                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1"
-                                                                        title="Supprimer"
-                                                                    >
-                                                                        <Trash2 className="w-3 h-3" />
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                                
-                                                {/* Timestamp */}
-                                                <div className={`text-xs text-gray-500 mt-1 px-3 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
-                                                    {formatTime(message.timestamp)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-
-                        {/* Message Input */}
-                        <div className="mt-4 flex-shrink-0">
-                            <div className="bg-white border border-gray-300 rounded-lg p-3">
-                                <div className="flex space-x-3">
-                                    <textarea
-                                        value={newMessageContent}
-                                        onChange={(e) => setNewMessageContent(e.target.value)}
-                                        placeholder="Écrivez vos souvenirs, réflexions, détails qui vous reviennent..."
-                                        className="flex-1 resize-none border-none focus:outline-none text-gray-800"
-                                        rows="3"
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                e.preventDefault();
-                                                sendMessage();
-                                            }
-                                        }}
-                                    />
-                                    <button
-                                        onClick={sendMessage}
-                                        disabled={!newMessageContent.trim()}
-                                        className="self-end px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center space-x-2"
-                                    >
-                                        <Send className="w-4 h-4" />
-                                        <span>Envoyer</span>
-                                    </button>
-                                </div>
-                                <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                                    <span>{newMessageContent.length} caractères</span>
-                                    <span>Shift+Entrée pour nouvelle ligne</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-        }
-            return null;
-		};           
-
-
+    );
+};        
+/// Pages Memoire
         const MemoriesPage = ({ currentUser, onCreateSession }) => {
             const [currentPost, setCurrentPost] = React.useState(null);
             const [searchQuery, setSearchQuery] = React.useState('');
@@ -1865,84 +1859,134 @@ React.useEffect(() => {
         };
 
         // ===== MAIN APP =====
-        const MemoireMekong = () => {
-            const {
-                currentPage, setCurrentPage,
-                currentUser, setCurrentUser,
-                resetApp
-            } = useAppState();
+        // ===== MAIN APP =====
+const MemoireMekong = () => {
+    const {
+        currentPage, setCurrentPage,
+        currentUser, setCurrentUser,
+        resetApp
+    } = useAppState();
 
-		const { isConnected, isLoading, userInfo, signIn, signOut } = useGoogleAuth();
+    const { isConnected, isLoading, userInfo, signIn, signOut } = useGoogleAuth();
+    
+    // État pour gérer la session courante du chat
+    const [currentChatSession, setCurrentChatSession] = React.useState(null);
+    const { updateSession, createSession } = useSessionState();
 
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
-                    <div className="max-w-6xl mx-auto">
-                        {/* Header */}
-						<div className="text-center mb-4">
-    						<h1 className="text-2xl md:text-3xl font-bold text-amber-900">🐘 Mémoire du Mékong</h1>
-    						<p className="text-xs text-amber-600 mt-1">V0.4.0</p>
-						</div>
-
-                        {/* Navigation */}
-						<Navigation 
-    						currentPage={currentPage}
-    						currentUser={currentUser}
-    						onPageChange={setCurrentPage}
-    						onUserChange={setCurrentUser}
-    						onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
-						/>
-						
-						{/* Google Connection Status */}
-						<GoogleConnection 
-    						isConnected={isConnected}
-    						isLoading={isLoading}
-    						userInfo={userInfo}
-    						onSignIn={signIn}
-    						onSignOut={signOut}
-						/>
-
-                        {/* Main Content */}
-                        <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                            {currentPage === 'home' && (
-                                <HomePage 
-                                    currentUser={currentUser}
-                                    onUserChange={setCurrentUser}
-                                    onPageChange={setCurrentPage}
-                                />
-                            )}
-							{currentPage === 'games' && (
-    							<GamesPage 
-        							currentUser={currentUser}
-        							onPageChange={setCurrentPage}
-        							onGameSelect={(game) => {
-            							// Créer la session ET rediriger
-            							setCurrentPage('sessions');
-            							// Signal pour SessionsPage de créer une session
-            							window.pendingGameSession = { game, user: currentUser };
-        							}}
-    							/>
-							)}
-                            {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} />}
-                            {currentPage === 'memories' && (
-                                <MemoriesPage 
-                                    currentUser={currentUser}
-                                    onCreateSession={(page) => setCurrentPage(page)}
-                                />
-                            )}
-                            {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="text-center mt-6 text-amber-700 text-sm">
-                            <p>🐘 Un voyage, deux mémoires, mille souvenirs 🐘</p>
-                            <p className="text-xs opacity-75 mt-1">
-                                ✅ Debug renforcé + Logs console • ⏳ Photos + Mastodon
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            );
+    // Gérer la création automatique de session depuis les jeux/mémoires
+    React.useEffect(() => {
+        const handlePendingSession = async () => {
+            if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
+                const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+                if (newSession) {
+                    setCurrentChatSession(newSession);
+                }
+            }
         };
+        
+        if (currentPage === 'chat') {
+            handlePendingSession();
+        }
+    }, [currentUser, currentPage, createSession]);
+
+    const handleSessionSelect = (session) => {
+        setCurrentChatSession(session);
+        setCurrentPage('chat');
+    };
+
+    const handleBackToSessions = () => {
+        setCurrentChatSession(null);
+        setCurrentPage('sessions');
+    };
+
+    const handleUpdateSession = async (updatedSession) => {
+        await updateSession(updatedSession);
+        setCurrentChatSession(updatedSession);
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
+            <div className="max-w-6xl mx-auto">
+                {/* Header */}
+                <div className="text-center mb-4">
+                    <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
+                    <p className="text-xs text-amber-600 mt-1">V0.4.2 - Page Chat</p>
+                </div>
+
+                {/* Navigation */}
+                <Navigation 
+                    currentPage={currentPage}
+                    currentUser={currentUser}
+                    onPageChange={setCurrentPage}
+                    onUserChange={setCurrentUser}
+                    onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
+                />
+                
+                {/* Google Connection Status */}
+                <GoogleConnection 
+                    isConnected={isConnected}
+                    isLoading={isLoading}
+                    userInfo={userInfo}
+                    onSignIn={signIn}
+                    onSignOut={signOut}
+                />
+
+                {/* Main Content */}
+                <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                    {currentPage === 'home' && (
+                        <HomePage 
+                            currentUser={currentUser}
+                            onUserChange={setCurrentUser}
+                            onPageChange={setCurrentPage}
+                        />
+                    )}
+                    {currentPage === 'games' && (
+                        <GamesPage 
+                            currentUser={currentUser}
+                            onPageChange={setCurrentPage}
+                            onGameSelect={(game) => {
+                                window.pendingGameSession = { game, user: currentUser };
+                                setCurrentPage('chat');
+                            }}
+                        />
+                    )}
+                    {currentPage === 'sessions' && (
+                        <SessionsPage 
+                            currentUser={currentUser} 
+                            onPageChange={setCurrentPage}
+                            onSessionSelect={handleSessionSelect}
+                        />
+                    )}
+                    {currentPage === 'chat' && (
+                        <ChatPage 
+                            currentUser={currentUser}
+                            currentSession={currentChatSession}
+                            onUpdateSession={handleUpdateSession}
+                            onBackToSessions={handleBackToSessions}
+                        />
+                    )}
+                    {currentPage === 'memories' && (
+                        <MemoriesPage 
+                            currentUser={currentUser}
+                            onCreateSession={(page) => {
+                                setCurrentPage(page);
+                            }}
+                        />
+                    )}
+                    {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
+                </div>
+
+                {/* Footer */}
+                <div className="text-center mt-6 text-amber-700 text-sm">
+                    <p>Un voyage, deux mémoires, mille souvenirs</p>
+                    <p className="text-xs opacity-75 mt-1">
+                        Sessions/Chat séparés • Module Mastodon fonctionnel
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
