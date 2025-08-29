@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.4g - Debug boucle GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.4h - Debug boucle GoogleSync</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -316,22 +316,20 @@ const GoogleDriveAPI = {
     
     async saveSessions(sessions) {
         if (!this.isSignedIn) {
-            console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
             return false;
         }
-        
         try {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.4f '
+                version: '0.4.4_final'
             });
             
             const existingFile = await this.findMekongFile();
             
             if (existingFile) {
-                // Mettre à jour fichier existant
-                const response = await gapi.client.request({
+                // Mettre à jour le fichier existant
+                await gapi.client.request({
                     path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
                     method: 'PATCH',
                     params: { uploadType: 'media' },
@@ -341,14 +339,18 @@ const GoogleDriveAPI = {
                 console.log('✅ Sessions sauvegardées (MAJ)');
                 return true;
             } else {
-                // Créer nouveau fichier
-                const fileMetadata = { name: 'mekong_sessions.json' };
-                const response = await gapi.client.drive.files.create({
+                // Créer un nouveau fichier
+                const fileMetadata = { 
+                    name: 'mekong_sessions.json',
+                    // L'AJOUT CRUCIAL EST ICI :
+                    parents: ['root'] 
+                };
+                await gapi.client.drive.files.create({
                     resource: fileMetadata,
                     media: { mimeType: 'application/json', body: data },
                     fields: 'id'
                 });
-                console.log('✅ Sessions sauvegardées (NOUVEAU)');
+                console.log('✅ Sessions sauvegardées (NOUVEAU FICHIER VISIBLE)');
                 return true;
             }
         } catch (error) {
