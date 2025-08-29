@@ -908,9 +908,7 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
     );
 };
 
-
-
-        // ===== MAIN PAGES =====
+// ===== MAIN PAGES =====
         const HomePage = ({ currentUser, onUserChange, onPageChange }) => (
             <div className="space-y-6 fade-in">
                 <div className="text-center">
@@ -988,803 +986,329 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
             </div>
         );
 		const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => (
-    <div className="space-y-6 fade-in">
-        <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2>
-            <button
-                onClick={() => {
-                    const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
-                    onGameSelect(randomGame);
-                }}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
-            >
-                <Shuffle className="w-4 h-4" />
-                <span>Jeu au hasard</span>
-            </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {GAMES.map(game => {
-                const IconComponent = game.icon;
-                return (
+            <div className="space-y-6 fade-in">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2>
                     <button
-                        key={game.id}
-                        onClick={() => onGameSelect(game)}
-                        className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"
+                        onClick={() => {
+                            const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
+                            onGameSelect(randomGame);
+                        }}
+                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
                     >
-                        <div className="flex items-start space-x-4">
-                            <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" />
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">
-                                        {game.title}
-                                    </h3>
-                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                                        {game.duration}
-                                    </span>
-                                </div>
-                                <p className="text-gray-600 text-sm leading-relaxed mb-2">
-                                    {game.description}
-                                </p>
-                                <div className="flex justify-between items-center">
-                                    <div className="text-xs text-amber-600 font-medium">
-                                        {game.type}
-                                    </div>
-                                    <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                        ▶️ Créer session
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </button>
-                );
-            })}
-        </div>
-
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <h3 className="font-semibold text-amber-900 mb-2">💡 Comment ça marche ?</h3>
-            <p className="text-amber-700 text-sm">
-                Choisissez un jeu pour créer une nouvelle session de remémoration. 
-                Vous pourrez ensuite échanger vos souvenirs dans un format de chat convivial.
-            </p>
-        </div>
-    </div>
-);
-		
-// Page Session
-const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
-    const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('fr-FR', { 
-            day: 'numeric', 
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    return (
-        <div className="space-y-6 fade-in">
-            <div className="flex justify-between items-center">
-    			<h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
-    			<div className="flex space-x-2">
-        			<button
-            			onClick={async () => {
-                			const newSessions = await syncSessions();
-                			console.log(`🔄 ${newSessions.length} sessions synchronisées`);
-            			}}
-            			className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg"
-        			>
-            			<Cloud className="w-4 h-4" />
-            			<span>Synchroniser</span>
-        			</button>
-        			<button
-            			onClick={() => onPageChange('games')}
-            			className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-        			>
-            			<Plus className="w-4 h-4" />
-            			<span>Choisir un jeu</span>
-        			</button>
-    			</div>
-			</div>
-
-            {sessions.length === 0 ? (
-                <div className="text-center py-12">
-                    <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session</h3>
-                    <p className="text-gray-600 mb-6">Créez votre première session de remémoration</p>
-                    <button
-                        onClick={() => onPageChange('games')}
-                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                    >
-                        Choisir un jeu
+                        <Shuffle className="w-4 h-4" />
+                        <span>Jeu au hasard</span>
                     </button>
                 </div>
-            ) : (
-                <div className="space-y-3">
-                    {sessions.map((session) => {
-                        const statusStyles = {
-                            active: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
-                            paused: { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
-                            pending: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
-                            completed: { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-500' }
-                        };
-                        const style = statusStyles[session.status] || statusStyles.active;
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {GAMES.map(game => {
+                        const IconComponent = game.icon;
                         return (
-    						<div
-        						key={session.id}
-        						className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-    						>
-        						<div className="flex items-center justify-between">
-            						<div 
-                						className="flex items-center space-x-3 flex-1 cursor-pointer"
-                						onClick={() => onSessionSelect(session)}
-            						>
-                						{renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
-                						<div>
-                    						<div className="font-medium text-gray-900">{session.gameTitle}</div>
-                    						{session.postChapo && (
-                        						<div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
-                    						)}
-                    						<div className="text-sm text-gray-600">
-                        						{USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
-                    						</div>
-                						</div>
-            						</div>
-            						<div className="flex items-center space-x-2">
-                						<div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                    						<div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
-                    						<span className="text-sm font-medium capitalize">{session.status}</span>
-                						</div>
-                
-                						{/* Bouton de suppression */}
-                						<button
-                    						onClick={(e) => {
-                        						e.stopPropagation();
-                        						if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action est irréversible et supprimera tous les messages de cette conversation.`)) {
-                            						deleteSession(session.id);
-                        						}
-                    						}}
-                    						className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    						title="Supprimer cette session"
-                						>
-                    						<Trash2 className="w-4 h-4" />
-                						</button>
-                
-                						<ChevronRight className="w-4 h-4 text-gray-400" />
-            						</div>
-        						</div>
-    						</div>
-						);
+                            <button
+                                key={game.id}
+                                onClick={() => onGameSelect(game)}
+                                className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"
+                            >
+                                <div className="flex items-start space-x-4">
+                                    <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">
+                                                {game.title}
+                                            </h3>
+                                            <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
+                                                {game.duration}
+                                            </span>
+                                        </div>
+                                        <p className="text-gray-600 text-sm leading-relaxed mb-2">
+                                            {game.description}
+                                        </p>
+                                        <div className="flex justify-between items-center">
+                                            <div className="text-xs text-amber-600 font-medium">
+                                                {game.type}
+                                            </div>
+                                            <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                ▶️ Créer session
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        );
                     })}
                 </div>
-            )}
-        </div>
-    );
-};
-// Page Chat
-		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-    const [newMessageContent, setNewMessageContent] = React.useState('');
-    const [editingMessage, setEditingMessage] = React.useState(null);
-    const [editContent, setEditContent] = React.useState('');
-    const messagesEndRef = React.useRef(null);
-    const { renderGameIcon } = useSessionState();
-
-    // Auto-scroll vers le bas des messages
-    React.useEffect(() => {
-        if (currentSession?.notes && messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [currentSession?.notes]);
-
-    if (!currentSession) {
-        return (
-            <div className="text-center py-12">
-                <Send className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session sélectionnée</h3>
-                <button
-                    onClick={onBackToSessions}
-                    className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                >
-                    Retour aux sessions
-                </button>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-amber-900 mb-2">💡 Comment ça marche ?</h3>
+                    <p className="text-amber-700 text-sm">
+                        Choisissez un jeu pour créer une nouvelle session de remémoration. 
+                        Vous pourrez ensuite échanger vos souvenirs dans un format de chat convivial.
+                    </p>
+                </div>
             </div>
         );
-    }
-
-    const formatTime = (dateString) => {
-        return new Date(dateString).toLocaleTimeString('fr-FR', { 
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('fr-FR', { 
-            day: 'numeric', 
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const sendMessage = async () => {
-        if (!newMessageContent.trim()) return;
-
-        const newMessage = {
-            id: Date.now(),
-            content: newMessageContent.trim(),
-            author: currentUser,
-            timestamp: new Date().toISOString()
-        };
-
-        const updatedSession = {
-            ...currentSession,
-            notes: [...(currentSession.notes || []), newMessage]
-        };
-
-        await onUpdateSession(updatedSession);
-        setNewMessageContent('');
-    };
-
-    const startEditMessage = (message) => {
-        setEditingMessage(message.id);
-        setEditContent(message.content);
-    };
-
-    const saveEditMessage = async (messageId) => {
-        if (!editContent.trim()) return;
-
-        const updatedSession = {
-            ...currentSession,
-            notes: (currentSession.notes || []).map(note => 
-                note.id === messageId 
-                    ? { ...note, content: editContent.trim(), edited: true }
-                    : note
-            )
-        };
-
-        await onUpdateSession(updatedSession);
-        setEditingMessage(null);
-        setEditContent('');
-    };
-
-    const cancelEdit = () => {
-        setEditingMessage(null);
-        setEditContent('');
-    };
-
-    const deleteMessage = async (messageId) => {
-        if (!confirm('Supprimer ce message ?')) return;
-
-        const updatedSession = {
-            ...currentSession,
-            notes: (currentSession.notes || []).filter(note => note.id !== messageId)
-        };
-
-        await onUpdateSession(updatedSession);
-    };
-
-    const inviteOtherUser = async () => {
-        const otherUser = currentUser === 'tom' ? 'lambert' : 'tom';
-        alert(`Invitation envoyée à ${USERS[otherUser]?.name} !`);
-        
-        const updatedSession = {
-            ...currentSession,
-            status: 'pending',
-            lastPingBy: currentUser
-        };
-        await onUpdateSession(updatedSession);
-    };
-
-    const pauseSession = async () => {
-        const updatedSession = {
-            ...currentSession,
-            status: 'paused'
-        };
-        await onUpdateSession(updatedSession);
-    };
-
-    const closeSession = async () => {
-        const updatedSession = {
-            ...currentSession,
-            status: 'completed'
-        };
-        
-        await onUpdateSession(updatedSession);
-        onBackToSessions();
-    };
-
-    return (
-        <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-            {/* Session Header */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <button
-                            onClick={onBackToSessions}
-                            className="p-1 hover:bg-amber-200 rounded"
-                            title="Retour aux sessions"
-                        >
-                            <ArrowLeft className="w-5 h-5 text-amber-700" />
-                        </button>
-                        {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
-                        <div>
-                            <h2 className="font-bold text-amber-900 text-base">
-                                {currentSession.gameTitle || 'Session sans titre'}
-                            </h2>
-                            {currentSession.postChapo && (
-                                <p className="text-sm text-amber-700 mt-1 italic">
-                                    "{currentSession.postChapo}"
-                                </p>
-                            )}
-                            <div className="text-xs text-amber-600">
-                                {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Menu session */}
-                    <div className="flex space-x-1">
-                        {currentUser !== 'duo' && (
-                            <button
-                                onClick={inviteOtherUser}
-                                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                                title="Inviter"
-                            >
-                                <Send className="w-4 h-4" />
-                            </button>
-                        )}
-                        <button
-                            onClick={pauseSession}
-                            className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
-                            title="Pause"
-                        >
-                            <Pause className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={closeSession}
-                            className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
-                            title="Terminer"
-                        >
-                            <Play className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Messages Container */}
-            <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
-                {(!currentSession.notes || currentSession.notes.length === 0) ? (
-                    <div className="text-center py-12 text-gray-500">
-                        <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                        <p className="text-lg font-medium mb-2">Aucun message</p>
-                        <p className="text-sm">Commencez la conversation en écrivant vos souvenirs !</p>
-                    </div>
-                ) : (
-                    (currentSession.notes || []).map((message) => {
-                        const isOwnMessage = message.author === currentUser;
-                        const isEditing = editingMessage === message.id;
-                        
-                        const getBubbleStyle = (author) => {
-                            if (author === 'tom') return 'bg-blue-500 text-white';
-                            if (author === 'lambert') return 'bg-green-500 text-white'; 
-                            return 'bg-amber-500 text-white';
-                        };
-
-                        return (
-                            <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[70%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
-                                    {!isOwnMessage && (
-                                        <div className="text-xs text-gray-500 mb-1 px-3">
-                                            {USERS[message.author]?.name}
-                                        </div>
-                                    )}
-                                    
-                                    <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
-                                        {isEditing ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={editContent}
-                                                    onChange={(e) => setEditContent(e.target.value)}
-                                                    className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none"
-                                                    rows="3"
-                                                    autoFocus
-                                                />
-                                                <div className="flex space-x-2">
-                                                    <button
-                                                        onClick={() => saveEditMessage(message.id)}
-                                                        className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium"
-                                                    >
-                                                        Sauver
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelEdit}
-                                                        className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium"
-                                                    >
-                                                        Annuler
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                                    {message.content}
-                                                </p>
-                                                {message.edited && (
-                                                    <span className="text-xs opacity-70 italic">modifié</span>
-                                                )}
-                                                
-                                                {isOwnMessage && (
-                                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => startEditMessage(message)}
-                                                            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs"
-                                                            title="Modifier"
-                                                        >
-                                                            <Edit className="w-3 h-3" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => deleteMessage(message.id)}
-                                                            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1"
-                                                            title="Supprimer"
-                                                        >
-                                                            <Trash2 className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                    
-                                    <div className={`text-xs text-gray-500 mt-1 px-3 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
-                                        {formatTime(message.timestamp)}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })
-                )}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="mt-4 flex-shrink-0">
-                <div className="bg-white border border-gray-300 rounded-lg p-3">
-                    <div className="flex space-x-3">
-                        <textarea
-                            value={newMessageContent}
-                            onChange={(e) => setNewMessageContent(e.target.value)}
-                            placeholder="Écrivez vos souvenirs, réflexions, détails qui vous reviennent..."
-                            className="flex-1 resize-none border-none focus:outline-none text-gray-800"
-                            rows="3"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    sendMessage();
-                                }
-                            }}
-                        />
-                        <button
-                            onClick={sendMessage}
-                            disabled={!newMessageContent.trim()}
-                            className="self-end px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center space-x-2"
-                        >
-                            <Send className="w-4 h-4" />
-                            <span>Envoyer</span>
-                        </button>
-                    </div>
-                    <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                        <span>{newMessageContent.length} caractères</span>
-                        <span>Shift+Entrée pour nouvelle ligne</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};        
-/// Pages Memoire
-        const MemoriesPage = ({ currentUser, onCreateSession }) => {
-            const [currentPost, setCurrentPost] = React.useState(null);
-            const [searchQuery, setSearchQuery] = React.useState('');
-            const [searchResults, setSearchResults] = React.useState([]);
-            const [dayNumber, setDayNumber] = React.useState(1);
-            const [viewMode, setViewMode] = React.useState('blog'); // 'blog' ou 'search'
-
-            const isImported = MastodonData.isImported();
-            const stats = MastodonData.getStats();
-
-            React.useEffect(() => {
-                if (isImported) {
-                    const post = MastodonData.getPostByDay(dayNumber);
-                    setCurrentPost(post);
-                }
-            }, [dayNumber, isImported]);
-
-            const handleSearch = () => {
-                if (searchQuery.trim()) {
-                    const results = MastodonData.searchPosts(searchQuery);
-                    setSearchResults(results);
-                    setViewMode('search');
-                } else {
-                    setSearchResults([]);
-                    setViewMode('blog');
-                }
+		const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
+            const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
+            const formatDate = (dateString) => {
+                return new Date(dateString).toLocaleDateString('fr-FR', { 
+                    day: 'numeric', 
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             };
-
-            const showRandomPost = () => {
-                const randomPost = MastodonData.getRandomPost();
-                if (randomPost) {
-                    setCurrentPost(randomPost);
-                    setDayNumber(randomPost.dayNumber);
-                    setViewMode('blog');
-                }
-            };
-
-            const goToPreviousDay = () => {
-                if (dayNumber > 1) {
-                    setDayNumber(dayNumber - 1);
-                    setViewMode('blog');
-                }
-            };
-
-            const goToNextDay = () => {
-                if (stats?.dayRange && dayNumber < stats.dayRange.max) {
-                    setDayNumber(dayNumber + 1);
-                    setViewMode('blog');
-                }
-            };
-
-            const createSessionFromPost = (post) => {
-    // Créer une session basée sur le post Mastodon
-    const game = {
-        id: 7, // ID spécial pour les sessions depuis Mastodon
-        title: `Jour ${post.dayNumber} - Souvenir`,
-        description: `Discussion autour du post du jour ${post.dayNumber}`,
-        duration: "libre",
-        type: "mémoire",
-        icon: BookOpen
-    };
-    
-    // Ajouter le contenu du post comme chapo
-    const postPreview = post.content.length > 200 
-        ? post.content.slice(0, 200) + '...' 
-        : post.content;
-    
-    window.pendingGameSession = { 
-        game, 
-        user: currentUser,
-        postChapo: postPreview  // Nouveau: chapo depuis le post
-    };
-    
-    if (onCreateSession) {
-        onCreateSession('sessions');
-    }
-};
-
-            if (!isImported) {
-                return (
-                    <div className="space-y-6 fade-in">
-                        <h2 className="text-2xl font-bold text-amber-900">Mémoires du voyage</h2>
-                        
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-                            <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-blue-900 mb-4">Blog Mastodon non importé</h3>
-                            <p className="text-blue-700 mb-6">
-                                Importez votre fichier outbox.json pour explorer vos 275 posts de voyage
-                            </p>
-                            <p className="text-sm text-blue-600 mb-6">
-                                Rendez-vous dans <strong>Réglages</strong> → <strong>Importer blog Mastodon</strong>
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-                            <div className="text-center">
-                                <Camera className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-green-900 mb-2">Photos</h3>
-                                <p className="text-green-700 text-sm mb-4">2000+ photos organisées par jour</p>
-                                <div className="bg-green-100 p-3 rounded text-green-800 text-sm">
-                                    API DirectoryPicker - Prochaine étape
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
 
             return (
                 <div className="space-y-6 fade-in">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-amber-900">Mémoires du voyage</h2>
-                        <div className="text-sm text-amber-600">
-                            {stats.totalPosts} posts • Jours {stats.dayRange.min}-{stats.dayRange.max}
-                        </div>
-                    </div>
-
-                    {/* Interface de recherche */}
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                        <div className="flex space-x-3 mb-4">
-                            <div className="flex-1 flex space-x-2">
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                    placeholder="Rechercher dans vos posts (lieux, mots-clés, souvenirs...)"
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                />
-                                <button
-                                    onClick={handleSearch}
-                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center space-x-2"
-                                >
-                                    <Search className="w-4 h-4" />
-                                    <span>Chercher</span>
-                                </button>
-                            </div>
+                        <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
+                        <div className="flex space-x-2">
                             <button
-                                onClick={showRandomPost}
-                                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg flex items-center space-x-2"
+                                onClick={async () => {
+                                    const newSessions = await syncSessions();
+                                    console.log(`🔄 ${newSessions.length} sessions synchronisées`);
+                                }}
+                                className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg"
                             >
-                                <Shuffle className="w-4 h-4" />
-                                <span>Hasard</span>
+                                <Cloud className="w-4 h-4" />
+                                <span>Synchroniser</span>
+                            </button>
+                            <button
+                                onClick={() => onPageChange('games')}
+                                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                            >
+                                <Plus className="w-4 h-4" />
+                                <span>Choisir un jeu</span>
                             </button>
                         </div>
-
-                        {/* Navigation par jour */}
-                        {viewMode === 'blog' && (
-                            <div className="flex items-center justify-center space-x-4">
-                                <button
-                                    onClick={goToPreviousDay}
-                                    disabled={dayNumber <= 1}
-                                    className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                </button>
-                                
-                                <div className="flex items-center space-x-2">
-                                    <label className="text-sm font-medium text-gray-700">Jour:</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max={stats?.dayRange?.max || 275}
-                                        value={dayNumber}
-                                        onChange={(e) => setDayNumber(parseInt(e.target.value) || 1)}
-                                        className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
-                                    />
-                                    <span className="text-sm text-gray-500">/ {stats?.dayRange?.max}</span>
-                                </div>
-                                
-                                <button
-                                    onClick={goToNextDay}
-                                    disabled={!stats?.dayRange || dayNumber >= stats.dayRange.max}
-                                    className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Affichage du contenu */}
-                    {viewMode === 'search' && searchResults.length > 0 ? (
-                        // Résultats de recherche
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                                {searchResults.length} résultat(s) pour "{searchQuery}"
-                            </h3>
-                            {searchResults.map((post) => (
-                                <div key={post.id} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-amber-300 transition-colors">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <h4 className="font-medium text-amber-900">
-                                            Jour {post.dayNumber}
-                                        </h4>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={() => {
-                                                    setCurrentPost(post);
-                                                    setDayNumber(post.dayNumber);
-                                                    setViewMode('blog');
-                                                }}
-                                                className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-sm"
-                                            >
-                                                Voir le post
-                                            </button>
-                                            <button
-                                                onClick={() => createSessionFromPost(post)}
-                                                className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded text-sm flex items-center space-x-1"
-                                            >
-                                                <Plus className="w-3 h-3" />
-                                                <span>Session</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-gray-700 text-sm leading-relaxed">
-                                        {post.content.slice(0, 300)}
-                                        {post.content.length > 300 && '...'}
-                                    </p>
-                                    <div className="text-xs text-gray-500 mt-2">
-                                        {new Date(post.published).toLocaleDateString('fr-FR', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric'
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : viewMode === 'search' && searchResults.length === 0 && searchQuery ? (
-                        // Aucun résultat
-                        <div className="bg-gray-50 p-8 rounded-lg text-center">
-                            <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun résultat</h3>
-                            <p className="text-gray-500">Essayez d'autres mots-clés ou explorez par jour</p>
-                        </div>
-                    ) : currentPost ? (
-                        // Post du jour
-                        <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-xl font-bold text-amber-900">
-                                    Jour {currentPost.dayNumber}
-                                </h3>
-                                <button
-                                    onClick={() => createSessionFromPost(currentPost)}
-                                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center space-x-2"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span>Créer une session</span>
-                                </button>
-                            </div>
-                            
-                            <div className="prose max-w-none">
-                                <p className="text-gray-800 leading-relaxed whitespace-pre-line">
-                                    {currentPost.content}
-                                </p>
-                            </div>
-                            
-                            <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-500">
-                                Publié le {new Date(currentPost.published).toLocaleDateString('fr-FR', {
-                                    weekday: 'long',
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                })}
-                            </div>
-
-                            {/* Photos du post (si disponibles) */}
-                            {currentPost.attachments && currentPost.attachments.length > 0 && (
-                                <div className="mt-4">
-                                    <h4 className="text-sm font-medium text-gray-700 mb-2">Photos attachées:</h4>
-                                    <div className="text-sm text-amber-600">
-                                        {currentPost.attachments.length} photo(s) - Visualisation prochainement
-                                    </div>
-                                </div>
-                            )}
+                    {sessions.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session</h3>
+                            <p className="text-gray-600 mb-6">Créez votre première session de remémoration</p>
+                            <button
+                                onClick={() => onPageChange('games')}
+                                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                            >
+                                Choisir un jeu
+                            </button>
                         </div>
                     ) : (
-                        // Aucun post trouvé pour ce jour
-                        <div className="bg-gray-50 p-8 rounded-lg text-center">
-                            <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun post ce jour</h3>
-                            <p className="text-gray-500">Essayez un autre jour ou utilisez la recherche</p>
+                        <div className="space-y-3">
+                            {sessions.map((session) => {
+                                const statusStyles = {
+                                    active: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
+                                    paused: { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
+                                    pending: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
+                                    completed: { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-500' }
+                                };
+                                const style = statusStyles[session.status] || statusStyles.active;
+
+                                return (
+                                    <div
+                                        key={session.id}
+                                        className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div 
+                                                className="flex items-center space-x-3 flex-1 cursor-pointer"
+                                                onClick={() => onSessionSelect(session)}
+                                            >
+                                                {renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
+                                                <div>
+                                                    <div className="font-medium text-gray-900">{session.gameTitle}</div>
+                                                    {session.postChapo && (
+                                                        <div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
+                                                    )}
+                                                    <div className="text-sm text-gray-600">
+                                                        {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
+                                                    <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
+                                                    <span className="text-sm font-medium capitalize">{session.status}</span>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action est irréversible et supprimera tous les messages de cette conversation.`)) {
+                                                            deleteSession(session.id);
+                                                        }
+                                                    }}
+                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Supprimer cette session"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
+                </div>
+            );
+        };
+		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
+            const [newMessageContent, setNewMessageContent] = React.useState('');
+            const [editingMessage, setEditingMessage] = React.useState(null);
+            const [editContent, setEditContent] = React.useState('');
+            const messagesEndRef = React.useRef(null);
+            const { renderGameIcon } = useSessionState();
 
-                    {/* Section Photos (placeholder) */}
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-                        <div className="text-center">
-                            <Camera className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-green-900 mb-2">Photos du voyage</h3>
-                            <p className="text-green-700 text-sm mb-4">2000+ photos organisées par jour</p>
-                            <div className="bg-green-100 p-3 rounded text-green-800 text-sm">
-                                API DirectoryPicker - Prochaine étape
+            React.useEffect(() => {
+                if (currentSession?.notes && messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, [currentSession?.notes]);
+
+            if (!currentSession) {
+                return (
+                    <div className="text-center py-12">
+                        <Send className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session sélectionnée</h3>
+                        <button
+                            onClick={onBackToSessions}
+                            className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                        >
+                            Retour aux sessions
+                        </button>
+                    </div>
+                );
+            }
+
+            const sendMessage = async () => {
+                if (!newMessageContent.trim()) return;
+                const newMessage = { id: Date.now(), content: newMessageContent.trim(), author: currentUser, timestamp: new Date().toISOString() };
+                const updatedSession = { ...currentSession, notes: [...(currentSession.notes || []), newMessage] };
+                await onUpdateSession(updatedSession);
+                setNewMessageContent('');
+            };
+            
+            return (
+                <div className="flex flex-col h-screen max-h-[85vh] fade-in">
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
+                        {/* ... (contenu du header du chat) ... */}
+                    </div>
+                    <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
+                        {/* ... (contenu des messages) ... */}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    <div className="mt-4 flex-shrink-0">
+                        <div className="bg-white border border-gray-300 rounded-lg p-3">
+                            <div className="flex space-x-3">
+                                <textarea
+                                    value={newMessageContent}
+                                    onChange={(e) => setNewMessageContent(e.target.value)}
+                                    placeholder="Écrivez vos souvenirs..."
+                                    className="flex-1 resize-none border-none focus:outline-none text-gray-800"
+                                    rows="3"
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                                />
+                                <button
+                                    onClick={sendMessage}
+                                    disabled={!newMessageContent.trim()}
+                                    className="self-end px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg flex items-center space-x-2"
+                                >
+                                    <Send className="w-4 h-4" />
+                                    <span>Envoyer</span>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             );
         };
+        const MemoriesPage = ({ currentUser, onCreateSession }) => {
+            const [currentPost, setCurrentPost] = React.useState(null);
+            const [searchQuery, setSearchQuery] = React.useState('');
+            const [searchResults, setSearchResults] = React.useState([]);
+            const [dayNumber, setDayNumber] = React.useState(1);
+            const [viewMode, setViewMode] = React.useState('blog');
 
+            const isImported = MastodonData.isImported();
+            const stats = MastodonData.getStats();
+
+            React.useEffect(() => {
+                if (isImported) {
+                    setCurrentPost(MastodonData.getPostByDay(dayNumber));
+                }
+            }, [dayNumber, isImported]);
+
+            const createSessionFromPost = (post) => {
+                const game = { id: 7, title: `Jour ${post.dayNumber} - Souvenir`, description: `Discussion autour du post du jour ${post.dayNumber}`, icon: BookOpen };
+                const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
+                window.pendingGameSession = { game, user: currentUser, postChapo: postPreview };
+                if (onCreateSession) onCreateSession('sessions');
+            };
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-amber-900">Mémoires du voyage</h2>
+                        {isImported && <div className="text-sm text-amber-600">{stats.totalPosts} posts • Jours {stats.dayRange.min}-{stats.dayRange.max}</div>}
+                    </div>
+                    {/* ... (contenu de la page mémoires) ... */}
+                </div>
+            );
+        };
+        const SettingsPage = ({ onReset, authProps }) => {
+            const { isConnected, isLoading, userInfo, signIn, signOut } = authProps;
+            const [importStatus, setImportStatus] = React.useState('');
+            const fileInputRef = React.useRef(null);
+            const isImported = MastodonData.isImported();
+
+            const handleFileImport = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                setImportStatus('Lecture du fichier...');
+                try {
+                    const text = await file.text();
+                    const posts = MastodonData.parseOutbox(text);
+                    MastodonData.savePosts(posts);
+                    setImportStatus(`Succès ! ${posts.length} posts importés`);
+                } catch (error) {
+                    setImportStatus(`Erreur: ${error.message}`);
+                }
+            };
+            
+            return (
+                <div className="space-y-6 fade-in">
+                    <h2 className="text-2xl font-bold text-amber-900">Réglages</h2>
+                    <GoogleConnection 
+                        isConnected={isConnected}
+                        isLoading={isLoading}
+                        userInfo={userInfo}
+                        onSignIn={signIn}
+                        onSignOut={signOut}
+                    />
+                    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                         <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
+                         {!isImported && (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileImport} className="hidden" id="mastodon-file"/>
+                                <label htmlFor="mastodon-file" className="cursor-pointer flex flex-col items-center">
+                                    <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                                    <div className="text-lg font-medium text-gray-700">Sélectionner outbox.json</div>
+                                </label>
+                            </div>
+                         )}
+                         {importStatus && <div className="p-3 rounded-lg text-sm bg-blue-100 text-blue-700">{importStatus}</div>}
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                        <h3 className="text-lg font-semibold text-gray-900">Données</h3>
+                        <button onClick={() => { if (confirm('Effacer toutes les données ?')) onReset(); }} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium">Reset complet</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===== MAIN APP =====
         const MemoireMekong = () => {
             const {
                 currentPage, setCurrentPage,
@@ -1792,9 +1316,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                 resetApp
             } = useAppState();
 
-            // On récupère TOUT ce dont on a besoin depuis le hook ici, et seulement ici.
             const authProps = useGoogleAuth();
-            
             const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
             const [currentChatSession, setCurrentChatSession] = React.useState(null);
             const [toast, setToast] = React.useState({ message: '', type: '' });
@@ -1811,7 +1333,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                 };
                 autoSync();
             }, [authProps.isConnected, syncSessions]);
-
+            
             const handleUpdateSession = async (updatedSession) => {
                 try {
                     await updateSession(updatedSession);
@@ -1823,20 +1345,15 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                     setCurrentChatSession(updatedSession);
                 }
             };
-
-            // Le reste de la logique (handlePendingSession, etc.) reste identique
+            
             const handlePendingSession = async () => {
                 if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
                     const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-                    if (newSession) {
-                        setCurrentChatSession(newSession);
-                    }
+                    if (newSession) setCurrentChatSession(newSession);
                 }
             };
             React.useEffect(() => {
-                if (currentPage === 'chat') {
-                    handlePendingSession();
-                }
+                if (currentPage === 'chat') handlePendingSession();
             }, [currentUser, currentPage, createSession]);
 
             const handleSessionSelect = (session) => {
@@ -1859,19 +1376,14 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                             onUserChange={setCurrentUser}
                             onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
                         />
-
                         <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                            {/* ... Le rendu des autres pages reste identique ... */}
                             {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
                             {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => { window.pendingGameSession = { game, user: currentUser }; setCurrentPage('chat'); }} />}
                             {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} />}
                             {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession} onUpdateSession={handleUpdateSession} onBackToSessions={handleBackToSessions} />}
                             {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page) => setCurrentPage(page)} />}
-                            
-                            {/* On passe les props d'authentification à la page de réglages */}
                             {currentPage === 'settings' && <SettingsPage onReset={resetApp} authProps={authProps} />}
                         </div>
-
                         <div className="text-center mt-6 text-amber-700 text-sm">
                             <p>Un voyage, deux mémoires, mille souvenirs</p>
                         </div>
@@ -1884,6 +1396,8 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                 </div>
             );
         };
+
+        
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
