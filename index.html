@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.3 - UX et SuppSeesion</title>
+    <title>🐘 Mémoire du Mékong V0.4.3a - deleteSession</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -304,7 +304,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.3'
+                version: '0.4.3a'
             });
             
             const existingFile = await this.findMekongFile();
@@ -1089,6 +1089,12 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         						</div>
     						</div>
 						);
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
 // Page Chat
 		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
@@ -1715,8 +1721,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             const [importStatus, setImportStatus] = React.useState('');
             const [isImporting, setIsImporting] = React.useState(false);
             const fileInputRef = React.useRef(null);
-			// Ajouter les hooks Google Auth
-    		const { isConnected, isLoading, userInfo, signIn, signOut } = useGoogleAuth();
+
             const stats = MastodonData.getStats();
             const isImported = MastodonData.isImported();
 
@@ -1761,16 +1766,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             return (
                 <div className="space-y-6 fade-in">
                     <h2 className="text-2xl font-bold text-amber-900">Réglages</h2>
-
-					{/* Bandeau Google Drive déplacé ici */}
-            		<GoogleConnection 
-                		isConnected={isConnected}
-                		isLoading={isLoading}
-                		userInfo={userInfo}
-                		onSignIn={signIn}
-                		onSignOut={signOut}
-            		/>
-					
+                    
                     {/* Import Mastodon */}
                     <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                         <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
@@ -1930,7 +1926,7 @@ const MemoireMekong = () => {
                 {/* Header */}
                 <div className="text-center mb-4">
                     <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                    <p className="text-xs text-amber-600 mt-1">V0.4.3 - UX et SuppSeesion</p>
+                    <p className="text-xs text-amber-600 mt-1">V0.4.3a - deleteSession</p>
                 </div>
 
                 {/* Navigation */}
@@ -1940,6 +1936,15 @@ const MemoireMekong = () => {
                     onPageChange={setCurrentPage}
                     onUserChange={setCurrentUser}
                     onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
+                />
+                
+                {/* Google Connection Status */}
+                <GoogleConnection 
+                    isConnected={isConnected}
+                    isLoading={isLoading}
+                    userInfo={userInfo}
+                    onSignIn={signIn}
+                    onSignOut={signOut}
                 />
 
                 {/* Main Content */}
