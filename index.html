@@ -1487,11 +1487,11 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     window.pendingGameSession = { 
         game, 
         user: currentUser,
-        postChapo: postPreview  // Nouveau: chapo depuis le post
+        postChapo: postPreview
     };
     
     if (onCreateSession) {
-        onCreateSession('sessions');
+        onCreateSession('chat');  // CORRECTION : aller directement au chat
     }
 };
 
