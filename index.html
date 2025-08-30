@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.12b 2e essai </title>
+    <title>🐘 Mémoire du Mékong V0.4.13 icone user dans sessions </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.12b'
+                version: '0.4.13'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -1321,12 +1321,13 @@ const ForceGoogleConnection = ({ onSignIn }) => (
 );
 		
         
-// Page Session (MODIFIÉE)
+// Page Session (MODIFIÉE - Icônes utilisateurs colorées)
 const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
-    const { sessions, deleteSession, syncSessions } = useSessionState();
+    const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
     const [isSyncing, setIsSyncing] = React.useState(true);
     const [syncComplete, setSyncComplete] = React.useState(false);
 
+    // Synchronisation automatique au montage
     React.useEffect(() => {
         const performInitialSync = async () => {
             try {
@@ -1349,6 +1350,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         });
     };
     
+    // Objet pour mapper les statuts à des icônes
     const statusIcons = {
         active: { icon: Play, color: 'text-green-500', title: 'Active' },
         paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' },
@@ -1369,26 +1371,32 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             </div>
 
             {isSyncing && !syncComplete ? (
-                // CODE CORRIGÉ : Le JSX de chargement est de retour
                 <div className="text-center py-12">
-                    <div className="animate-spin w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full mx-auto mb-4"></div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Synchronisation...</h3>
-                    <p className="text-gray-600">Chargement depuis Google Drive...</p>
+                    <div className="animate-spin w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-amber-700">Synchronisation des sessions...</p>
                 </div>
             ) : sessions.length === 0 ? (
-                // CODE CORRIGÉ : Le JSX "aucune session" est de retour
-                <div className="text-center py-12">
-                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session pour le moment</h3>
-                    <p className="text-gray-600">Commencez par lancer un nouveau jeu de mémoire !</p>
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3>
+                    <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p>
+                    <button
+                        onClick={() => onPageChange('games')}
+                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                    >
+                        Commencer un jeu
+                    </button>
                 </div>
             ) : (
-                // Le code pour afficher la liste des sessions (qui était correct)
                 <div className="space-y-3">
                     {sessions.map((session) => {
                         const StatusIcon = statusIcons[session.status]?.icon || FileText;
                         const statusColor = statusIcons[session.status]?.color || 'text-gray-500';
                         const statusTitle = statusIcons[session.status]?.title || 'Archivée';
+                        
+                        // NOUVEAU : Déterminer l'utilisateur qui a modifié en dernier
+                        const lastUser = session.user; // ou session.lastModifiedBy si vous l'ajoutez plus tard
+                        const userStyle = getUserStyle(lastUser);
 
                         return (
                             <div
@@ -1396,29 +1404,36 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                                 onClick={() => onSessionSelect(session)}
                                 className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"
                             >
-                                <div className="flex-1 min-w-0">
+                                {/* NOUVEAU : Icône utilisateur colorée */}
+                                <div 
+                                    className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                                    title={`Dernière modification par ${USERS[lastUser]?.name}`}
+                                >
+                                    <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span>
+                                </div>
+
+                                <div className="flex-1">
                                     <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3>
+                                        <h3 className="font-bold text-gray-800 pr-2">{session.gameTitle}</h3>
                                         <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
                                     </div>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                        <span className="text-lg">{USERS[session.user]?.emoji}</span>
+                                    <div className="flex items-center justify-between mt-1">
                                         <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span>
+                                        <div className="flex items-center space-x-2">
+                                            <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} />
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) {
+                                                        deleteSession(session.id);
+                                                    }
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex flex-col items-center space-y-2">
-                                     <StatusIcon className={`w-6 h-6 ${statusColor}`} title={statusTitle} />
-                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) {
-                                                deleteSession(session.id);
-                                            }
-                                        }}
-                                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
                                 </div>
                             </div>
                         );
