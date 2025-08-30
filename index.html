@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.19 reeorganisation des sessions depuis Mastodon </title>
+    <title>🐘 Mémoire du Mékong V0.4.19b reeorganisation des sessions depuis Mastodon </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -410,7 +410,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.16'
+                version: '0.4.19b'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -1909,6 +1909,14 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
             isInitialLoad.current = false;
         }
     }, [isImported]);
+
+	// AJOUTER CE USEEFFECT MANQUANT :
+    React.useEffect(() => {
+        if (isImported) {
+            const post = MastodonData.getPostByDay(dayNumber);
+            setCurrentPost(post);
+        }
+    }, [dayNumber, isImported]);
 
     React.useEffect(() => {
         if (isImported && !isInitialLoad.current) { // Ne pas re-chercher au premier chargement
