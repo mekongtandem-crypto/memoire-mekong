@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.8c bouton Connect</title>
+    <title>🐘 Mémoire du Mékong V0.4.8d bouton Connect</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -346,7 +346,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.8c'
+                version: '0.4.8d'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -2057,7 +2057,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             );
         };
 
-        const SettingsPage = ({ onReset }) => {
+        const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
             const [importStatus, setImportStatus] = React.useState('');
             const [isImporting, setIsImporting] = React.useState(false);
             const fileInputRef = React.useRef(null);
@@ -2116,7 +2116,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                 		isLoading={isLoading}
                 		userInfo={userInfo}
                 		onSignIn={signIn}
-                		onSignOut={signOut}
+                		onSignOut={onGoogleDisconnect || signOut}
             		/>
 					
                     {/* Import Mastodon */}
@@ -2316,7 +2316,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.8c bouton Connect</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.8d bouton Connect</p>
                         </div>
 
                         {/* Navigation */}
@@ -2345,6 +2345,15 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                                 } else {
                                     // Si connecté, aller aux réglages pour voir les détails/se déconnecter
                                     setCurrentPage('settings');
+                                }
+                            }}
+                            onGoogleDisconnect={async () => {
+                                // Callback appelé après déconnexion pour forcer la mise à jour
+                                try {
+                                    await signOut();
+                                    setToast({ message: "Déconnexion réussie", type: 'success' });
+                                } catch (error) {
+                                    setToast({ message: "Erreur de déconnexion", type: 'error' });
                                 }
                             }}
                         />
@@ -2391,7 +2400,22 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                                     }}
                                 />
                             )}
-                            {currentPage === 'settings' && <SettingsPage onReset={resetApp} />}
+                            {currentPage === 'settings' && (
+                                <SettingsPage 
+                                    onReset={resetApp}
+                                    googleAuth={{
+                                        isConnected: isConnected,
+                                        isLoading: isLoading,
+                                        userInfo: userInfo,
+                                        signIn: signIn,
+                                        signOut: signOut
+                                    }}
+                                    onGoogleDisconnect={async () => {
+                                        await signOut();
+                                        setToast({ message: "Déconnexion réussie", type: 'success' });
+                                    }}
+                                />
+                            )}
                         </div>
 
                         {/* Footer */}
