@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.6 - Google Drive Sync fonctionnel</title>
+    <title>🐘 Mémoire du Mékong V0.4.7 4 modifs</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -346,7 +346,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.6'
+                version: '0.4.7'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -581,7 +581,7 @@ const CloudSessionStorage = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.6'
+                version: '0.4.7'
             }, null, 2);
             
             const existingFile = await this.findMekongFile();
@@ -825,6 +825,7 @@ const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [userInfo, setUserInfo] = React.useState(null);
+    const [shouldForceConnection, setShouldForceConnection] = React.useState(false);
 
     React.useEffect(() => {
         const initGoogle = async () => {
@@ -832,12 +833,9 @@ const useGoogleAuth = () => {
             try {
                 await GoogleDriveAPI.init();
                 
-                // Vérifier si on a un token valide au démarrage
                 const token = gapi.client.getToken();
                 if (token) {
-                    console.log('🔍 Vérification token au démarrage...');
                     try {
-                        // Test de l'API + récupération profil
                         await gapi.client.drive.files.list({ pageSize: 1 });
                         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                             headers: { 'Authorization': `Bearer ${token.access_token}` }
@@ -852,17 +850,22 @@ const useGoogleAuth = () => {
                             });
                             setIsConnected(true);
                             GoogleDriveAPI.isSignedIn = true;
-                            console.log('✅ Reconnexion automatique réussie');
+                            console.log('Reconnexion automatique réussie');
                         } else {
                             throw new Error('Token invalide');
                         }
                     } catch (error) {
-                        console.log('⚠️ Token expiré, reconnexion nécessaire');
+                        console.log('Token expiré, reconnexion nécessaire');
                         gapi.client.setToken('');
+                        setShouldForceConnection(true);
                     }
+                } else {
+                    // Pas de token, forcer la connexion
+                    setShouldForceConnection(true);
                 }
             } catch (error) {
-                console.error('❌ Erreur init Google:', error);
+                console.error('Erreur init Google:', error);
+                setShouldForceConnection(true);
             } finally {
                 setIsLoading(false);
             }
@@ -891,13 +894,14 @@ const useGoogleAuth = () => {
                     picture: profile.picture
                 });
                 setIsConnected(true);
-                console.log('✅ Connexion réussie:', profile.name);
+                setShouldForceConnection(false);
+                console.log('Connexion réussie:', profile.name);
                 return true;
             } else {
                 throw new Error('Échec de la connexion Google Drive');
             }
         } catch (error) {
-            console.error('❌ Erreur connexion:', error);
+            console.error('Erreur connexion:', error);
             setIsConnected(false);
             setUserInfo(null);
             alert(`Erreur de connexion: ${error.message}`);
@@ -916,10 +920,11 @@ const useGoogleAuth = () => {
         await GoogleDriveAPI.signOut();
         setIsConnected(false);
         setUserInfo(null);
-        console.log('✅ Déconnexion réussie');
+        setShouldForceConnection(true);
+        console.log('Déconnexion réussie');
     };
 
-    return { isConnected, isLoading, userInfo, signIn, signOut };
+    return { isConnected, isLoading, userInfo, shouldForceConnection, signIn, signOut };
 };
 
         // ===== NAVIGATION COMPONENT =====
@@ -1055,6 +1060,38 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
     );
 };
 
+
+// ===== COMPOSANT CONNEXION OBLIGATOIRE =====
+const ForceGoogleConnection = ({ onSignIn }) => (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Cloud className="w-8 h-8 text-amber-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-amber-900 mb-4">Mémoire du Mékong</h1>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Connexion Google Drive requise</h2>
+            <p className="text-gray-600 mb-6">
+                Cette application utilise Google Drive pour synchroniser vos sessions entre vos appareils. 
+                La connexion est obligatoire pour garantir la sauvegarde de vos mémoires.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <p className="text-amber-800 text-sm">
+                    <strong>Conseil :</strong> Connectez-vous avec le compte Google partagé 
+                    <strong> mekongmemoire@gmail.com</strong> pour synchroniser avec Tom/Lambert.
+                </p>
+            </div>
+            <button
+                onClick={onSignIn}
+                className="w-full px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium flex items-center justify-center space-x-2"
+            >
+                <Cloud className="w-5 h-5" />
+                <span>Se connecter à Google Drive</span>
+            </button>
+        </div>
+    </div>
+);
+
+        // ===== MAIN PAGES =====
 
 
         // ===== MAIN PAGES =====
@@ -1201,6 +1238,26 @@ const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOu
 // Page Session
 const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
+    const [isSyncing, setIsSyncing] = React.useState(true);
+    const [syncComplete, setSyncComplete] = React.useState(false);
+
+    // Synchronisation automatique au montage
+    React.useEffect(() => {
+        const performInitialSync = async () => {
+            try {
+                setIsSyncing(true);
+                await syncSessions();
+                setSyncComplete(true);
+            } catch (error) {
+                console.error('Erreur synchronisation initiale:', error);
+                setSyncComplete(true); // Afficher quand même la page
+            } finally {
+                setIsSyncing(false);
+            }
+        };
+        performInitialSync();
+    }, []);
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('fr-FR', { 
             day: 'numeric', 
@@ -1213,29 +1270,41 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     return (
         <div className="space-y-6 fade-in">
             <div className="flex justify-between items-center">
-    			<h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
-    			<div className="flex space-x-2">
-        			<button
-            			onClick={async () => {
-                			const newSessions = await syncSessions();
-                			console.log(`🔄 ${newSessions.length} sessions synchronisées`);
-            			}}
-            			className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg"
-        			>
-            			<Cloud className="w-4 h-4" />
-            			<span>Synchroniser</span>
-        			</button>
-        			<button
-            			onClick={() => onPageChange('games')}
-            			className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-        			>
-            			<Plus className="w-4 h-4" />
-            			<span>Choisir un jeu</span>
-        			</button>
-    			</div>
-			</div>
+                <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
+                <div className="flex space-x-2">
+                    <button
+                        onClick={async () => {
+                            setIsSyncing(true);
+                            try {
+                                const newSessions = await syncSessions();
+                                console.log(`${newSessions.length} sessions synchronisées`);
+                            } finally {
+                                setIsSyncing(false);
+                            }
+                        }}
+                        disabled={isSyncing}
+                        className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-lg"
+                    >
+                        <Cloud className="w-4 h-4" />
+                        <span>{isSyncing ? 'Synchro...' : 'Synchroniser'}</span>
+                    </button>
+                    <button
+                        onClick={() => onPageChange('games')}
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Choisir un jeu</span>
+                    </button>
+                </div>
+            </div>
 
-            {sessions.length === 0 ? (
+            {isSyncing && !syncComplete ? (
+                <div className="text-center py-12">
+                    <div className="animate-spin w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full mx-auto mb-4"></div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Synchronisation en cours</h3>
+                    <p className="text-gray-600">Chargement de vos sessions depuis Google Drive...</p>
+                </div>
+            ) : sessions.length === 0 ? (
                 <div className="text-center py-12">
                     <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session</h3>
@@ -1259,51 +1328,50 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         const style = statusStyles[session.status] || statusStyles.active;
 
                         return (
-    						<div
-        						key={session.id}
-        						className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-    						>
-        						<div className="flex items-center justify-between">
-            						<div 
-                						className="flex items-center space-x-3 flex-1 cursor-pointer"
-                						onClick={() => onSessionSelect(session)}
-            						>
-                						{renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
-                						<div>
-                    						<div className="font-medium text-gray-900">{session.gameTitle}</div>
-                    						{session.postChapo && (
-                        						<div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
-                    						)}
-                    						<div className="text-sm text-gray-600">
-                        						{USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
-                    						</div>
-                						</div>
-            						</div>
-            						<div className="flex items-center space-x-2">
-                						<div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                    						<div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
-                    						<span className="text-sm font-medium capitalize">{session.status}</span>
-                						</div>
-                
-                						{/* Bouton de suppression */}
-                						<button
-                    						onClick={(e) => {
-                        						e.stopPropagation();
-                        						if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action est irréversible et supprimera tous les messages de cette conversation.`)) {
-                            						deleteSession(session.id);
-                        						}
-                    						}}
-                    						className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    						title="Supprimer cette session"
-                						>
-                    						<Trash2 className="w-4 h-4" />
-                						</button>
-                
-                						<ChevronRight className="w-4 h-4 text-gray-400" />
-            						</div>
-        						</div>
-    						</div>
-						);
+                            <div
+                                key={session.id}
+                                className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div 
+                                        className="flex items-center space-x-3 flex-1 cursor-pointer"
+                                        onClick={() => onSessionSelect(session)}
+                                    >
+                                        {renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
+                                        <div>
+                                            <div className="font-medium text-gray-900">{session.gameTitle}</div>
+                                            {session.postChapo && (
+                                                <div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
+                                            )}
+                                            <div className="text-sm text-gray-600">
+                                                {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
+                                            <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
+                                            <span className="text-sm font-medium capitalize">{session.status}</span>
+                                        </div>
+                        
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action est irréversible et supprimera tous les messages de cette conversation.`)) {
+                                                    deleteSession(session.id);
+                                                }
+                                            }}
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Supprimer cette session"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                        
+                                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
                     })}
                 </div>
             )}
@@ -2176,7 +2244,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.6 - Google Drive Sync fonctionnel</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.7 4 modifs</p>
                         </div>
 
                         {/* Navigation */}
