@@ -1250,11 +1250,10 @@ const ForceGoogleConnection = ({ onSignIn }) => (
         
 // Page Session (MODIFIÉE)
 const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
-    const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
+    const { sessions, deleteSession, syncSessions } = useSessionState();
     const [isSyncing, setIsSyncing] = React.useState(true);
     const [syncComplete, setSyncComplete] = React.useState(false);
 
-    // Synchronisation automatique au montage
     React.useEffect(() => {
         const performInitialSync = async () => {
             try {
@@ -1277,7 +1276,6 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         });
     };
     
-    // MODIFICATION : Objet pour mapper les statuts à des icônes
     const statusIcons = {
         active: { icon: Play, color: 'text-green-500', title: 'Active' },
         paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' },
@@ -1286,9 +1284,8 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     };
 
     return (
-        <div className="space-y-4 fade-in"> {/* MODIFICATION : Espace réduit pour plus de densité */}
+        <div className="space-y-4 fade-in">
             <div className="flex justify-between items-center">
-                {/* Le titre est maintenant dans la TopBar */}
                 <button
                     onClick={() => onPageChange('games')}
                     className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"
@@ -1299,10 +1296,21 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             </div>
 
             {isSyncing && !syncComplete ? (
-                // ... (l'affichage de chargement ne change pas)
+                // CODE CORRIGÉ : Le JSX de chargement est de retour
+                <div className="text-center py-12">
+                    <div className="animate-spin w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full mx-auto mb-4"></div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Synchronisation...</h3>
+                    <p className="text-gray-600">Chargement depuis Google Drive...</p>
+                </div>
             ) : sessions.length === 0 ? (
-                // ... (l'affichage "Aucune session" ne change pas)
+                // CODE CORRIGÉ : Le JSX "aucune session" est de retour
+                <div className="text-center py-12">
+                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session pour le moment</h3>
+                    <p className="text-gray-600">Commencez par lancer un nouveau jeu de mémoire !</p>
+                </div>
             ) : (
+                // Le code pour afficher la liste des sessions (qui était correct)
                 <div className="space-y-3">
                     {sessions.map((session) => {
                         const StatusIcon = statusIcons[session.status]?.icon || FileText;
@@ -1315,10 +1323,9 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                                 onClick={() => onSessionSelect(session)}
                                 className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"
                             >
-                                {/* MODIFICATION : Structure interne complètement revue */}
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-gray-800 pr-2">{session.gameTitle}</h3>
+                                        <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3>
                                         <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
                                     </div>
                                     <div className="flex items-center space-x-2 mt-1">
