@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.17 Session : suppression fleche </title>
+    <title>🐘 Mémoire du Mékong V0.4.17b Session : suppression fleche </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1626,13 +1626,12 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 
     return (
         <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-            {/* Session Header - MODIFIÉ */}
+            {/* Session Header */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
                         <div>
-                            {/* TITRE ÉDITABLE */}
                             {editingTitle ? (
                                 <div className="flex items-center space-x-2">
                                     <input
@@ -1679,16 +1678,15 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                         </div>
                     </div>
                     
-                    {/* Menu session - VERSION ÉPURÉE */}
+                    {/* Menu session */}
                     <div className="flex items-center space-x-2">
-                        {/* Bouton d'invitation selon l'utilisateur actuel */}
                         {currentUser !== 'duo' && (
                             <button
                                 onClick={inviteOtherUser}
                                 className={`p-2 text-white rounded-lg text-xs flex items-center space-x-1 transition-colors ${
                                     currentUser === 'tom' 
-                                        ? 'bg-green-500 hover:bg-green-600'  // Tom invite Lambert (couleur verte)
-                                        : 'bg-blue-500 hover:bg-blue-600'    // Lambert invite Tom (couleur bleue)
+                                        ? 'bg-green-500 hover:bg-green-600'
+                                        : 'bg-blue-500 hover:bg-blue-600'
                                 }`}
                                 title={`Inviter ${currentUser === 'tom' ? 'Lambert' : 'Tom'}`}
                             >
@@ -1696,46 +1694,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                                 <span className="hidden sm:inline">
                                     Inviter {currentUser === 'tom' ? 'Lambert' : 'Tom'}
                                 </span>
-                            </button>
-                        )}
-                    </div>
-                        
-                        {/* Statut "en attente de..." si applicable */}
-                        {currentSession.status === 'pending' && currentSession.lastPingBy && (
-                            <div className={`flex items-center space-x-1 px-2 py-1 rounded text-xs ${
-                                currentSession.lastPingBy === 'tom'
-                                    ? 'bg-green-100 text-green-700'  // Tom a invité → en attente de Lambert (vert)
-                                    : 'bg-blue-100 text-blue-700'    // Lambert a invité → en attente de Tom (bleu)
-                            }`}>
-                                <Clock className="w-4 h-4" />
-                                <span className="hidden sm:inline">
-                                    En attente de {currentSession.lastPingBy === 'tom' ? 'Lambert' : 'Tom'}
-                                </span>
-                            </div>
-                        )}
-                        
-                        {/* Actions clore/rouvrir - ENTRE PARENTHÈSES pour le moment */}
-                        {false && ( // Mettre à true pour réactiver plus tard
-                            <button
-                                onClick={currentSession.status === 'completed' ? reopenSession : closeSession}
-                                className={`p-2 text-white rounded-lg text-xs flex items-center space-x-1 ${
-                                    currentSession.status === 'completed' 
-                                        ? 'bg-green-500 hover:bg-green-600' 
-                                        : 'bg-red-500 hover:bg-red-600'
-                                }`}
-                                title={currentSession.status === 'completed' ? 'Rouvrir la session' : 'Terminer la session'}
-                            >
-                                {currentSession.status === 'completed' ? (
-                                    <>
-                                        <Play className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Rouvrir</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <FileText className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Terminer</span>
-                                    </>
-                                )}
                             </button>
                         )}
                     </div>
