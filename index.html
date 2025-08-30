@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.8h alleger l'affichage des conversations</title>
+    <title>🐘 Mémoire du Mékong V0.4.8i alleger l'affichage des conversations</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -577,47 +577,33 @@ const CloudSessionStorage = {
         return Storage.get('sessions', []);
     },
     
-    async saveSessions(sessions) {
-        if (!this.isSignedIn) {
-            console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
-            return false;
+    async saveSession(session) {
+        // Récupérer toutes les sessions
+        const sessions = Storage.get('sessions', []);
+        
+        // Mettre à jour ou ajouter la session
+        const existingIndex = sessions.findIndex(s => s.id === session.id);
+        if (existingIndex >= 0) {
+            sessions[existingIndex] = session;
+        } else {
+            sessions.unshift(session);
+        }
+        
+        // Sauvegarder localement
+        Storage.set('sessions', sessions);
+        
+        // Sauvegarder dans le cloud si connecté
+        if (!GoogleDriveAPI.isSignedIn) {
+            console.log('📱 Session sauvegardée localement (cloud déconnecté)');
+            return;
         }
         
         try {
-            const data = JSON.stringify({ 
-                sessions, 
-                lastUpdated: new Date().toISOString(),
-                version: '0.4.7'
-            }, null, 2);
-            
-            const existingFile = await this.findMekongFile();
-            
-            if (existingFile) {
-                const response = await gapi.client.request({
-                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
-                    method: 'PATCH',
-                    params: { uploadType: 'media' },
-                    headers: { 'Content-Type': 'application/json' },
-                    body: data
-                });
-                console.log('✅ Sessions sauvegardées (MAJ)');
-                return true;
-            } else {
-                const response = await gapi.client.drive.files.create({
-                    resource: {
-                        name: 'mekong_sessions.json'
-                    },
-                    media: {
-                        mimeType: 'application/json',
-                        body: data
-                    }
-                });
-                console.log('✅ Sessions sauvegardées (NOUVEAU)');
-                return true;
-            }
+            await GoogleDriveAPI.saveSessions(sessions);
+            console.log('✅ Session sauvegardée localement + cloud');
         } catch (error) {
-            console.error('❌ Erreur sauvegarde:', error);
-            return false;
+            console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
+            throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
         }
     },
     
@@ -2324,7 +2310,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.8h alleger l'affichage des conversations</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.8i alleger l'affichage des conversations</p>
                         </div>
 
                         {/* Navigation */}
