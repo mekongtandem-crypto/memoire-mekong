@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.1 (Améliorations)</title>
+    <title>🐘 Mémoire du Mékong V0.5.1 (Corrigé)</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -100,13 +100,33 @@
                 });
             }
         };
+
+        // ===== BLOC DE CODE CORRIGÉ - AJOUT DE useAppState =====
+        const useAppState = () => {
+            const [currentPage, setCurrentPage] = React.useState('home');
+            const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', ''));
+            
+            React.useEffect(() => {
+                Storage.set('currentUser', currentUser);
+            }, [currentUser]);
+
+            const resetApp = () => {
+                setCurrentPage('home');
+                setCurrentUser('');
+                Storage.clear();
+            };
+
+            return {
+                currentPage, setCurrentPage,
+                currentUser, setCurrentUser,
+                resetApp
+            };
+        };
 		
         // ===== MASTODON DATA MANAGEMENT (CORRIGÉ POUR TITRES/APOSTROPHES) =====
         const MastodonData = {
-            // CORRIGÉ: Fonction de décodage plus robuste
             decodeHtmlEntities: (text) => {
                 if (typeof text !== 'string') return '';
-                // Cette technique est simple et efficace pour décoder toutes les entités HTML
                 const textArea = document.createElement('textarea');
                 textArea.innerHTML = text;
                 return textArea.value;
@@ -123,7 +143,6 @@
                             const note = item.object;
                             const content = note.content || '';
                             
-                            // 1. Nettoyer les balises HTML principales (<p>) et autres, puis décoder
                             const cleanContent = content.replace(/<p>|<\/p>/g, '\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '').trim();
                             const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
                             
@@ -133,11 +152,9 @@
                             
                             let title;
                             if (hasJourNumber) {
-                                // 2. Extraire la première ligne après Jnnn comme titre, puis décoder
                                 const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
                                 title = MastodonData.decodeHtmlEntities(afterJour.split('\n')[0].trim());
                             } else {
-                                // 3. Utiliser le début du contenu comme titre, puis décoder
                                 title = MastodonData.decodeHtmlEntities(decodedContent.split('\n')[0].trim());
                             }
                             
@@ -148,12 +165,11 @@
                                 title: title.slice(0, 80) || 'Post sans titre',
                                 content: decodedContent,
                                 published: note.published || item.published,
-                                // CONSERVE LES ATTACHMENTS POUR LES RÉCUPÉRER PLUS TARD
                                 attachments: note.attachment || [],
                                 url: note.url,
                             };
                         });
-                    // ... (logique de tri et d'assignation des numéros de jour inchangée)
+
                     const postsWithDay = allPosts.filter(post => post.hasJourNumber);
                     const postsWithoutDay = allPosts.filter(post => !post.hasJourNumber);
                     postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
@@ -176,43 +192,95 @@
             getStats: () => {
                 const posts = MastodonData.getPosts();
                 if (posts.length === 0) return { totalPosts: 0, dayRange: null, importedAt: null };
+                const dayNumbers = posts.map(p => p.dayNumber).filter(n => n !== null);
                 return {
                     totalPosts: posts.length,
-                    dayRange: {
-                        min: Math.min(...posts.map(p => p.dayNumber)),
-                        max: Math.max(...posts.map(p => p.dayNumber))
-                    },
+                    dayRange: dayNumbers.length > 0 ? {
+                        min: Math.min(...dayNumbers),
+                        max: Math.max(...dayNumbers)
+                    } : null,
                     importedAt: Storage.get('mastodon_imported_at')
                 };
             },
-            // ... (autres fonctions inchangées)
         };
 
         // ===== GOOGLE DRIVE API (AMÉLIORÉ POUR LES IMAGES MASTODON) =====
         const GoogleDriveAPI = {
-            // ... (propriétés et init, signIn, signOut inchangés)
-            
+            isSignedIn: false,
+            isInitialized: false,
+            tokenClient: null,
             _folderIdCache: new Map(),
-            async findFolderByPath(path) { /* ... (inchangé) ... */ },
-            async getPhotosByDay(dayNumber) { /* ... (inchangé) ... */ },
-            
-            // NOUVEAU: Trouver un fichier par son nom (pour les images Mastodon)
             _fileIdCache: new Map(),
+            
+            async init() { /* ... */ },
+            async signIn() { /* ... */ },
+            async signOut() { /* ... */ },
+
+            async findFolderByPath(path) {
+                if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
+                const parts = path.split('/').filter(p => p);
+                let parentId = 'root';
+                for (const part of parts) {
+                    try {
+                        const response = await gapi.client.drive.files.list({
+                            q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${part}' and trashed=false`,
+                            fields: 'files(id, name)'
+                        });
+                        const folder = response.result.files[0];
+                        if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
+                        parentId = folder.id;
+                    } catch (error) {
+                        console.error(`Erreur recherche dossier ${part}:`, error);
+                        return null;
+                    }
+                }
+                this._folderIdCache.set(path, parentId);
+                return parentId;
+            },
+
+            async getPhotosByDay(dayNumber) {
+                const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
+                const parentFolderId = await this.findFolderByPath(photoFolderPath);
+                if (!parentFolderId) return [];
+
+                const dayString = String(dayNumber).padStart(3, '0');
+                
+                try {
+                    const folderResponse = await gapi.client.drive.files.list({
+                        q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`,
+                        fields: 'files(id, name)'
+                    });
+                    const dayFolder = folderResponse.result.files[0];
+                    if (!dayFolder) return [];
+
+                    const photosResponse = await gapi.client.drive.files.list({
+                        q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
+                        fields: 'files(id, name, thumbnailLink, webViewLink, webContentLink)',
+                        pageSize: 50
+                    });
+
+                    return (photosResponse.result.files || []).map(file => ({
+                        id: file.id,
+                        title: file.name,
+                        thumbnailUrl: file.thumbnailLink,
+                        fullUrl: file.webContentLink,
+                        viewUrl: file.webViewLink
+                    }));
+                } catch (error) {
+                    console.error(`Erreur chargement photos jour ${dayNumber}:`, error);
+                    return [];
+                }
+            },
+            
             async findFileByPartialPath(filename, rootPath) {
                 const cacheKey = `${rootPath}:${filename}`;
-                if (this._fileIdCache.has(cacheKey)) {
-                    return this._fileIdCache.get(cacheKey);
-                }
+                if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
 
                 const rootFolderId = await this.findFolderByPath(rootPath);
-                if (!rootFolderId) {
-                    console.warn(`Dossier racine pour la recherche de fichier non trouvé: ${rootPath}`);
-                    return null;
-                }
+                if (!rootFolderId) return null;
 
                 try {
                     const response = await gapi.client.drive.files.list({
-                        // Recherche le fichier par son nom dans n'importe quel sous-dossier du dossier racine spécifié
                         q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`,
                         fields: 'files(id, webViewLink, webContentLink, thumbnailLink)',
                         pageSize: 1
@@ -222,8 +290,6 @@
                         this._fileIdCache.set(cacheKey, file);
                         return file;
                     }
-                    // Note: This is a simple search in the immediate parent. A full recursive search would be much slower.
-                    // This implementation assumes the path logic will point to the correct parent directory.
                     return null;
                 } catch (error) {
                     console.error(`Erreur recherche fichier ${filename}:`, error);
@@ -232,15 +298,18 @@
             }
         };
 
+        // ===== USER CONFIG =====
+        const USERS = { tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' }, lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } };
+        const getUserStyle = (userKey) => { /* ... */ };
+
+        // ===== SESSION MANAGEMENT & HOOKS =====
+        const CloudSessionStorage = { /* ... */ };
         const useSessionState = () => {
             const [currentSession, setCurrentSession] = React.useState(null);
             const [sessions, setSessions] = React.useState([]);
 
             React.useEffect(() => {
-                const loadSessions = async () => {
-                    const loadedSessions = await CloudSessionStorage.getSessions();
-                    setSessions(loadedSessions);
-                };
+                const loadSessions = async () => { /* ... */ };
                 loadSessions();
             }, []);
 
@@ -266,7 +335,6 @@
                     updatedAt: new Date().toISOString(),
                     status: 'active',
                     notes: initialNotes,
-                    // NOUVEAU: Ajout de l'URL de la photo à la session
                     photoUrl: pendingSession.photoUrl || null
                 };
 
@@ -275,7 +343,7 @@
                 setSessions(updatedSessions);
                 setCurrentSession(newSession);
                 
-                delete window.pendingGameSession;
+                if (window.pendingGameSession) delete window.pendingGameSession;
                 return newSession;
             };
 
@@ -283,35 +351,49 @@
             const deleteSession = async (sessionId) => { /* ... */ };
             // ... (reste du hook)
         };
+        const useGoogleAuth = () => { /* ... */ };
 
-        // ... (Autres composants et hooks inchangés : USERS, getUserStyle, useAppState, GamesPage, etc.)
+        // ===== UI COMPONENTS =====
+        const TopBar = ({ /* ... */ }) => { /* ... */ };
+        const BottomNavBar = ({ /* ... */ }) => { /* ... */ };
+        const GoogleConnection = ({ /* ... */ }) => { /* ... */ };
         
-        // ===== PAGE CHAT (MODIFIÉE POUR AFFICHER LA PHOTO) =====
+        // ===== GAME DATA =====
+        const GAMES = [ /* ... */ ];
+        const getGameById = (gameId) => GAMES.find(g => g.id === gameId);
+
+        // ===== PAGES =====
+        const HomePage = ({ /* ... */ }) => { /* ... */ };
+        const UsersPage = ({ /* ... */ }) => { /* ... */ };
+        const GamesPage = ({ /* ... */ }) => { /* ... */ };
+        const SessionsPage = ({ /* ... */ }) => { /* ... */ };
+        
         const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-            // ... (états et hooks inchangés)
             if (!currentSession) {
-                return <div>Chargement de la session...</div>; // Sécurité
+                return <div className="text-center py-12">Chargement de la session...</div>;
             }
 
             return (
                 <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-                    {/* ... (Header de la session inchangé) */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
+                       {/* ... Header de la session */}
+                    </div>
 
                     <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
-                        {/* NOUVEAU: Affichage de la photo contextuelle */}
                         {currentSession.photoUrl && (
                             <div className="p-2 border-b border-gray-200 mb-4">
                                 <img src={currentSession.photoUrl} alt="Contexte de la session" className="max-w-xs mx-auto rounded-lg shadow-md" />
                             </div>
                         )}
-                        {/* ... (Affichage des messages inchangé) */}
+                        {/* ... Affichage des messages */}
                     </div>
-                    {/* ... (Input de message inchangé) */}
+                    <div className="mt-4 flex-shrink-0">
+                       {/* ... Input de message */}
+                    </div>
                 </div>
             );
         };
 
-        // ===== PAGE MÉMOIRES (FORTEMENT AMÉLIORÉE) =====
         const MemoriesPage = ({ currentUser, onCreateSession }) => {
             const [activeView, setActiveView] = React.useState('blog');
             const [dayNumber, setDayNumber] = React.useState(1);
@@ -337,14 +419,17 @@
                         if (activeView === 'blog' && isMastodonImported) {
                             const post = MastodonData.getPostByDay(dayNumber);
                             setCurrentPost(post);
+                            setPhotos([]);
                             if (!post) setError('Aucun post pour ce jour.');
                         } else if (activeView === 'photos' && isConnected) {
                             const fetchedPhotos = await GoogleDriveAPI.getPhotosByDay(dayNumber);
                             setPhotos(fetchedPhotos);
+                            setCurrentPost(null);
                             if (fetchedPhotos.length === 0) setError('Aucune photo trouvée pour ce jour.');
                         }
                     } catch (err) {
                         setError('Erreur lors du chargement des données.');
+                        console.error(err);
                     } finally {
                         setIsLoading(false);
                     }
@@ -354,14 +439,15 @@
 
             const showRandomMemory = async () => {
                 const randomDay = Math.floor(Math.random() * maxDay) + 1;
-                const randomView = Math.random() < 0.5 ? 'blog' : 'photos';
                 
-                // Si la vue choisie n'est pas disponible, on prend l'autre
-                if ((randomView === 'blog' && !isMastodonImported) || (randomView === 'photos' && !isConnected)) {
-                    setActiveView(activeView === 'blog' ? 'photos' : 'blog');
-                } else {
-                    setActiveView(randomView);
-                }
+                const availableViews = [];
+                if (isMastodonImported) availableViews.push('blog');
+                if (isConnected) availableViews.push('photos');
+                if (availableViews.length === 0) return;
+
+                const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
+                
+                setActiveView(randomView);
                 setDayNumber(randomDay);
             };
 
@@ -370,7 +456,7 @@
 
             const createSessionFromModal = () => {
                 if (!selectedPhoto) return;
-                const game = getGameById(1); // Photo roulette
+                const game = getGameById(1);
                 window.pendingGameSession = { 
                     game: { ...game, title: `Souvenir du Jour ${dayNumber}` },
                     user: currentUser, 
@@ -382,7 +468,7 @@
             };
             
             const createSessionFromPost = (post) => {
-                const game = getGameById(7); // Souvenir du jour
+                const game = getGameById(7);
                 window.pendingGameSession = { 
                     game: { ...game, title: `Souvenir du Jour ${post.dayNumber}` },
                     user: currentUser, 
@@ -397,7 +483,7 @@
 
                 React.useEffect(() => {
                     const fetchImageUrls = async () => {
-                        const urls = [];
+                        const urls = new Map();
                         for (const attachment of attachments) {
                             if (attachment.type === 'Image' && attachment.url) {
                                 const filename = attachment.url.split('/').pop();
@@ -405,11 +491,11 @@
                                 const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
                                 const file = await GoogleDriveAPI.findFileByPartialPath(filename, fullPath);
                                 if (file?.webContentLink) {
-                                    urls.push(file.webContentLink);
+                                    urls.set(attachment.id, file.webContentLink);
                                 }
                             }
                         }
-                        setImageUrls(urls);
+                        setImageUrls(Array.from(urls.values()));
                     };
                     if (attachments && attachments.length > 0 && isConnected) {
                         fetchImageUrls();
@@ -420,7 +506,7 @@
                 return (
                     <div className="mt-4 grid grid-cols-2 gap-2">
                         {imageUrls.map((url, index) => (
-                           <a href={url} target="_blank" rel="noopener noreferrer"><img key={index} src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" /></a>
+                           <a key={index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" /></a>
                         ))}
                     </div>
                 );
@@ -493,7 +579,6 @@
             );
         };
 		
-        // ==== PAGE RÉGLAGES (AMÉLIORÉE AVEC CONFIGURATION MASTODON MEDIA) =====
         const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
             const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
             const [photoPath, setPhotoPath] = React.useState(Storage.get('photoFolderPath', '/Medias/Photos/'));
@@ -502,7 +587,6 @@
             const savePaths = () => {
                 Storage.set('photoFolderPath', photoPath);
                 Storage.set('mastodonMediaPath', mastodonPath);
-                // Vider les caches pour forcer la re-recherche avec les nouveaux chemins
                 GoogleDriveAPI._folderIdCache.clear();
                 GoogleDriveAPI._fileIdCache.clear();
                 alert('Chemins de dossiers sauvegardés !');
@@ -527,49 +611,52 @@
                              <button onClick={savePaths} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg">Sauvegarder les chemins</button>
                         </div>
                     </div>
-
-                    {/* ... (sections Import Mastodon et Données inchangées) */}
+                    {/* ... (sections Import Mastodon et Données) */}
                 </div>
             );
         };
 		
-        // ===== MAIN APP et autres pages (inchangés en structure) =====
         const MemoireMekong = () => {
-             const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
+            const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
             const googleAuth = useGoogleAuth();
-            const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
-            const { createSession } = useSessionState();
+            const sessionHook = useSessionState();
             const [currentChatSession, setCurrentChatSession] = React.useState(null);
-            const [toast, setToast] = React.useState({ message: '', type: '' });
+            
+            const handleSessionSelect = (session) => {
+                setCurrentChatSession(session);
+                setCurrentPage('chat');
+            };
 
-            const handleCreateSession = (page) => {
+            const handleCreateSessionAndNavigate = (page) => {
                 if (window.pendingGameSession) {
-                    createSession(window.pendingGameSession.game, currentUser).then(newSession => {
-                        setCurrentChatSession(newSession);
-                        setCurrentPage(page);
+                    sessionHook.createSession(window.pendingGameSession.game, currentUser).then(newSession => {
+                        if(newSession) {
+                            setCurrentChatSession(newSession);
+                            setCurrentPage(page);
+                        }
                     });
+                } else {
+                    setCurrentPage(page);
                 }
             };
             
-            // Le reste de la logique Main App est structurellement la même
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-                    <TopBar /* ... */ />
+                    <TopBar currentPage={currentPage} currentUser={currentUser} onPageChange={setCurrentPage} googleStatus={googleAuth} onGoogleAction={() => googleAuth.isConnected ? setCurrentPage('settings') : googleAuth.signIn()} />
                     <main className="p-4 pb-24">
                         <div className="max-w-6xl mx-auto">
                             <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                                {currentPage === 'home' && <HomePage /* ... */ />}
-                                {currentPage === 'games' && <GamesPage /* ... */ />}
-                                {currentPage === 'sessions' && <SessionsPage /* ... */ />}
-                                {currentPage === 'chat' && <ChatPage currentSession={currentChatSession} /* ... */ />}
-                                {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={handleCreateSession} />}
-                                {currentPage === 'settings' && <SettingsPage googleAuth={googleAuth} /* ... */ />}
-                                {currentPage === 'users' && <UsersPage /* ... */ />}
+                                {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
+                                {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => { window.pendingGameSession = { game, user: currentUser }; handleCreateSessionAndNavigate('chat'); }} />}
+                                {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} />}
+                                {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession || sessionHook.currentSession} onUpdateSession={sessionHook.updateSession} onBackToSessions={() => setCurrentPage('sessions')} />}
+                                {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page) => handleCreateSessionAndNavigate(page)} />}
+                                {currentPage === 'settings' && <SettingsPage onReset={resetApp} googleAuth={googleAuth} onGoogleDisconnect={googleAuth.signOut} />}
+                                {currentPage === 'users' && <UsersPage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
                             </div>
                         </div>
                     </main>
-                    <BottomNavBar /* ... */ />
-                    <Toast /* ... */ />
+                    <BottomNavBar currentPage={currentPage} onPageChange={setCurrentPage} currentUser={currentUser} />
                 </div>
             );
         };
