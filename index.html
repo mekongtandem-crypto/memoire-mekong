@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.10 Pages UX mod </title>
+    <title>🐘 Mémoire du Mékong V0.4.11 Pages chat mod </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.10'
+                version: '0.4.11'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -1357,10 +1357,13 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
 };
 
 // Page Chat (MODIFIÉE)
+// Page Chat (MODIFIÉE - Édition du titre)
 const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
     const [editContent, setEditContent] = React.useState('');
+    const [editingTitle, setEditingTitle] = React.useState(false);
+    const [titleContent, setTitleContent] = React.useState('');
     const messagesEndRef = React.useRef(null);
     const { renderGameIcon } = useSessionState();
 
@@ -1400,6 +1403,29 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    // NOUVEAU : Fonctions pour éditer le titre
+    const startEditTitle = () => {
+        setEditingTitle(true);
+        setTitleContent(currentSession.gameTitle || '');
+    };
+
+    const saveTitle = async () => {
+        if (!titleContent.trim()) return;
+        
+        const updatedSession = {
+            ...currentSession,
+            gameTitle: titleContent.trim()
+        };
+        
+        await onUpdateSession(updatedSession);
+        setEditingTitle(false);
+    };
+
+    const cancelEditTitle = () => {
+        setEditingTitle(false);
+        setTitleContent('');
     };
 
     const sendMessage = async () => {
@@ -1491,7 +1517,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 
     return (
         <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-            {/* Session Header */}
+            {/* Session Header - MODIFIÉ */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -1504,9 +1530,47 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                         </button>
                         {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
                         <div>
-                            <h2 className="font-bold text-amber-900 text-base">
-                                {currentSession.gameTitle || 'Session sans titre'}
-                            </h2>
+                            {/* TITRE ÉDITABLE */}
+                            {editingTitle ? (
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="text"
+                                        value={titleContent}
+                                        onChange={(e) => setTitleContent(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') saveTitle();
+                                            if (e.key === 'Escape') cancelEditTitle();
+                                        }}
+                                        className="font-bold text-amber-900 text-base bg-white border border-amber-300 rounded px-2 py-1 min-w-0 flex-1"
+                                        autoFocus
+                                        onBlur={saveTitle}
+                                    />
+                                    <button
+                                        onClick={saveTitle}
+                                        className="p-1 bg-green-100 hover:bg-green-200 text-green-700 rounded"
+                                        title="Sauvegarder"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={cancelEditTitle}
+                                        className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded"
+                                        title="Annuler"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={startEditTitle}
+                                    className="font-bold text-amber-900 text-base hover:bg-amber-100 px-2 py-1 rounded transition-colors flex items-center space-x-2 group"
+                                    title="Cliquer pour renommer"
+                                >
+                                    <span>{currentSession.gameTitle || 'Session sans titre'}</span>
+                                    <Edit className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                </button>
+                            )}
+                            
                             {currentSession.postChapo && (
                                 <p className="text-sm text-amber-700 mt-1 italic">
                                     "{currentSession.postChapo}"
@@ -1518,7 +1582,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                         </div>
                     </div>
                     
-                    {/* Menu session */}
+                    {/* Menu session - Inchangé */}
                     <div className="flex space-x-1">
                         {currentUser !== 'duo' && (
                             <button
@@ -1547,7 +1611,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                 </div>
             </div>
 
-            {/* Messages Container */}
+            {/* Messages Container - Inchangé */}
             <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
                 {(!currentSession.notes || currentSession.notes.length === 0) ? (
                     <div className="text-center py-12 text-gray-500">
@@ -1641,9 +1705,8 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-			{/* MODIFICATION : La zone de saisie de texte est entièrement revue */}
-			<div className="mt-4 flex-shrink-0">
+            {/* Message Input - Inchangé */}
+            <div className="mt-4 flex-shrink-0">
                 <div className="bg-white border-2 border-gray-200 focus-within:border-amber-500 rounded-xl p-2 transition-colors">
                     <div className="flex items-start space-x-2">
                         <textarea
@@ -1652,7 +1715,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                             placeholder="Écrivez vos souvenirs..."
                             className="flex-1 resize-none border-none focus:outline-none bg-transparent text-gray-800 p-2"
                             rows="3"
-                            // Le onKeyDown qui envoyait le message a été supprimé. "Entrée" crée maintenant une nouvelle ligne.
                         />
                         <button
                             onClick={sendMessage}
@@ -1667,7 +1729,9 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             </div>
         </div>
     );
-};      
+};
+
+		
 // Page Memoire (MODIFIÉE)
 const MemoriesPage = ({ currentUser, onCreateSession }) => {
     const [currentPost, setCurrentPost] = React.useState(null);
