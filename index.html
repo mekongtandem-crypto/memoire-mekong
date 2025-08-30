@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.8i alleger l'affichage des conversations</title>
+    <title>🐘 Mémoire du Mékong V0.4.8j debug Untitle- mekong_sessions.json</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -375,29 +375,13 @@ const GoogleDriveAPI = {
                 
                 // Test d'une méthode plus simple d'abord
                 try {
-                    const response = await gapi.client.drive.files.create({
-                        resource: {
-                            name: 'mekong_sessions.json'
-                        },
-                        media: {
-                            mimeType: 'application/json',
-                            body: data
-                        }
-                    });
-                    console.log('✅ Sessions sauvegardées (NOUVEAU - méthode simple)', response);
-                    return true;
-                } catch (createError) {
-                    console.error('❌ Erreur création simple:', createError);
-                    console.error('❌ Détails:', createError.body);
-                    
-                    // Fallback vers méthode multipart
-                    console.log('🔄 Tentative méthode multipart...');
                     const boundary = '-------314159265358979323846';
                     const delimiter = "\r\n--" + boundary + "\r\n";
                     const close_delim = "\r\n--" + boundary + "--";
 
                     const metadata = {
-                        'name': 'mekong_sessions.json'
+                        'name': 'mekong_sessions.json',
+                        'mimeType': 'application/json'
                     };
 
                     const multipartRequestBody =
@@ -409,7 +393,7 @@ const GoogleDriveAPI = {
                         data +
                         close_delim;
 
-                    const request = await gapi.client.request({
+                    const response = await gapi.client.request({
                         'path': 'https://www.googleapis.com/upload/drive/v3/files',
                         'method': 'POST',
                         'params': {'uploadType': 'multipart'},
@@ -418,8 +402,7 @@ const GoogleDriveAPI = {
                         },
                         'body': multipartRequestBody
                     });
-
-                    console.log('✅ Sessions sauvegardées (NOUVEAU - multipart)', request);
+                    console.log('✅ Sessions sauvegardées (NOUVEAU - multipart)', response);
                     return true;
                 }
             }
@@ -2310,7 +2293,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.8i alleger l'affichage des conversations</p>
+                            <p className="text-xs text-amber-600 mt-1">v0.4.8j debug Untitle- mekong_sessions.json</p>
                         </div>
 
                         {/* Navigation */}
