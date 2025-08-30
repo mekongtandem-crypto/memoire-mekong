@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.17b Session : suppression fleche </title>
+    <title>🐘 Mémoire du Mékong V0.4.18 Post Mastodon Caractère spéciaux </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -74,69 +74,77 @@
 		};
 		
         // ===== CORE STORAGE =====
-        // ===== MASTODON DATA MANAGEMENT =====
+        // ===== MASTODON DATA MANAGEMENT - CORRIGÉ =====
 const MastodonData = {
-    // Parser le fichier outbox.json
+    // NOUVELLE FONCTION : Décoder les entités HTML
+    decodeHtmlEntities: (text) => {
+        const textArea = document.createElement('textarea');
+        textArea.innerHTML = text;
+        return textArea.value;
+    },
+
+    // Parser le fichier outbox.json - MODIFIÉ
     parseOutbox: (jsonData) => {
-    try {
-        const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-        
-        // Gérer la structure ActivityPub complète avec @context
-        let orderedItems;
-        if (data.orderedItems) {
-            orderedItems = data.orderedItems;
-        } else if (data.data && data.data.orderedItems) {
-            orderedItems = data.data.orderedItems;
-        } else {
-            throw new Error('Format ActivityPub invalide - orderedItems non trouvé');
-        }
+        try {
+            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+            
+            // Gérer la structure ActivityPub complète avec @context
+            let orderedItems;
+            if (data.orderedItems) {
+                orderedItems = data.orderedItems;
+            } else if (data.data && data.data.orderedItems) {
+                orderedItems = data.data.orderedItems;
+            } else {
+                throw new Error('Format ActivityPub invalide - orderedItems non trouvé');
+            }
 
-        if (!Array.isArray(orderedItems)) {
-            throw new Error('orderedItems n\'est pas un tableau');
-        }
+            if (!Array.isArray(orderedItems)) {
+                throw new Error('orderedItems n\'est pas un tableau');
+            }
 
-        const posts = orderedItems
-            .filter(item => item.type === 'Create' && item.object?.type === 'Note')
-            .map((item, index) => {
-                const note = item.object;
-                const content = note.content || '';
-                
-                // Nettoyer le HTML d'abord
-                const cleanContent = content.replace(/<[^>]*>/g, '');
-                
-                // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
-                const dayMatch = cleanContent.match(/^J(\d{1,3})[\s:]/);
-                const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-                
-                console.log(`Post ${index}: "${cleanContent.slice(0, 50)}" -> Jour: ${dayNumber}`);
-                
-                return {
-                    id: note.id || `post-${index}`,
-                    dayNumber,
-                    content: cleanContent,
-                    published: note.published || item.published,
-                    attachments: note.attachment || [],
-                    url: note.url
-                };
-            })
-            .filter(post => {
-                if (post.dayNumber === null) {
-                    console.log(`Post filtré (pas de numéro): "${post.content.slice(0, 50)}"`);
-                }
-                return post.dayNumber !== null;
-            })
-            .sort((a, b) => a.dayNumber - b.dayNumber);
+            const posts = orderedItems
+                .filter(item => item.type === 'Create' && item.object?.type === 'Note')
+                .map((item, index) => {
+                    const note = item.object;
+                    const content = note.content || '';
+                    
+                    // MODIFICATION : Nettoyer le HTML ET décoder les entités HTML
+                    const cleanContent = content.replace(/<[^>]*>/g, '');
+                    const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+                    
+                    // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
+                    const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+                    const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+                    
+                    console.log(`Post ${index}: "${decodedContent.slice(0, 50)}" -> Jour: ${dayNumber}`);
+                    
+                    return {
+                        id: note.id || `post-${index}`,
+                        dayNumber,
+                        content: decodedContent, // MODIFIÉ : contenu décodé
+                        published: note.published || item.published,
+                        attachments: note.attachment || [],
+                        url: note.url
+                    };
+                })
+                .filter(post => {
+                    if (post.dayNumber === null) {
+                        console.log(`Post filtré (pas de numéro): "${post.content.slice(0, 50)}"`);
+                    }
+                    return post.dayNumber !== null;
+                })
+                .sort((a, b) => a.dayNumber - b.dayNumber);
 
-        console.log(`✅ ${posts.length} posts Mastodon importés`);
-        if (posts.length > 0) {
-            console.log(`Plage de jours: ${posts[0].dayNumber} à ${posts[posts.length-1].dayNumber}`);
+            console.log(`✅ ${posts.length} posts Mastodon importés`);
+            if (posts.length > 0) {
+                console.log(`Plage de jours: ${posts[0].dayNumber} à ${posts[posts.length-1].dayNumber}`);
+            }
+            return posts;
+        } catch (error) {
+            console.error('❌ Erreur parsing outbox:', error);
+            throw error;
         }
-        return posts;
-    } catch (error) {
-        console.error('❌ Erreur parsing outbox:', error);
-        throw error;
-    }
-},
+    },
 
     // Sauvegarder les posts
     savePosts: (posts) => {
@@ -194,26 +202,6 @@ const MastodonData = {
             importedAt
         };
     }
-};
-        const Storage = {
-            get: (key, defaultValue = null) => {
-                try {
-                    const item = localStorage.getItem(`mekong_${key}`);
-                    return item ? JSON.parse(item) : defaultValue;
-                } catch { return defaultValue; }
-            },
-            set: (key, value) => {
-                try {
-                    localStorage.setItem(`mekong_${key}`, JSON.stringify(value));
-                    return true;
-                } catch { return false; }
-            },
-            remove: (key) => localStorage.removeItem(`mekong_${key}`),
-            clear: () => {
-                Object.keys(localStorage).forEach(key => {
-                    if (key.startsWith('mekong_')) localStorage.removeItem(key);
-                });
-            }
 };
 
 // ===== GOOGLE DRIVE API - VERSION 2024 =====
