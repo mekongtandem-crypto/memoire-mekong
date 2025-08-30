@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.3 (Stable)</title>
+    <title>🐘 Mémoire du Mékong V0.6.4 (Stable Corrigé)</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -34,32 +34,16 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // ===== ICONS LUCIDE (Ajout de X pour fermer) =====
+        // ===== ICONS LUCIDE =====
         const X = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
         const Home = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>;
         const Users = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-2-2"/></svg>;
-        const User = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-        const Play = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>;
         const Camera = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
         const Cloud = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
         const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14-.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25-.17-.5-.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
-        const ChevronLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>;
-        const ChevronRight = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>;
-        const Clock = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>;
-        const Mic = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/><line x1="8" x2="16" y1="22" y2="22"/></svg>;
-        const Zap = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>;
-        const MapPin = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
         const BookOpen = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
-        const Edit = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/></svg>;
         const Plus = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
         const Shuffle = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polyline points="16,3 21,3 21,8"/><line x1="4" x2="21" y1="20" y2="3"/><polyline points="21,16 21,21 16,21"/><line x1="15" x2="21" y1="15" y2="21"/><line x1="4" x2="9" y1="4" y2="9"/></svg>;
-        const Pause = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>;
-        const ArrowLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>;
-        const Send = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
-        const Trash2 = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
-        const Search = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
-        const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
-        const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
 
 		// ===== COMPOSANT TOAST (Alerte) =====
 		const Toast = ({ message, type, onDismiss }) => {
@@ -116,11 +100,7 @@
                 Storage.clear();
             };
 
-            return {
-                currentPage, setCurrentPage,
-                currentUser, setCurrentUser,
-                resetApp
-            };
+            return { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp };
         };
 		
         // ===== MASTODON DATA MANAGEMENT =====
@@ -160,8 +140,7 @@
                             
                             return {
                                 id: note.id || `post-${index}`,
-                                dayNumber,
-                                hasJourNumber,
+                                dayNumber, hasJourNumber,
                                 title: title.slice(0, 80) || 'Post sans titre',
                                 content: decodedContent,
                                 published: note.published || item.published,
@@ -206,15 +185,69 @@
 
         // ===== GOOGLE DRIVE API =====
         const GoogleDriveAPI = {
-            isSignedIn: false,
-            isInitialized: false,
-            tokenClient: null,
-            _folderIdCache: new Map(),
-            _fileIdCache: new Map(),
+            isSignedIn: false, isInitialized: false, tokenClient: null,
+            _folderIdCache: new Map(), _fileIdCache: new Map(),
             
-            async init() { /* implementation */ },
-            async signIn() { /* implementation */ },
-            async signOut() { /* implementation */ },
+            async init() {
+                if (this.isInitialized) return;
+                try {
+                    await new Promise((resolve) => gapi.load('client', resolve));
+                    await gapi.client.init({
+                        apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
+                        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+                    });
+                    this.tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
+                        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+                        callback: ''
+                    });
+                    this.isInitialized = true;
+                } catch (error) {
+                    console.error('❌ Erreur init Google Drive API:', error);
+                    throw error;
+                }
+            },
+            
+            async signIn() {
+                if (!this.isInitialized) await this.init();
+                return new Promise((resolve, reject) => {
+                    if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
+                    this.tokenClient.callback = async (response) => {
+                        if (response.error) {
+                            this.isSignedIn = false;
+                            return reject(new Error(`Erreur OAuth: ${response.error}`));
+                        }
+                        try {
+                            await gapi.client.drive.files.list({ pageSize: 1 });
+                            this.isSignedIn = true;
+                            resolve(true);
+                        } catch (error) {
+                            this.isSignedIn = false;
+                            reject(new Error('Accès API Drive impossible'));
+                        }
+                    };
+                    const token = gapi.client.getToken();
+                    if (token) {
+                        gapi.client.drive.files.list({ pageSize: 1 })
+                            .then(() => { this.isSignedIn = true; resolve(true); })
+                            .catch(() => {
+                                gapi.client.setToken('');
+                                this.tokenClient.requestAccessToken({ prompt: 'consent' });
+                            });
+                    } else {
+                        this.tokenClient.requestAccessToken({ prompt: 'consent' });
+                    }
+                });
+            },
+            
+            async signOut() {
+                const token = gapi.client.getToken();
+                if (token) {
+                    google.accounts.oauth2.revoke(token.access_token);
+                    gapi.client.setToken('');
+                }
+                this.isSignedIn = false;
+            },
 
             async findFolderByPath(path) {
                 if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
@@ -242,9 +275,7 @@
                 const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
                 const parentFolderId = await this.findFolderByPath(photoFolderPath);
                 if (!parentFolderId) return [];
-
                 const dayString = String(dayNumber).padStart(3, '0');
-                
                 try {
                     const folderResponse = await gapi.client.drive.files.list({
                         q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`,
@@ -252,19 +283,14 @@
                     });
                     const dayFolder = folderResponse.result.files[0];
                     if (!dayFolder) return [];
-
                     const photosResponse = await gapi.client.drive.files.list({
                         q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
                         fields: 'files(id, name, thumbnailLink, webViewLink, webContentLink)',
                         pageSize: 50
                     });
-
                     return (photosResponse.result.files || []).map(file => ({
-                        id: file.id,
-                        title: file.name,
-                        thumbnailUrl: file.thumbnailLink,
-                        fullUrl: file.webContentLink,
-                        viewUrl: file.webViewLink
+                        id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink,
+                        fullUrl: file.webContentLink, viewUrl: file.webViewLink
                     }));
                 } catch (error) {
                     console.error(`Erreur chargement photos jour ${dayNumber}:`, error);
@@ -275,10 +301,8 @@
             async findFileByPartialPath(filename, rootPath) {
                 const cacheKey = `${rootPath}:${filename}`;
                 if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
-
                 const rootFolderId = await this.findFolderByPath(rootPath);
                 if (!rootFolderId) return null;
-
                 try {
                     const response = await gapi.client.drive.files.list({
                         q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`,
@@ -308,47 +332,28 @@
             const [currentSession, setCurrentSession] = React.useState(null);
             const [sessions, setSessions] = React.useState([]);
 
-            React.useEffect(() => {
-                // ...
-            }, []);
+            React.useEffect(() => { /* ... */ }, []);
 
             const createSession = async (game, user) => {
                 const pendingSession = window.pendingGameSession || {};
-                const initialNotes = [];
-                
-                if (pendingSession.postChapo) {
-                    initialNotes.push({
-                        id: Date.now() - 1,
-                        content: pendingSession.postChapo.trim(),
-                        author: 'duo',
-                        timestamp: new Date().toISOString()
-                    });
-                }
-
                 const newSession = {
                     id: Date.now(),
-                    gameId: Number(game.id),
-                    gameTitle: game.title,
-                    user: user,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
+                    gameId: Number(game.id), gameTitle: game.title, user: user,
+                    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
                     status: 'active',
-                    notes: initialNotes,
+                    notes: pendingSession.postChapo ? [{ id: Date.now() - 1, content: pendingSession.postChapo.trim(), author: 'duo', timestamp: new Date().toISOString() }] : [],
                     photoUrl: pendingSession.photoUrl || null
                 };
-
                 await CloudSessionStorage.saveSession(newSession);
                 const updatedSessions = await CloudSessionStorage.getSessions();
                 setSessions(updatedSessions);
                 setCurrentSession(newSession);
-                
                 if (window.pendingGameSession) delete window.pendingGameSession;
                 return newSession;
             };
-
             const updateSession = async (updatedSession) => { /* ... */ };
             const deleteSession = async (sessionId) => { /* ... */ };
-            // ...
+            return { currentSession, sessions, createSession, updateSession, deleteSession };
         };
         
         const useGoogleAuth = () => {
@@ -374,18 +379,11 @@
                                     setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
                                     setIsConnected(true);
                                     GoogleDriveAPI.isSignedIn = true;
-                                } else {
-                                    throw new Error('Token invalide');
-                                }
-                            } catch (error) {
-                                gapi.client.setToken('');
-                            }
+                                } else { throw new Error('Token invalide'); }
+                            } catch (error) { gapi.client.setToken(''); }
                         }
-                    } catch (error) {
-                        console.error("Erreur d'initialisation Google", error);
-                    } finally {
-                        setIsLoading(false);
-                    }
+                    } catch (error) { console.error("Erreur d'initialisation Google", error); } 
+                    finally { setIsLoading(false); }
                 };
                 initGoogle();
             }, []);
@@ -400,92 +398,54 @@
                             headers: { 'Authorization': `Bearer ${token.access_token}` }
                         });
                         if (!response.ok) throw new Error('Impossible de récupérer le profil utilisateur');
-                        
                         const profile = await response.json();
                         setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
                         setIsConnected(true);
                         return true;
-                    }
-                    throw new Error('Échec de la connexion Google Drive');
+                    } throw new Error('Échec de la connexion Google Drive');
                 } catch (error) {
-                    setIsConnected(false);
-                    setUserInfo(null);
+                    setIsConnected(false); setUserInfo(null);
                     console.error('Erreur de connexion:', error);
                     return false;
-                } finally {
-                    setIsLoading(false);
-                }
+                } finally { setIsLoading(false); }
             };
 
             const signOut = async () => {
                 setIsLoading(true);
                 try {
                     await GoogleDriveAPI.signOut();
-                    setIsConnected(false);
-                    setUserInfo(null);
-                } catch (error) {
-                    console.error('Erreur déconnexion:', error);
-                } finally {
-                    setIsLoading(false);
-                }
+                    setIsConnected(false); setUserInfo(null);
+                } catch (error) { console.error('Erreur déconnexion:', error); } 
+                finally { setIsLoading(false); }
             };
 
             return { isConnected, isLoading, userInfo, signIn, signOut };
         };
 
         // ===== UI COMPONENTS =====
-        const TopBar = (props) => { /* ... */ };
-        const BottomNavBar = (props) => { /* ... */ };
-        const GoogleConnection = (props) => { /* ... */ };
+        const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleStatus, onGoogleAction }) => { /* ... */ };
+        const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => { /* ... */ };
+        const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => { /* ... */ };
         
         // ===== GAME DATA =====
         const GAMES = [ /* ... */ ];
         const getGameById = (gameId) => GAMES.find(g => g.id === gameId);
 
         // ===== PAGES =====
-        const HomePage = (props) => { /* ... */ };
-        const UsersPage = (props) => { /* ... */ };
-        const GamesPage = (props) => { /* ... */ };
-        const SessionsPage = (props) => { /* ... */ };
-        
-        const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-            if (!currentSession) {
-                return <div className="text-center py-12">Chargement de la session...</div>;
-            }
-
-            return (
-                <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
-                       {/* Le header de la session est ici */}
-                    </div>
-
-                    <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
-                        {currentSession.photoUrl && (
-                            <div className="p-2 border-b border-gray-200 mb-4">
-                                <img src={currentSession.photoUrl} alt="Contexte de la session" className="max-w-xs mx-auto rounded-lg shadow-md" />
-                            </div>
-                        )}
-                        {/* L'affichage des messages est ici */}
-                    </div>
-                    <div className="mt-4 flex-shrink-0">
-                       {/* L'input de message est ici */}
-                    </div>
-                </div>
-            );
-        };
-
+        const HomePage = ({ currentUser, onUserChange, onPageChange }) => { /* ... */ };
+        const UsersPage = ({ currentUser, onUserChange, onPageChange }) => { /* ... */ };
+        const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => { /* ... */ };
+        const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => { /* ... */ };
+        const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => { /* ... */ };
         const MemoriesPage = ({ currentUser, onCreateSession }) => {
             const [activeView, setActiveView] = React.useState('blog');
             const [dayNumber, setDayNumber] = React.useState(1);
-            
             const [currentPost, setCurrentPost] = React.useState(null);
             const [photos, setPhotos] = React.useState([]);
             const [isLoading, setIsLoading] = React.useState(false);
             const [error, setError] = React.useState('');
-
             const [isModalOpen, setIsModalOpen] = React.useState(false);
             const [selectedPhoto, setSelectedPhoto] = React.useState(null);
-            
             const { isConnected } = useGoogleAuth();
             const isMastodonImported = MastodonData.isImported();
             const stats = MastodonData.getStats();
@@ -493,40 +453,30 @@
 
             React.useEffect(() => {
                 const loadDataForDay = async () => {
-                    setIsLoading(true);
-                    setError('');
+                    setIsLoading(true); setError('');
                     try {
                         if (activeView === 'blog' && isMastodonImported) {
                             const post = MastodonData.getPostByDay(dayNumber);
-                            setCurrentPost(post);
-                            setPhotos([]);
+                            setCurrentPost(post); setPhotos([]);
                             if (!post) setError('Aucun post pour ce jour.');
                         } else if (activeView === 'photos' && isConnected) {
                             const fetchedPhotos = await GoogleDriveAPI.getPhotosByDay(dayNumber);
-                            setPhotos(fetchedPhotos);
-                            setCurrentPost(null);
+                            setPhotos(fetchedPhotos); setCurrentPost(null);
                             if (fetchedPhotos.length === 0) setError('Aucune photo trouvée pour ce jour.');
                         }
-                    } catch (err) {
-                        setError('Erreur lors du chargement des données.');
-                        console.error(err);
-                    } finally {
-                        setIsLoading(false);
-                    }
+                    } catch (err) { setError('Erreur lors du chargement des données.'); console.error(err); } 
+                    finally { setIsLoading(false); }
                 };
                 loadDataForDay();
             }, [dayNumber, activeView, isConnected, isMastodonImported]);
 
             const showRandomMemory = async () => {
                 const randomDay = Math.floor(Math.random() * maxDay) + 1;
-                
                 const availableViews = [];
                 if (isMastodonImported) availableViews.push('blog');
                 if (isConnected) availableViews.push('photos');
                 if (availableViews.length === 0) return;
-
                 const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
-                
                 setActiveView(randomView);
                 setDayNumber(randomDay);
             };
@@ -675,7 +625,6 @@
             return (
                 <div className="space-y-6 fade-in">
                     <GoogleConnection isConnected={isConnected} isLoading={isLoading} userInfo={userInfo} onSignIn={signIn} onSignOut={onGoogleDisconnect || signOut} />
-                    
                     <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                         <h3 className="text-lg font-semibold text-gray-900">Configuration Google Drive</h3>
                         <div>
