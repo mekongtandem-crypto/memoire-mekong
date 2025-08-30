@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.5c - Modify GoogleSync</title>
+    <title>🐘 Mémoire du Mékong V0.4.6 - Google Drive Sync fonctionnel</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -346,7 +346,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.5'
+                version: '0.4.6'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -539,6 +539,14 @@ const GoogleDriveAPI = {
                 type: "distanciel",
                 icon: MapPin, 
                 description: "Partagez une position GPS, l'autre raconte ce lieu" 
+            },
+            { 
+                id: 7, 
+                title: "Souvenir du jour", 
+                duration: "libre", 
+                type: "mémoire",
+                icon: BookOpen, 
+                description: "Discussion autour d'un post spécifique du blog Mastodon" 
             }
         ];
 
@@ -563,31 +571,47 @@ const CloudSessionStorage = {
         return Storage.get('sessions', []);
     },
     
-    async saveSession(session) {
-        const sessions = Storage.get('sessions', []);
-        const existingIndex = sessions.findIndex(s => s.id === session.id);
-        if (existingIndex >= 0) {
-            sessions[existingIndex] = session;
-        } else {
-            sessions.unshift(session);
-        }
-        Storage.set('sessions', sessions);
-        
-        if (!GoogleDriveAPI.isSignedIn) {
-            console.log('💾 Session sauvegardée localement (cloud déconnecté)');
-            return true;
+    async saveSessions(sessions) {
+        if (!this.isSignedIn) {
+            console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
+            return false;
         }
         
         try {
-            const success = await GoogleDriveAPI.saveSessions(sessions);
-            if (!success) {
-                throw new Error("Échec de la sauvegarde Google Drive");
+            const data = JSON.stringify({ 
+                sessions, 
+                lastUpdated: new Date().toISOString(),
+                version: '0.4.6'
+            }, null, 2);
+            
+            const existingFile = await this.findMekongFile();
+            
+            if (existingFile) {
+                const response = await gapi.client.request({
+                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
+                    method: 'PATCH',
+                    params: { uploadType: 'media' },
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data
+                });
+                console.log('✅ Sessions sauvegardées (MAJ)');
+                return true;
+            } else {
+                const response = await gapi.client.drive.files.create({
+                    resource: {
+                        name: 'mekong_sessions.json'
+                    },
+                    media: {
+                        mimeType: 'application/json',
+                        body: data
+                    }
+                });
+                console.log('✅ Sessions sauvegardées (NOUVEAU)');
+                return true;
             }
-            console.log('✅ Session sauvegardée localement + cloud');
-            return true;
         } catch (error) {
-            console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
-            throw new Error(`Synchronisation cloud échouée: ${error.message}. Données sauvegardées localement.`);
+            console.error('❌ Erreur sauvegarde:', error);
+            return false;
         }
     },
     
@@ -2152,7 +2176,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.5 - modify GoogleSync</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.6 - Google Drive Sync fonctionnel</p>
                         </div>
 
                         {/* Navigation */}
