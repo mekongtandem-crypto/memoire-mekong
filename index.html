@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.11 Pages chat mod </title>
+    <title>🐘 Mémoire du Mékong V0.4.12 Debut User Button </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.11'
+                version: '0.4.12'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -923,14 +923,16 @@ const useGoogleAuth = () => {
 
 
 // ===== NAVIGATION : COMPOSANT TOP BAR 1 ligne (Version 2.1 - Boutons agrandis) =====
-const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogleAction }) => {
+// ===== NAVIGATION : COMPOSANT TOP BAR - CORRIGÉ =====
+const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleStatus, onGoogleAction }) => {
     const PAGE_TITLES = {
         home: "Mémoire du Mékong",
         sessions: "Vos Sessions",
         games: "Choisir un jeu",
         chat: "Conversation",
         memories: "Mémoires du Voyage",
-        settings: "Réglages"
+        settings: "Réglages",
+        users: "Gestion des Utilisateurs" // NOUVEAU
     };
 
     return (
@@ -942,7 +944,6 @@ const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogle
                 <div className="flex items-center space-x-2">
                     <button
                         onClick={onGoogleAction}
-                        // MODIFICATION : Augmentation de la taille et du padding
                         className={`flex items-center justify-center h-10 px-3 rounded-lg text-xs font-medium transition-colors ${
                             googleStatus?.isLoading ? 'bg-blue-100 text-blue-700 cursor-wait'
                             : googleStatus?.isConnected ? 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -952,15 +953,14 @@ const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogle
                     >
                         {googleStatus?.isLoading
                             ? <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                            : <Cloud className="w-5 h-5" /> // MODIFICATION : Icône légèrement plus grande
+                            : <Cloud className="w-5 h-5" />
                         }
                     </button>
                     {currentUser && (
                          <button
-                            onClick={() => onUserChange('')}
-                            // MODIFICATION : Taille augmentée de w-8 h-8 à w-10 h-10 (40px)
+                            onClick={() => onPageChange('users')} // CORRIGÉ : va vers page users
                             className={`flex items-center justify-center w-10 h-10 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
-                            title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour changer.`}
+                            title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour gérer les utilisateurs.`}
                         >
                             <span className="text-xl">{USERS[currentUser]?.emoji}</span>
                         </button>
@@ -971,7 +971,7 @@ const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogle
     );
 };
 
-// ===== NOUVEAU COMPOSANT : BOTTOM NAV BAR (Version à 4 icônes) =====
+// =====  BOTTOM NAV BAR (Version à 4 icônes) =====
 const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
     const navItems = [
         { id: 'home', icon: Home, label: 'Accueil' },
@@ -2165,25 +2165,26 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
         
         {/* Barre du haut, toujours visible */}
         <TopBar
-            currentPage={currentPage}
-            currentUser={currentUser}
-            onUserChange={setCurrentUser}
-            googleStatus={{ isConnected, isLoading, userInfo }}
-            onGoogleAction={async () => {
-                if (!isConnected && !isLoading) {
-                    try {
-                        const success = await signIn();
-                        if (success) {
-                            setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
-                        }
-                    } catch (error) {
-                        setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
-                    }
-                } else {
-                    setCurrentPage('settings');
+    currentPage={currentPage}
+    currentUser={currentUser}
+    onUserChange={setCurrentUser}
+    onPageChange={setCurrentPage} // AJOUTER cette ligne
+    googleStatus={{ isConnected, isLoading, userInfo }}
+    onGoogleAction={async () => {
+        if (!isConnected && !isLoading) {
+            try {
+                const success = await signIn();
+                if (success) {
+                    setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
                 }
-            }}
-        />
+            } catch (error) {
+                setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
+            }
+        } else {
+            setCurrentPage('settings');
+        }
+    }}
+/>
 
         {/* Contenu principal de la page avec marges pour ne pas être caché par les barres */}
         <main className="p-4 pb-24">
@@ -2229,6 +2230,13 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                             }}
                         />
                     )}
+					{currentPage === 'users' && (
+    					<UsersPage 
+        					currentUser={currentUser}
+        					onUserChange={setCurrentUser}
+        					onPageChange={setCurrentPage}
+    					/>
+					)}
                     {currentPage === 'settings' && (
                         <SettingsPage 
                             onReset={resetApp}
@@ -2251,10 +2259,17 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
         
         {/* Barre de navigation du bas, toujours visible */}
         <BottomNavBar
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            currentUser={currentUser}
-        />
+    		currentPage={currentPage}
+    		onPageChange={(page) => {
+        		// Si pas d'utilisateur et qu'on tente d'aller sur une page protégée, rediriger vers home
+        		if (!currentUser && ['sessions', 'memories', 'settings'].includes(page)) {
+            		setCurrentPage('home');
+        		} else {
+            		setCurrentPage(page);
+        		}
+    		}}
+    		currentUser={currentUser}
+		/>
 
         {/* Le composant Toast pour les notifications */}
         <Toast 
