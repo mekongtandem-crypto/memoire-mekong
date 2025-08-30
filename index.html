@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.20 Memorie Page reecrit </title>
+    <title>🐘 Mémoire du Mékong V0.4.21 SIMPLIFICATION AFFICHAGE POST </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1954,23 +1954,24 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
     };
 
     const createSessionFromPost = (post) => {
-        const sessionTitle = `Jour ${post.dayNumber} - ${post.title}`;
-        
-        const gameFromPost = {
-            id: 7,
-            title: sessionTitle,
-            description: 'Discussion autour d\'un post spécifique du blog Mastodon',
-            duration: 'libre'
-        };
-        
-        window.pendingGameSession = {
-            game: gameFromPost,
-            user: currentUser,
-            postChapo: post.content
-        };
-        
-        onCreateSession('chat');
+    // NOUVEAU : Titre simplifié "Souvenir : [titre du post]"
+    const sessionTitle = `Souvenir : ${post.title}`;
+    
+    const gameFromPost = {
+        id: 7,
+        title: sessionTitle, // MODIFIÉ : format "Souvenir : ..."
+        description: 'Discussion autour d\'un post spécifique du blog Mastodon',
+        duration: 'libre'
     };
+    
+    window.pendingGameSession = {
+        game: gameFromPost,
+        user: currentUser,
+        postChapo: post.content // Le contenu devient le premier message duo
+    };
+    
+    onCreateSession('chat');
+};
 
     if (!isImported) {
         return (
@@ -2100,44 +2101,24 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                     <p className="text-gray-500">Aucun post ne correspond à "{searchQuery}"</p>
                 </div>
             ) : currentPost ? (
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1 mr-4">
-                            <div className="flex items-center space-x-2 mb-2">
-                                <h3 className="text-lg font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
-                                {currentPost.isExtraPost && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        <span className="w-2 h-2 bg-blue-400 rounded-full mr-1"></span>
-                                        Post additionnel
-                                    </span>
-                                )}
-                            </div>
-                            <h2 className="text-xl font-semibold text-gray-800 mb-3 leading-tight">
-                                {currentPost.title || 'Post sans titre'}
-                            </h2>
-                        </div>
-                        <button 
-                            onClick={() => createSessionFromPost(currentPost)} 
-                            className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold flex-shrink-0"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span>Session</span>
-                        </button>
-                    </div>
-                    <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
-                        <p>{currentPost.content}</p>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
-                        <span>{new Date(currentPost.published).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                        {currentPost.attachments && currentPost.attachments.length > 0 && (
-                            <span className="flex items-center space-x-1 font-medium">
-                                <Camera className="w-4 h-4"/>
-                                <span>{currentPost.attachments.length}</span>
-                            </span>
-                        )}
-                    </div>
-                </div>
-            ) : (
+    <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="flex justify-between items-start mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 leading-tight flex-1 mr-4">
+                {currentPost.title || 'Post sans titre'}
+            </h2>
+            <button 
+                onClick={() => createSessionFromPost(currentPost)} 
+                className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold flex-shrink-0"
+            >
+                <Plus className="w-4 h-4" />
+                <span>Session</span>
+            </button>
+        </div>
+        <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
+            <p>{currentPost.content}</p>
+        </div>
+    </div>
+) : (
                 <div className="bg-gray-50 p-8 rounded-lg text-center">
                     <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun post ce jour</h3>
