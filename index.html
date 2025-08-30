@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.3b Memoire/photo ouverture/fermeture en grand </title>
+    <title>🐘 Mémoire du Mékong V0.5.3c Memoire/photo ouverture/fermeture en grand </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -189,22 +189,22 @@
             SCOPES: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
         };
 
+        // ===== GOOGLE DRIVE API =====
         const GoogleDriveAPI = {
-            isSignedIn: false,
-            isInitialized: false,
-            tokenClient: null,
+            isSignedIn: false, isInitialized: false, tokenClient: null,
+            _folderIdCache: new Map(), _fileIdCache: new Map(),
             
             async init() {
                 if (this.isInitialized) return;
                 try {
                     await new Promise((resolve) => gapi.load('client', resolve));
                     await gapi.client.init({
-                        apiKey: GOOGLE_CONFIG.API_KEY,
+                        apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
                         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
                     });
                     this.tokenClient = google.accounts.oauth2.initTokenClient({
-                        client_id: GOOGLE_CONFIG.CLIENT_ID,
-                        scope: GOOGLE_CONFIG.SCOPES,
+                        client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
+                        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
                         callback: ''
                     });
                     this.isInitialized = true;
@@ -254,20 +254,11 @@
                 }
                 this.isSignedIn = false;
             },
-            
-            // ===== NOUVELLES FONCTIONS PHOTOS =====
-
-            // Cache pour l'ID du dossier, afin d'éviter les recherches répétées
-            _folderIdCache: new Map(),
 
             async findFolderByPath(path) {
-                if (this._folderIdCache.has(path)) {
-                    return this._folderIdCache.get(path);
-                }
-
+                if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
                 const parts = path.split('/').filter(p => p);
                 let parentId = 'root';
-
                 for (const part of parts) {
                     try {
                         const response = await gapi.client.drive.files.list({
@@ -275,62 +266,93 @@
                             fields: 'files(id, name)'
                         });
                         const folder = response.result.files[0];
-                        if (!folder) {
-                            throw new Error(`Dossier non trouvé: ${part}`);
-                        }
+                        if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
                         parentId = folder.id;
                     } catch (error) {
                         console.error(`Erreur recherche dossier ${part}:`, error);
                         return null;
                     }
                 }
-                
                 this._folderIdCache.set(path, parentId);
                 return parentId;
             },
 
             async getPhotosByDay(dayNumber) {
                 const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
-                if (!photoFolderPath) return [];
-
                 const parentFolderId = await this.findFolderByPath(photoFolderPath);
-                if (!parentFolderId) {
-                    console.warn(`Dossier racine des photos non trouvé: ${photoFolderPath}`);
-                    return [];
-                }
-
+                if (!parentFolderId) return [];
                 const dayString = String(dayNumber).padStart(3, '0');
-                
                 try {
-                    // 1. Trouver le dossier du jour (ex: "023.Titre")
                     const folderResponse = await gapi.client.drive.files.list({
                         q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`,
                         fields: 'files(id, name)'
                     });
                     const dayFolder = folderResponse.result.files[0];
                     if (!dayFolder) return [];
-
-                    // 2. Lister les images dans ce dossier
                     const photosResponse = await gapi.client.drive.files.list({
                         q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
-                        fields: 'files(id, name, thumbnailLink, webViewLink, webContentLink)',
-                        pageSize: 50 // Augmenté pour avoir plus de photos par jour
+                        fields: 'files(id, name, thumbnailLink, webViewLink, webContentLink, mimeType)',
+                        pageSize: 50
                     });
-
                     return (photosResponse.result.files || []).map(file => ({
-                        id: file.id,
-                        title: file.name,
-                        thumbnailUrl: file.thumbnailLink,
-                        fullUrl: file.webContentLink, // lien de téléchargement direct
-                        viewUrl: file.webViewLink // lien pour voir dans drive
+                        id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink,
+                        mimeType: file.mimeType
                     }));
-
                 } catch (error) {
                     console.error(`Erreur chargement photos jour ${dayNumber}:`, error);
                     return [];
                 }
-            }
-        };
+            },
+
+            // NOUVELLE FONCTION POUR CHARGER L'IMAGE EN BASE64
+            async getPhotoAsBase64(fileId, mimeType) {
+                try {
+                    const response = await gapi.client.drive.files.get({
+                        fileId: fileId,
+                        alt: 'media'
+                    });
+
+                    // Conversion des données binaires en Base64
+                    const blob = new Blob([response.body], { type: mimeType });
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (error) {
+                    console.error(`Erreur chargement image ${fileId} en Base64:`, error);
+                    return null;
+                }
+            },
+            
+            async findFileByPartialPath(filename, rootPath) {
+                const cacheKey = `${rootPath}:${filename}`;
+                if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
+
+                const rootFolderId = await this.findFolderByPath(rootPath);
+                if (!rootFolderId) {
+                    console.warn(`Dossier racine pour la recherche de fichier non trouvé: ${rootPath}`);
+                    return null;
+                }
+
+                try {
+                    const response = await gapi.client.drive.files.list({
+                        q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`,
+                        fields: 'files(id, webViewLink, webContentLink, thumbnailLink)',
+                        pageSize: 1
+                    });
+                    const file = response.result.files[0];
+                    if (file) {
+                        this._fileIdCache.set(cacheKey, file);
+                        return file;
+                    }
+                    return null;
+                } catch (error) {
+                    console.error(`Erreur recherche fichier ${filename}:`, error);
+                    return null;
+                }
+            },
 
         // ===== TOUT LE RESTE DU CODE (USERS, HOOKS, PAGES, ETC.) RESTE IDENTIQUE JUSQU'À LA PAGE MÉMOIRES =====
         // ... (coller ici tout le code depuis USERS jusqu'à juste avant MemoriesPage)
