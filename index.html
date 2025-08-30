@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.14b session Mastodon text en msq duo </title>
+    <title>🐘 Mémoire du Mékong V0.4.15 Session 3 bouton -> 2 bouton </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.14b'
+                version: '0.4.15'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -1615,6 +1615,14 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         await onUpdateSession(updatedSession);
         onBackToSessions();
     };
+	const reopenSession = async () => {
+        const updatedSession = {
+            ...currentSession,
+            status: 'active'
+        };
+        await onUpdateSession(updatedSession);
+		// NE PAS faire onBackToSessions() pour rester sur la session et permettre de la rouvrir
+    };
 
     return (
         <div className="flex flex-col h-screen max-h-[85vh] fade-in">
@@ -1678,30 +1686,41 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                         </div>
                     </div>
                     
-                    {/* Menu session - Inchangé */}
-                    <div className="flex space-x-1">
-                        {currentUser !== 'duo' && (
+                    {/* Menu session - SIMPLIFIÉ */}
+                    <div className="flex space-x-2">
+                        {/* Bouton Notification (seulement si pas duo et session active) */}
+                        {currentUser !== 'duo' && currentSession.status !== 'completed' && (
                             <button
                                 onClick={inviteOtherUser}
-                                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                                title="Inviter"
+                                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs flex items-center space-x-1"
+                                title="Inviter l'autre utilisateur"
                             >
                                 <Send className="w-4 h-4" />
+                                <span className="hidden sm:inline">Inviter</span>
                             </button>
                         )}
+                        
+                        {/* Bouton Clore/Rouvrir intelligent */}
                         <button
-                            onClick={pauseSession}
-                            className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
-                            title="Pause"
+                            onClick={currentSession.status === 'completed' ? reopenSession : closeSession}
+                            className={`p-2 text-white rounded-lg text-xs flex items-center space-x-1 ${
+                                currentSession.status === 'completed' 
+                                    ? 'bg-green-500 hover:bg-green-600' 
+                                    : 'bg-red-500 hover:bg-red-600'
+                            }`}
+                            title={currentSession.status === 'completed' ? 'Rouvrir la session' : 'Terminer la session'}
                         >
-                            <Pause className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={closeSession}
-                            className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
-                            title="Terminer"
-                        >
-                            <Play className="w-4 h-4" />
+                            {currentSession.status === 'completed' ? (
+                                <>
+                                    <Play className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Rouvrir</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Terminer</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
