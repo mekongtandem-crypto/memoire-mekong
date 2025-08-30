@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.8j debug Untitle- mekong_sessions.json</title>
+    <title>🐘 Mémoire du Mékong V0.4.9 changement interface </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.8e'
+                version: '0.4.9'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -920,119 +920,95 @@ const useGoogleAuth = () => {
     return { isConnected, isLoading, userInfo, shouldForceConnection, signIn, signOut };
 };
 
-        // ===== NAVIGATION COMPONENT =====
-const Navigation = ({ currentPage, currentUser, onPageChange, onUserChange, onBack, googleStatus, onGoogleAction }) => (
-    <div className="bg-white/90 backdrop-blur rounded-xl shadow-lg p-3 mb-4">
-        <div className="flex justify-between items-center">
-            {/* User Button + Back Navigation + Google Status */}
-            <div className="flex items-center space-x-2">
-                {/* Back Button (si nécessaire) */}
-                {onBack && (
-                    <button
-                        onClick={onBack}
-                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
-                        title="Retour"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-                )}
-                
-                {/* Google Drive Status */}
-                <button
-                    onClick={onGoogleAction}
-                    className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
-                        googleStatus?.isLoading 
-                            ? 'bg-blue-100 text-blue-700 cursor-wait'
-                            : googleStatus?.isConnected
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
-                    }`}
-                    title={
-                        googleStatus?.isLoading 
-                            ? 'Connexion en cours...' 
-                            : googleStatus?.isConnected 
-                            ? `Connecté: ${googleStatus.userInfo?.email || 'Google Drive'} - Cliquer pour réglages`
-                            : 'Non connecté à Google Drive - Cliquer pour se connecter'
-                    }
-                >
-                    {googleStatus?.isLoading ? (
-                        <div className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full"></div>
-                    ) : (
-                        <Cloud className="w-3 h-3" />
-                    )}
-                    <span className="hidden sm:inline">
-                        {googleStatus?.isLoading 
-                            ? 'Connexion...' 
-                            : googleStatus?.isConnected 
-                            ? 'Connecté' 
-                            : 'Se connecter'
-                        }
-                    </span>
-                    <span className="sm:hidden">
-                        {googleStatus?.isLoading 
-                            ? '...' 
-                            : googleStatus?.isConnected 
-                            ? '✓' 
-                            : '✗'
-                        }
-                    </span>
-                </button>
-                
-                {/* User Selection */}
-                {currentUser ? (
-                    <button
-                        onClick={() => onUserChange('')}
-                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg border text-sm ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
-                        title="Changer d'utilisateur"
-                    >
-                        <span className="text-lg">{USERS[currentUser]?.emoji}</span>
-                        <span className={`font-medium hidden sm:inline ${getUserStyle(currentUser).text}`}>
-                            {USERS[currentUser]?.name.split(' ')[0]} {/* Juste le prénom */}
-                        </span>
-                        <ChevronRight className="w-4 h-4 opacity-60" />
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => onPageChange('home')}
-                        className="flex items-center space-x-2 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-sm"
-                    >
-                        <User className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium text-gray-600 hidden sm:inline">Utilisateur</span>
-                    </button>
-                )}
-            </div>
 
-            {/* Page Navigation - Icônes empilées sur mobile */}
-            <div className="flex items-center space-x-1">
-                {['home', 'games', 'sessions', 'chat', 'memories', 'settings'].map((page) => {
-                    const icons = { home: Home, games: Play, sessions: BookOpen, chat: Send, memories: Cloud, settings: Settings };
-                    const labels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', chat: 'Chat', memories: 'Mémoires', settings: 'Réglages' };
-					const shortLabels = { home: 'Accueil', games: 'Jeux', sessions: 'Sessions', chat: 'Chat', memories: 'Mémoires', settings: 'Config' };
-                    const Icon = icons[page];
+
+// ===== NAVIGATION : NOUVEAU COMPOSANT : TOP BAR (Version à une seule ligne) =====
+const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogleAction }) => {
+    const PAGE_TITLES = {
+        home: "Mémoire du Mékong",
+        sessions: "Vos Sessions",
+        games: "Choisir un jeu",
+        chat: "Conversation",
+        memories: "Mémoires du Voyage",
+        settings: "Réglages"
+    };
+
+    return (
+        <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b border-gray-200">
+            <div className="flex justify-between items-center h-10">
+                <h1 className="text-xl font-bold text-amber-900 truncate">
+                    {PAGE_TITLES[currentPage] || "Mémoire du Mékong"}
+                </h1>
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={onGoogleAction}
+                        className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                            googleStatus?.isLoading ? 'bg-blue-100 text-blue-700 cursor-wait'
+                            : googleStatus?.isConnected ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        }`}
+                        title={googleStatus?.isConnected ? `Connecté: ${googleStatus.userInfo?.email}` : 'Non connecté'}
+                    >
+                        {googleStatus?.isLoading
+                            ? <div className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full"></div>
+                            : <Cloud className="w-3 h-3" />
+                        }
+                    </button>
+                    {currentUser && (
+                         <button
+                            onClick={() => onUserChange('')}
+                            className={`flex items-center justify-center w-8 h-8 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
+                            title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour changer.`}
+                        >
+                            <span className="text-lg">{USERS[currentUser]?.emoji}</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+        </header>
+    );
+};
+
+// ===== NOUVEAU COMPOSANT : BOTTOM NAV BAR (Version à 4 icônes) =====
+const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
+    const navItems = [
+        { id: 'home', icon: Home, label: 'Accueil' },
+        { id: 'sessions', icon: BookOpen, label: 'Sessions' },
+        { id: 'memories', icon: Cloud, label: 'Mémoires' },
+        { id: 'settings', icon: Settings, label: 'Réglages' },
+    ];
+
+    return (
+        <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-t-lg z-10">
+            <div className="flex justify-around items-center h-full">
+                {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPage === item.id;
+                    const isDisabled = !currentUser && item.id !== 'home';
                     
                     return (
                         <button
-                            key={page}
-                            onClick={() => onPageChange(page)}
-                            disabled={!currentUser && page !== 'home'}
-                            className={`flex flex-col items-center px-2 py-2 rounded-lg transition-all text-xs ${
-                                currentPage === page 
-                                    ? 'bg-amber-200 text-amber-800' 
-                                    : !currentUser && page !== 'home'
-                                    ? 'text-gray-400 cursor-not-allowed'
-                                    : 'hover:bg-gray-100 text-gray-600'
-                            }`}
+                            key={item.id}
+                            onClick={() => onPageChange(item.id)}
+                            disabled={isDisabled}
+                            className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${
+                                isActive ? 'text-amber-600' : 'text-gray-500 hover:text-amber-500'
+                            } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                         >
-                            <Icon className="w-5 h-5 mb-1" />
-                            <span className="font-medium hidden sm:inline">{shortLabels[page]}</span>
-                            <span className="font-medium sm:hidden">{shortLabels[page].slice(0,4)}</span>
+                            <Icon className="w-6 h-6 mb-1" />
+                            <span className={`text-xs font-medium ${isActive ? 'font-bold' : ''}`}>
+                                {item.label}
+                            </span>
                         </button>
                     );
                 })}
             </div>
         </div>
-    </div>
-);
+    );
+};
+
+// ==================== FIN DE LA SECTION NAVIGATION À AJOUTER ====================
+     
 
 // ===== GOOGLE CONNECTION COMPONENT =====
 const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => {
@@ -1304,30 +1280,21 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     return (
         <div className="space-y-6 fade-in">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-amber-900">Sessions de remémoration</h2>
+                <h2 className="text-2xl font-bold text-amber-900">Vos Sessions</h2>
                 <div className="flex space-x-2">
                     <button
-                        onClick={async () => {
-                            setIsSyncing(true);
-                            try {
-                                const newSessions = await syncSessions();
-                                console.log(`${newSessions.length} sessions synchronisées`);
-                            } finally {
-                                setIsSyncing(false);
-                            }
-                        }}
-                        disabled={isSyncing}
-                        className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-lg"
+                        // ... (le bouton Synchroniser ne change pas) ...
                     >
                         <Cloud className="w-4 h-4" />
                         <span>{isSyncing ? 'Synchro...' : 'Synchroniser'}</span>
                     </button>
+                    {/* MODIFICATION : Le bouton "Choisir un jeu" devient l'action principale */}
                     <button
                         onClick={() => onPageChange('games')}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                        className="flex items-center space-x-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold"
                     >
-                        <Plus className="w-4 h-4" />
-                        <span>Choisir un jeu</span>
+                        <Plus className="w-5 h-5" />
+                        <span>Nouveau Jeu</span>
                     </button>
                 </div>
             </div>
@@ -2287,130 +2254,110 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             };
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-4">
-                    <div className="max-w-6xl mx-auto">
-                        {/* Header */}
-                        <div className="text-center mb-4">
-                            <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">v0.4.8j debug Untitle- mekong_sessions.json</p>
-                        </div>
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+        
+        {/* Barre du haut, toujours visible */}
+        <TopBar
+            currentPage={currentPage}
+            currentUser={currentUser}
+            onUserChange={setCurrentUser}
+            googleStatus={{ isConnected, isLoading, userInfo }}
+            onGoogleAction={async () => {
+                if (!isConnected && !isLoading) {
+                    try {
+                        const success = await signIn();
+                        if (success) {
+                            setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
+                        }
+                    } catch (error) {
+                        setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
+                    }
+                } else {
+                    setCurrentPage('settings');
+                }
+            }}
+        />
 
-                        {/* Navigation */}
-                        <Navigation 
-                            currentPage={currentPage}
+        {/* Contenu principal de la page avec marges pour ne pas être caché par les barres */}
+        <main className="p-4 pb-24">
+            <div className="max-w-6xl mx-auto">
+                <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                    {currentPage === 'home' && (
+                        <HomePage 
+                            currentUser={currentUser}
+                            onUserChange={setCurrentUser}
+                            onPageChange={setCurrentPage}
+                        />
+                    )}
+                    {currentPage === 'games' && (
+                        <GamesPage 
                             currentUser={currentUser}
                             onPageChange={setCurrentPage}
-                            onUserChange={setCurrentUser}
-                            onBack={currentPage !== 'home' ? () => setCurrentPage('home') : null}
-                            googleStatus={{ 
-                                isConnected: isConnected, 
-                                isLoading: isLoading,
-                                userInfo: userInfo
-                            }}
-                            onGoogleAction={async () => {
-                                if (!isConnected && !isLoading) {
-                                    // Si pas connecté, tenter la connexion directement
-                                    try {
-                                        const success = await signIn();
-                                        if (success) {
-                                            setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
-                                        }
-                                    } catch (error) {
-                                        setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
-                                    }
-                                } else {
-                                    // Si connecté, aller aux réglages pour voir les détails/se déconnecter
-                                    setCurrentPage('settings');
-                                }
-                            }}
-                            onGoogleDisconnect={async () => {
-                                // Callback appelé après déconnexion pour forcer la mise à jour
-                                try {
-                                    await signOut();
-                                    setToast({ message: "Déconnexion réussie", type: 'success' });
-                                } catch (error) {
-                                    setToast({ message: "Erreur de déconnexion", type: 'error' });
-                                }
+                            onGameSelect={(game) => {
+                                window.pendingGameSession = { game, user: currentUser };
+                                setCurrentPage('chat');
                             }}
                         />
-
-                        {/* Main Content */}
-                        <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                            {currentPage === 'home' && (
-                                <HomePage 
-                                    currentUser={currentUser}
-                                    onUserChange={setCurrentUser}
-                                    onPageChange={setCurrentPage}
-                                />
-                            )}
-                            {currentPage === 'games' && (
-                                <GamesPage 
-                                    currentUser={currentUser}
-                                    onPageChange={setCurrentPage}
-                                    onGameSelect={(game) => {
-                                        window.pendingGameSession = { game, user: currentUser };
-                                        setCurrentPage('chat');
-                                    }}
-                                />
-                            )}
-                            {currentPage === 'sessions' && (
-                                <SessionsPage 
-                                    currentUser={currentUser} 
-                                    onPageChange={setCurrentPage}
-                                    onSessionSelect={handleSessionSelect}
-                                />
-                            )}
-                            {currentPage === 'chat' && (
-                                <ChatPage 
-                                    currentUser={currentUser}
-                                    currentSession={currentChatSession}
-                                    onUpdateSession={handleUpdateSession}
-                                    onBackToSessions={handleBackToSessions}
-                                />
-                            )}
-                            {currentPage === 'memories' && (
-                                <MemoriesPage 
-                                    currentUser={currentUser}
-                                    onCreateSession={(page) => {
-                                        setCurrentPage(page);
-                                    }}
-                                />
-                            )}
-                            {currentPage === 'settings' && (
-                                <SettingsPage 
-                                    onReset={resetApp}
-                                    googleAuth={{
-                                        isConnected: isConnected,
-                                        isLoading: isLoading,
-                                        userInfo: userInfo,
-                                        signIn: signIn,
-                                        signOut: signOut
-                                    }}
-                                    onGoogleDisconnect={async () => {
-                                        await signOut();
-                                        setToast({ message: "Déconnexion réussie", type: 'success' });
-                                    }}
-                                />
-                            )}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="text-center mt-6 text-amber-700 text-sm">
-                            <p>Un voyage, deux mémoires, mille souvenirs</p>
-                            <p className="text-xs opacity-75 mt-1">
-                                Sessions/Chat séparés • Module Mastodon fonctionnel
-                            </p>
-                        </div>
-                    </div>
-                    
-                    {/* Le composant Toast est ajouté ici */}
-                    <Toast 
-                        message={toast.message} 
-                        type={toast.type} 
-                        onDismiss={() => setToast({ message: '', type: '' })} 
-                    />
+                    )}
+                    {currentPage === 'sessions' && (
+                        <SessionsPage 
+                            currentUser={currentUser} 
+                            onPageChange={setCurrentPage}
+                            onSessionSelect={handleSessionSelect}
+                        />
+                    )}
+                    {currentPage === 'chat' && (
+                        <ChatPage 
+                            currentUser={currentUser}
+                            currentSession={currentChatSession}
+                            onUpdateSession={handleUpdateSession}
+                            onBackToSessions={handleBackToSessions}
+                        />
+                    )}
+                    {currentPage === 'memories' && (
+                        <MemoriesPage 
+                            currentUser={currentUser}
+                            onCreateSession={(page) => {
+                                setCurrentPage(page);
+                            }}
+                        />
+                    )}
+                    {currentPage === 'settings' && (
+                        <SettingsPage 
+                            onReset={resetApp}
+                            googleAuth={{
+                                isConnected: isConnected,
+                                isLoading: isLoading,
+                                userInfo: userInfo,
+                                signIn: signIn,
+                                signOut: signOut
+                            }}
+                            onGoogleDisconnect={async () => {
+                                await signOut();
+                                setToast({ message: "Déconnexion réussie", type: 'success' });
+                            }}
+                        />
+                    )}
                 </div>
-            );
+            </div>
+        </main>
+        
+        {/* Barre de navigation du bas, toujours visible */}
+        <BottomNavBar
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            currentUser={currentUser}
+        />
+
+        {/* Le composant Toast pour les notifications */}
+        <Toast 
+            message={toast.message} 
+            type={toast.type} 
+            onDismiss={() => setToast({ message: '', type: '' })} 
+        />
+    </div>
+);
+                
         };
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
