@@ -1,9 +1,9 @@
-e<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.16 Session : nouvelle logique </title>
+    <title>🐘 Mémoire du Mékong V0.4.17 Session : suppression fleche </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1630,13 +1630,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                        <button
-                            onClick={onBackToSessions}
-                            className="p-1 hover:bg-amber-200 rounded"
-                            title="Retour aux sessions"
-                        >
-                            <ArrowLeft className="w-5 h-5 text-amber-700" />
-                        </button>
                         {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
                         <div>
                             {/* TITRE ÉDITABLE */}
@@ -1686,10 +1679,10 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                         </div>
                     </div>
                     
-                    {/* Menu session - NOUVELLE LOGIQUE */}
+                    {/* Menu session - VERSION ÉPURÉE */}
                     <div className="flex items-center space-x-2">
                         {/* Bouton d'invitation selon l'utilisateur actuel */}
-                        {currentUser !== 'duo' && currentSession.status !== 'completed' && (
+                        {currentUser !== 'duo' && (
                             <button
                                 onClick={inviteOtherUser}
                                 className={`p-2 text-white rounded-lg text-xs flex items-center space-x-1 transition-colors ${
@@ -1705,6 +1698,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                                 </span>
                             </button>
                         )}
+                    </div>
                         
                         {/* Statut "en attente de..." si applicable */}
                         {currentSession.status === 'pending' && currentSession.lastPingBy && (
