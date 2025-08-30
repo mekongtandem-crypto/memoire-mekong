@@ -905,6 +905,52 @@ const useGoogleAuth = () => {
                 setUserInfo({
                     name: profile.name,
                     email: profile.email,
+                    picture: profile.picture
+                });
+                setIsConnected(true);
+                setShouldForceConnection(false);
+                console.log('Connexion réussie:', profile.name);
+                return true;
+            } else {
+                throw new Error('Échec de la connexion Google Drive');
+            }
+        } catch (error) {
+            console.error('Erreur connexion:', error);
+            setIsConnected(false);
+            setUserInfo(null);
+            alert(`Erreur de connexion: ${error.message}`);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const signOut = async () => {
+        setIsLoading(true); // Afficher le loading pendant la déconnexion
+        
+        try {
+            const token = gapi.client.getToken();
+            if (token) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken('');
+            }
+            await GoogleDriveAPI.signOut();
+            
+            // Forcer la mise à jour des états
+            setIsConnected(false);
+            setUserInfo(null);
+            setShouldForceConnection(true);
+            
+            console.log('✅ Déconnexion réussie');
+        } catch (error) {
+            console.error('Erreur déconnexion:', error);
+        } finally {
+            setIsLoading(false); // Arrêter le loading
+        }
+    };
+
+    return { isConnected, isLoading, userInfo, shouldForceConnection, signIn, signOut };
+};
 
         // ===== NAVIGATION COMPONENT =====
 const Navigation = ({ currentPage, currentUser, onPageChange, onUserChange, onBack, googleStatus, onGoogleAction }) => (
