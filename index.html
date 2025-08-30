@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.13 icone user dans sessions </title>
+    <title>🐘 Mémoire du Mékong V0.4.14 session Mastodon text en msq duo </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.13'
+                version: '0.4.14'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -775,7 +775,7 @@ const CloudSessionStorage = {
             return GAMES.find(g => g.id === gameId);
         };
 
-// ===== SESSION HOOKS (LÉGÈRE MODIFICATION) =====
+// ===== SESSION HOOKS - createSession MODIFIÉE =====
 const useSessionState = () => {
     const [currentSession, setCurrentSession] = React.useState(null);
     const [sessions, setSessions] = React.useState([]);
@@ -796,20 +796,34 @@ const useSessionState = () => {
             return;
         }
 
+        // NOUVEAU : Préparer le premier message si on a un contenu de post
+        const postContent = window.pendingGameSession?.postChapo;
+        const initialNotes = [];
+        
+        if (postContent && postContent.trim()) {
+            // Ajouter le contenu du post comme premier message du "duo"
+            initialNotes.push({
+                id: Date.now() - 1, // ID légèrement antérieur pour être sûr qu'il soit en premier
+                content: postContent.trim(),
+                author: 'duo',
+                timestamp: new Date().toISOString()
+            });
+            console.log('Premier message ajouté depuis post:', postContent.slice(0, 100) + '...');
+        }
+
         const newSession = {
             id: Date.now(),
-            gameId: Number(game.id), // S'assurer que c'est un nombre
+            gameId: Number(game.id),
             gameTitle: game.title || 'Titre inconnu',
             gameDescription: game.description || 'Description inconnue',
             gameDuration: game.duration || 'Durée inconnue',
-            postChapo: window.pendingGameSession?.postChapo || null, // Chapo du post
+            postChapo: postContent || null,
             user: user,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             status: 'active',
-            notes: [], // S'assurer que notes est toujours un tableau
+            notes: initialNotes, // MODIFIÉ : Contient le message du post si présent
             participants: [user]
-            // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
         };
 
         console.log('Nouvelle session créée:', newSession);
@@ -833,7 +847,6 @@ const useSessionState = () => {
             notes: updatedSession.notes || [],
             updatedAt: new Date().toISOString()
         };
-        // Lève une erreur si le cloud échoue, qui sera attrapée par l'UI
         await CloudSessionStorage.saveSession(sessionToSave);
         const newSessions = await CloudSessionStorage.getSessions();
         setSessions(newSessions);
@@ -858,11 +871,11 @@ const useSessionState = () => {
             console.error('Erreur sync:', error);
             throw error;
         }
-    }, []); // Pas de dépendances pour éviter la boucle
+    }, []);
 
     return {
         currentSession, setCurrentSession,
-        sessions, setSessions, // On expose setSessions
+        sessions, setSessions,
         createSession,
         updateSession,
         deleteSession,
@@ -1721,14 +1734,21 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                             const isEditing = editingMessage === message.id;
                             
                             const getBubbleStyle = (author) => {
-                                if (author === 'tom') return 'bg-blue-500 text-white';
-                                if (author === 'lambert') return 'bg-green-500 text-white'; 
-                                return 'bg-amber-500 text-white';
-                            };
+    if (author === 'tom') return 'bg-blue-500 text-white';
+    if (author === 'lambert') return 'bg-green-500 text-white'; 
+    if (author === 'duo') return 'bg-amber-500 text-white'; // NOUVEAU : Style spécial pour duo
+    return 'bg-gray-500 text-white'; // Fallback
+};
 
                             return (
-                                <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[75%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
+                                <div key={message.id} className={`flex ${
+    								message.author === 'duo' ? 'justify-center' : 
+    								isOwnMessage ? 'justify-end' : 'justify-start'
+								}`}>
+                                    <div className={`max-w-[75%] ${
+    									message.author === 'duo' ? '' : 
+    									isOwnMessage ? 'order-2' : 'order-1'
+									}`}>
                                         <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
                                             {isEditing ? (
                                                 <div className="space-y-2">
