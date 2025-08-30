@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.8b bouton Connect</title>
+    <title>🐘 Mémoire du Mékong V0.4.8c bouton Connect</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -346,7 +346,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.8b'
+                version: '0.4.8c'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -801,11 +801,16 @@ const useSessionState = () => {
         }
     };
     
-    const syncSessions = async () => {
-        const syncedSessions = await CloudSessionStorage.forceSyncFromCloud();
-        setSessions(syncedSessions);
-        return syncedSessions;
-    };
+    const syncSessions = React.useCallback(async () => {
+        try {
+            const syncedSessions = await CloudSessionStorage.forceSyncFromCloud();
+            setSessions(syncedSessions);
+            return syncedSessions;
+        } catch (error) {
+            console.error('Erreur sync:', error);
+            throw error;
+        }
+    }, []); // Pas de dépendances pour éviter la boucle
 
     return {
         currentSession, setCurrentSession,
@@ -912,16 +917,27 @@ const useGoogleAuth = () => {
     };
 
     const signOut = async () => {
-        const token = gapi.client.getToken();
-        if (token) {
-            google.accounts.oauth2.revoke(token.access_token);
-            gapi.client.setToken('');
+        setIsLoading(true); // Afficher le loading pendant la déconnexion
+        
+        try {
+            const token = gapi.client.getToken();
+            if (token) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken('');
+            }
+            await GoogleDriveAPI.signOut();
+            
+            // Forcer la mise à jour des états
+            setIsConnected(false);
+            setUserInfo(null);
+            setShouldForceConnection(true);
+            
+            console.log('✅ Déconnexion réussie');
+        } catch (error) {
+            console.error('Erreur déconnexion:', error);
+        } finally {
+            setIsLoading(false); // Arrêter le loading
         }
-        await GoogleDriveAPI.signOut();
-        setIsConnected(false);
-        setUserInfo(null);
-        setShouldForceConnection(true);
-        console.log('Déconnexion réussie');
     };
 
     return { isConnected, isLoading, userInfo, shouldForceConnection, signIn, signOut };
@@ -2227,18 +2243,33 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
 
             // Synchronisation automatique au chargement et lors de la connexion
             React.useEffect(() => {
+                let isMounted = true; // Éviter les appels après unmount
+                
                 const autoSync = async () => {
-                    if (isConnected) {
+                    if (isConnected && !isLoading) {
                         try {
-                            console.log('🔄 Tentative de synchronisation automatique...');
-                            await syncSessions();
+                            console.log('🔄 Synchronisation automatique...');
+                            if (isMounted) {
+                                await syncSessions();
+                                console.log('✅ Synchronisation terminée');
+                            }
                         } catch (error) {
-                            setToast({ message: "Échec de la synchronisation automatique.", type: 'error' });
+                            console.warn('⚠️ Sync auto échouée:', error.message);
+                            if (isMounted) {
+                                setToast({ message: "Synchronisation automatique échouée", type: 'error' });
+                            }
                         }
                     }
                 };
-                autoSync();
-            }, [isConnected, syncSessions]);
+
+                // Délai pour éviter les appels trop fréquents
+                const timeoutId = setTimeout(autoSync, 500);
+                
+                return () => {
+                    isMounted = false;
+                    clearTimeout(timeoutId);
+                };
+            }, [isConnected, isLoading]); // Retirer syncSessions des dépendances
 
             // Gérer la création automatique de session depuis les jeux/mémoires
             React.useEffect(() => {
@@ -2285,7 +2316,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.8b bouton Connect</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.8c bouton Connect</p>
                         </div>
 
                         {/* Navigation */}
