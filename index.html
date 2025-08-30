@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.14 session Mastodon text en msq duo </title>
+    <title>🐘 Mémoire du Mékong V0.4.14b session Mastodon text en msq duo </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.14'
+                version: '0.4.14b'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -1672,11 +1672,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                                 </button>
                             )}
                             
-                            {currentSession.postChapo && (
-                                <p className="text-sm text-amber-700 mt-1 italic">
-                                    "{currentSession.postChapo}"
-                                </p>
-                            )}
                             <div className="text-xs text-amber-600">
                                 {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
                             </div>
