@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.2 (modifications) </title>
+    <title>🐘 Mémoire du Mékong V0.5.2b import de post Mastodon </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -159,6 +159,10 @@
                     throw error;
                 }
             },
+			savePosts: (posts) => {
+            	Storage.set('mastodon_posts', posts);
+            	Storage.set('mastodon_imported_at', new Date().toISOString());
+        	},
             getPosts: () => Storage.get('mastodon_posts', []),
             getPostByDay: (dayNumber) => MastodonData.getPosts().find(p => p.dayNumber === dayNumber),
             isImported: () => MastodonData.getPosts().length > 0,
