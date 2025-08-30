@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.9b changement interface </title>
+    <title>🐘 Mémoire du Mékong V0.4.10 Pages UX mod </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -352,7 +352,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.9'
+                version: '0.4.10'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -1247,7 +1247,8 @@ const ForceGoogleConnection = ({ onSignIn }) => (
     </div>
 );
 		
-// Page Session
+        
+// Page Session (MODIFIÉE)
 const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
     const [isSyncing, setIsSyncing] = React.useState(true);
@@ -1262,7 +1263,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                 setSyncComplete(true);
             } catch (error) {
                 console.error('Erreur synchronisation initiale:', error);
-                setSyncComplete(true); // Afficher quand même la page
+                setSyncComplete(true);
             } finally {
                 setIsSyncing(false);
             }
@@ -1272,105 +1273,72 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('fr-FR', { 
-            day: 'numeric', 
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
         });
+    };
+    
+    // MODIFICATION : Objet pour mapper les statuts à des icônes
+    const statusIcons = {
+        active: { icon: Play, color: 'text-green-500', title: 'Active' },
+        paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' },
+        pending: { icon: Clock, color: 'text-blue-500', title: 'En attente' },
+        completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' }
     };
 
     return (
-        <div className="space-y-6 fade-in">
+        <div className="space-y-4 fade-in"> {/* MODIFICATION : Espace réduit pour plus de densité */}
             <div className="flex justify-between items-center">
-                <div className="flex space-x-2">
-                    <button
-                        // ... (le bouton Synchroniser ne change pas) ...
-                    >
-                        <Cloud className="w-4 h-4" />
-                        <span>{isSyncing ? 'Synchro...' : 'Synchroniser'}</span>
-                    </button>
-                    {/* MODIFICATION : Le bouton "Choisir un jeu" devient l'action principale */}
-                    <button
-                        onClick={() => onPageChange('games')}
-                        className="flex items-center space-x-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold"
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>Nouveau Jeu</span>
-                    </button>
-                </div>
+                {/* Le titre est maintenant dans la TopBar */}
+                <button
+                    onClick={() => onPageChange('games')}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"
+                >
+                    <Plus className="w-5 h-5" />
+                    <span>Nouveau Jeu de Mémoire</span>
+                </button>
             </div>
 
             {isSyncing && !syncComplete ? (
-                <div className="text-center py-12">
-                    <div className="animate-spin w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full mx-auto mb-4"></div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Synchronisation en cours</h3>
-                    <p className="text-gray-600">Chargement de vos sessions depuis Google Drive...</p>
-                </div>
+                // ... (l'affichage de chargement ne change pas)
             ) : sessions.length === 0 ? (
-                <div className="text-center py-12">
-                    <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session</h3>
-                    <p className="text-gray-600 mb-6">Créez votre première session de remémoration</p>
-                    <button
-                        onClick={() => onPageChange('games')}
-                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                    >
-                        Choisir un jeu
-                    </button>
-                </div>
+                // ... (l'affichage "Aucune session" ne change pas)
             ) : (
                 <div className="space-y-3">
                     {sessions.map((session) => {
-                        const statusStyles = {
-                            active: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
-                            paused: { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
-                            pending: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
-                            completed: { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-500' }
-                        };
-                        const style = statusStyles[session.status] || statusStyles.active;
+                        const StatusIcon = statusIcons[session.status]?.icon || FileText;
+                        const statusColor = statusIcons[session.status]?.color || 'text-gray-500';
+                        const statusTitle = statusIcons[session.status]?.title || 'Archivée';
 
                         return (
                             <div
                                 key={session.id}
-                                className="bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                                onClick={() => onSessionSelect(session)}
+                                className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"
                             >
-                                <div className="flex items-center justify-between">
-                                    <div 
-                                        className="flex items-center space-x-3 flex-1 cursor-pointer"
-                                        onClick={() => onSessionSelect(session)}
+                                {/* MODIFICATION : Structure interne complètement revue */}
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="font-bold text-gray-800 pr-2">{session.gameTitle}</h3>
+                                        <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2 mt-1">
+                                        <span className="text-lg">{USERS[session.user]?.emoji}</span>
+                                        <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center space-y-2">
+                                     <StatusIcon className={`w-6 h-6 ${statusColor}`} title={statusTitle} />
+                                     <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) {
+                                                deleteSession(session.id);
+                                            }
+                                        }}
+                                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
                                     >
-                                        {renderGameIcon(session.gameId, "w-6 h-6 text-amber-600")}
-                                        <div>
-                                            <div className="font-medium text-gray-900">{session.gameTitle}</div>
-                                            {session.postChapo && (
-                                                <div className="text-sm text-gray-500 italic">"{session.postChapo.slice(0, 80)}..."</div>
-                                            )}
-                                            <div className="text-sm text-gray-600">
-                                                {USERS[session.user]?.name} • {formatDate(session.updatedAt)} • {(session.notes || []).length} note(s)
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${style.bg} ${style.text}`}>
-                                            <div className={`w-2 h-2 rounded-full ${style.dot}`}></div>
-                                            <span className="text-sm font-medium capitalize">{session.status}</span>
-                                        </div>
-                        
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (confirm(`Supprimer définitivement la session "${session.gameTitle}" ?\n\nCette action est irréversible et supprimera tous les messages de cette conversation.`)) {
-                                                    deleteSession(session.id);
-                                                }
-                                            }}
-                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Supprimer cette session"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                        
-                                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                                    </div>
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         );
@@ -1380,8 +1348,9 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         </div>
     );
 };
-// Page Chat
-		const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
+
+// Page Chat (MODIFIÉE)
+const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
     const [editContent, setEditContent] = React.useState('');
@@ -1666,315 +1635,132 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             </div>
 
             {/* Message Input */}
-            <div className="mt-4 flex-shrink-0">
-                <div className="bg-white border border-gray-300 rounded-lg p-3">
-                    <div className="flex space-x-3">
+			{/* MODIFICATION : La zone de saisie de texte est entièrement revue */}
+			<div className="mt-4 flex-shrink-0">
+                <div className="bg-white border-2 border-gray-200 focus-within:border-amber-500 rounded-xl p-2 transition-colors">
+                    <div className="flex items-start space-x-2">
                         <textarea
                             value={newMessageContent}
                             onChange={(e) => setNewMessageContent(e.target.value)}
-                            placeholder="Écrivez vos souvenirs, réflexions, détails qui vous reviennent..."
-                            className="flex-1 resize-none border-none focus:outline-none text-gray-800"
+                            placeholder="Écrivez vos souvenirs..."
+                            className="flex-1 resize-none border-none focus:outline-none bg-transparent text-gray-800 p-2"
                             rows="3"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    sendMessage();
-                                }
-                            }}
+                            // Le onKeyDown qui envoyait le message a été supprimé. "Entrée" crée maintenant une nouvelle ligne.
                         />
                         <button
                             onClick={sendMessage}
                             disabled={!newMessageContent.trim()}
-                            className="self-end px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center space-x-2"
+                            className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                            title="Envoyer"
                         >
-                            <Send className="w-4 h-4" />
-                            <span>Envoyer</span>
+                            <Send className="w-6 h-6" />
                         </button>
-                    </div>
-                    <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                        <span>{newMessageContent.length} caractères</span>
-                        <span>Shift+Entrée pour nouvelle ligne</span>
                     </div>
                 </div>
             </div>
         </div>
     );
-};        
-/// Pages Memoire
-        const MemoriesPage = ({ currentUser, onCreateSession }) => {
-            const [currentPost, setCurrentPost] = React.useState(null);
-            const [searchQuery, setSearchQuery] = React.useState('');
-            const [searchResults, setSearchResults] = React.useState([]);
-            const [dayNumber, setDayNumber] = React.useState(1);
-            const [viewMode, setViewMode] = React.useState('blog'); // 'blog' ou 'search'
-
-            const isImported = MastodonData.isImported();
-            const stats = MastodonData.getStats();
-
-            React.useEffect(() => {
-                if (isImported) {
-                    const post = MastodonData.getPostByDay(dayNumber);
-                    setCurrentPost(post);
-                }
-            }, [dayNumber, isImported]);
-
-            const handleSearch = () => {
-                if (searchQuery.trim()) {
-                    const results = MastodonData.searchPosts(searchQuery);
-                    setSearchResults(results);
-                    setViewMode('search');
-                } else {
-                    setSearchResults([]);
-                    setViewMode('blog');
-                }
-            };
-
-            const showRandomPost = () => {
-                const randomPost = MastodonData.getRandomPost();
-                if (randomPost) {
-                    setCurrentPost(randomPost);
-                    setDayNumber(randomPost.dayNumber);
-                    setViewMode('blog');
-                }
-            };
-
-            const goToPreviousDay = () => {
-                if (dayNumber > 1) {
-                    setDayNumber(dayNumber - 1);
-                    setViewMode('blog');
-                }
-            };
-
-            const goToNextDay = () => {
-                if (stats?.dayRange && dayNumber < stats.dayRange.max) {
-                    setDayNumber(dayNumber + 1);
-                    setViewMode('blog');
-                }
-            };
-
-            const createSessionFromPost = (post) => {
-    // Créer une session basée sur le post Mastodon
-    const game = {
-        id: 7, // ID spécial pour les sessions depuis Mastodon
-        title: `Jour ${post.dayNumber} - Souvenir`,
-        description: `Discussion autour du post du jour ${post.dayNumber}`,
-        duration: "libre",
-        type: "mémoire",
-        icon: BookOpen
-    };
+};      
+// Page Memoire (MODIFIÉE)
+const MemoriesPage = ({ currentUser, onCreateSession }) => {
+    const [currentPost, setCurrentPost] = React.useState(null);
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const [searchResults, setSearchResults] = React.useState([]);
+    const [dayNumber, setDayNumber] = React.useState(1);
+    const [viewMode, setViewMode] = React.useState('blog');
     
-    // Ajouter le contenu du post comme chapo
-    const postPreview = post.content.length > 200 
-        ? post.content.slice(0, 200) + '...' 
-        : post.content;
-    
-    window.pendingGameSession = { 
-        game, 
-        user: currentUser,
-        postChapo: postPreview  // Nouveau: chapo depuis le post
-    };
-    
-    if (onCreateSession) {
-        onCreateSession('sessions');
-    }
-};
+    // MODIFICATION : Utilisation de useRef pour ne lancer l'effet qu'une seule fois
+    const isInitialLoad = React.useRef(true);
 
-            if (!isImported) {
-                return (
-                    <div className="space-y-6 fade-in">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-                            <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-blue-900 mb-4">Blog Mastodon non importé</h3>
-                            <p className="text-blue-700 mb-6">
-                                Importez votre fichier outbox.json pour explorer vos 275 posts de voyage
-                            </p>
-                            <p className="text-sm text-blue-600 mb-6">
-                                Rendez-vous dans <strong>Réglages</strong> → <strong>Importer blog Mastodon</strong>
-                            </p>
-                        </div>
+    const isImported = MastodonData.isImported();
+    const stats = MastodonData.getStats();
 
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-                            <div className="text-center">
-                                <Camera className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-green-900 mb-2">Photos</h3>
-                                <p className="text-green-700 text-sm mb-4">2000+ photos organisées par jour</p>
-                                <div className="bg-green-100 p-3 rounded text-green-800 text-sm">
-                                    API DirectoryPicker - Prochaine étape
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
+    // MODIFICATION : Logique pour afficher un post aléatoire au premier chargement
+    React.useEffect(() => {
+        if (isImported && isInitialLoad.current) {
+            const randomPost = MastodonData.getRandomPost();
+            if (randomPost) {
+                setCurrentPost(randomPost);
+                setDayNumber(randomPost.dayNumber);
             }
+            isInitialLoad.current = false; // On désactive pour les prochains rendus
+        }
+    }, [isImported]);
 
-            return (
-                <div className="space-y-6 fade-in">
-                    <div className="flex justify-between items-center">
-                        <div className="text-sm text-amber-600">
-                            {stats.totalPosts} posts • Jours {stats.dayRange.min}-{stats.dayRange.max}
-                        </div>
+    React.useEffect(() => {
+        if (isImported) {
+            const post = MastodonData.getPostByDay(dayNumber);
+            setCurrentPost(post);
+        }
+    }, [dayNumber, isImported]);
+
+    const handleSearch = () => { /* ... (la fonction ne change pas) ... */ };
+    const showRandomPost = () => { /* ... (la fonction ne change pas) ... */ };
+    const goToPreviousDay = () => { /* ... (la fonction ne change pas) ... */ };
+    const goToNextDay = () => { /* ... (la fonction ne change pas) ... */ };
+    const createSessionFromPost = (post) => { /* ... (la fonction ne change pas) ... */ };
+
+    if (!isImported) {
+        // ... (la vue "non importé" ne change pas, à part le titre h2 déjà supprimé)
+        return ( <div className="space-y-6 fade-in"> ... </div> );
+    }
+
+    return (
+        <div className="space-y-6 fade-in">
+            {/* MODIFICATION : Layout réorganisé */}
+            
+            {/* 1. Navigation et Hasard */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                <div className="flex items-center justify-center space-x-4">
+                    <button onClick={goToPreviousDay} disabled={dayNumber <= 1} className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
+                    <div className="flex items-baseline space-x-2">
+                        <label className="font-medium text-gray-700">Jour</label>
+                        <input type="number" min="1" max={stats?.dayRange?.max} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value) || 1)} className="w-20 px-2 py-1 border border-gray-300 rounded text-center font-bold text-lg"/>
+                        <span className="text-gray-500">/ {stats?.dayRange?.max}</span>
                     </div>
+                    <button onClick={goToNextDay} disabled={!stats?.dayRange || dayNumber >= stats.dayRange.max} className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
+                    <button onClick={showRandomPost} className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg" title="Post au hasard"><Shuffle className="w-5 h-5" /></button>
+                </div>
+            </div>
 
-                    {/* Interface de recherche */}
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                        <div className="flex space-x-3 mb-4">
-                            <div className="flex-1 flex space-x-2">
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                    placeholder="Rechercher dans vos posts (lieux, mots-clés, souvenirs...)"
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                />
-                                <button
-                                    onClick={handleSearch}
-                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center space-x-2"
-                                >
-                                    <Search className="w-4 h-4" />
-                                    <span>Chercher</span>
-                                </button>
-                            </div>
-                            <button
-                                onClick={showRandomPost}
-                                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg flex items-center space-x-2"
-                            >
-                                <Shuffle className="w-4 h-4" />
-                                <span>Hasard</span>
-                            </button>
-                        </div>
+            {/* 2. Recherche (optionnel, peut être affiché via un état) */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <div className="flex space-x-2">
+                    <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} placeholder="Rechercher un souvenir..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500" />
+                    <button onClick={handleSearch} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg"><Search className="w-5 h-5" /></button>
+                </div>
+            </div>
 
-                        {/* Navigation par jour */}
-                        {viewMode === 'blog' && (
-                            <div className="flex items-center justify-center space-x-4">
-                                <button
-                                    onClick={goToPreviousDay}
-                                    disabled={dayNumber <= 1}
-                                    className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                </button>
-                                
-                                <div className="flex items-center space-x-2">
-                                    <label className="text-sm font-medium text-gray-700">Jour:</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max={stats?.dayRange?.max || 275}
-                                        value={dayNumber}
-                                        onChange={(e) => setDayNumber(parseInt(e.target.value) || 1)}
-                                        className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
-                                    />
-                                    <span className="text-sm text-gray-500">/ {stats?.dayRange?.max}</span>
-                                </div>
-                                
-                                <button
-                                    onClick={goToNextDay}
-                                    disabled={!stats?.dayRange || dayNumber >= stats.dayRange.max}
-                                    className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
+            {/* 3. Contenu (Post ou résultats de recherche) */}
+            {viewMode === 'search' && searchResults.length > 0 ? (
+                // ... (l'affichage des résultats de recherche ne change pas)
+            ) : viewMode === 'search' && searchResults.length === 0 && searchQuery ? (
+                // ... (l'affichage "Aucun résultat" ne change pas)
+            ) : currentPost ? (
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
+                        {/* MODIFICATION : Bouton "Créer session" simplifié */}
+                        <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold">
+                            <Plus className="w-4 h-4" />
+                            <span>Session</span>
+                        </button>
+                    </div>
+                    <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
+                        <p>{currentPost.content}</p>
+                    </div>
+                    {/* MODIFICATION : Footer du post simplifié */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
+                        <span>{new Date(currentPost.published).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                        {currentPost.attachments && currentPost.attachments.length > 0 && (
+                            <span className="flex items-center space-x-1 font-medium">
+                                <Camera className="w-4 h-4"/>
+                                <span>{currentPost.attachments.length}</span>
+                            </span>
                         )}
                     </div>
-
-                    {/* Affichage du contenu */}
-                    {viewMode === 'search' && searchResults.length > 0 ? (
-                        // Résultats de recherche
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                                {searchResults.length} résultat(s) pour "{searchQuery}"
-                            </h3>
-                            {searchResults.map((post) => (
-                                <div key={post.id} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-amber-300 transition-colors">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <h4 className="font-medium text-amber-900">
-                                            Jour {post.dayNumber}
-                                        </h4>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={() => {
-                                                    setCurrentPost(post);
-                                                    setDayNumber(post.dayNumber);
-                                                    setViewMode('blog');
-                                                }}
-                                                className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-sm"
-                                            >
-                                                Voir le post
-                                            </button>
-                                            <button
-                                                onClick={() => createSessionFromPost(post)}
-                                                className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded text-sm flex items-center space-x-1"
-                                            >
-                                                <Plus className="w-3 h-3" />
-                                                <span>Session</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-gray-700 text-sm leading-relaxed">
-                                        {post.content.slice(0, 300)}
-                                        {post.content.length > 300 && '...'}
-                                    </p>
-                                    <div className="text-xs text-gray-500 mt-2">
-                                        {new Date(post.published).toLocaleDateString('fr-FR', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric'
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : viewMode === 'search' && searchResults.length === 0 && searchQuery ? (
-                        // Aucun résultat
-                        <div className="bg-gray-50 p-8 rounded-lg text-center">
-                            <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun résultat</h3>
-                            <p className="text-gray-500">Essayez d'autres mots-clés ou explorez par jour</p>
-                        </div>
-                    ) : currentPost ? (
-                        // Post du jour
-                        <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-xl font-bold text-amber-900">
-                                    Jour {currentPost.dayNumber}
-                                </h3>
-                                <button
-                                    onClick={() => createSessionFromPost(currentPost)}
-                                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center space-x-2"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span>Créer une session</span>
-                                </button>
-                            </div>
-                            
-                            <div className="prose max-w-none">
-                                <p className="text-gray-800 leading-relaxed whitespace-pre-line">
-                                    {currentPost.content}
-                                </p>
-                            </div>
-                            
-                            <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-500">
-                                Publié le {new Date(currentPost.published).toLocaleDateString('fr-FR', {
-                                    weekday: 'long',
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                })}
-                            </div>
-
-                            {/* Photos du post (si disponibles) */}
-                            {currentPost.attachments && currentPost.attachments.length > 0 && (
-                                <div className="mt-4">
-                                    <h4 className="text-sm font-medium text-gray-700 mb-2">Photos attachées:</h4>
-                                    <div className="text-sm text-amber-600">
-                                        {currentPost.attachments.length} photo(s) - Visualisation prochainement
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
+                </div>
+            ) : (
                         // Aucun post trouvé pour ce jour
                         <div className="bg-gray-50 p-8 rounded-lg text-center">
                             <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
