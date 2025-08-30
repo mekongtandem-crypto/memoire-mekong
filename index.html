@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.8g bouton Connect</title>
+    <title>🐘 Mémoire du Mékong V0.4.8h alleger l'affichage des conversations</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1644,88 +1644,87 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         <p className="text-sm">Commencez la conversation en écrivant vos souvenirs !</p>
                     </div>
                 ) : (
-                    (currentSession.notes || []).map((message) => {
-                        const isOwnMessage = message.author === currentUser;
-                        const isEditing = editingMessage === message.id;
-                        
-                        const getBubbleStyle = (author) => {
-                            if (author === 'tom') return 'bg-blue-500 text-white';
-                            if (author === 'lambert') return 'bg-green-500 text-white'; 
-                            return 'bg-amber-500 text-white';
-                        };
+                    <>
+                        {/* Participants en haut une seule fois */}
+                        <div className="text-center py-2 border-b border-gray-200 mb-4">
+                            <div className="text-sm text-gray-600">
+                                Conversation entre <span className="font-medium text-blue-700">{USERS.tom?.name}</span> et <span className="font-medium text-green-700">{USERS.lambert?.name}</span>
+                            </div>
+                        </div>
 
-                        return (
-                            <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[70%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
-                                    {!isOwnMessage && (
-                                        <div className="text-xs text-gray-500 mb-1 px-3">
-                                            {USERS[message.author]?.name}
-                                        </div>
-                                    )}
-                                    
-                                    <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
-                                        {isEditing ? (
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    value={editContent}
-                                                    onChange={(e) => setEditContent(e.target.value)}
-                                                    className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none"
-                                                    rows="3"
-                                                    autoFocus
-                                                />
-                                                <div className="flex space-x-2">
-                                                    <button
-                                                        onClick={() => saveEditMessage(message.id)}
-                                                        className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium"
-                                                    >
-                                                        Sauver
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelEdit}
-                                                        className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium"
-                                                    >
-                                                        Annuler
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                                    {message.content}
-                                                </p>
-                                                {message.edited && (
-                                                    <span className="text-xs opacity-70 italic">modifié</span>
-                                                )}
-                                                
-                                                {isOwnMessage && (
-                                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {(currentSession.notes || []).map((message) => {
+                            const isOwnMessage = message.author === currentUser;
+                            const isEditing = editingMessage === message.id;
+                            
+                            const getBubbleStyle = (author) => {
+                                if (author === 'tom') return 'bg-blue-500 text-white';
+                                if (author === 'lambert') return 'bg-green-500 text-white'; 
+                                return 'bg-amber-500 text-white';
+                            };
+
+                            return (
+                                <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[75%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
+                                        <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
+                                            {isEditing ? (
+                                                <div className="space-y-2">
+                                                    <textarea
+                                                        value={editContent}
+                                                        onChange={(e) => setEditContent(e.target.value)}
+                                                        className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none"
+                                                        rows="3"
+                                                        autoFocus
+                                                    />
+                                                    <div className="flex space-x-2">
                                                         <button
-                                                            onClick={() => startEditMessage(message)}
-                                                            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs"
-                                                            title="Modifier"
+                                                            onClick={() => saveEditMessage(message.id)}
+                                                            className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium"
                                                         >
-                                                            <Edit className="w-3 h-3" />
+                                                            Sauver
                                                         </button>
                                                         <button
-                                                            onClick={() => deleteMessage(message.id)}
-                                                            className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1"
-                                                            title="Supprimer"
+                                                            onClick={cancelEdit}
+                                                            className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium"
                                                         >
-                                                            <Trash2 className="w-3 h-3" />
+                                                            Annuler
                                                         </button>
                                                     </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                    
-                                    <div className={`text-xs text-gray-500 mt-1 px-3 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
-                                        {formatTime(message.timestamp)}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                                        {message.content}
+                                                    </p>
+                                                    {message.edited && (
+                                                        <span className="text-xs opacity-70 italic">modifié</span>
+                                                    )}
+                                                    
+                                                    {isOwnMessage && (
+                                                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => startEditMessage(message)}
+                                                                className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs"
+                                                                title="Modifier"
+                                                            >
+                                                                <Edit className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => deleteMessage(message.id)}
+                                                                className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1"
+                                                                title="Supprimer"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })
+                            );
+                        })}
+                    </>
                 )}
                 <div ref={messagesEndRef} />
             </div>
@@ -2325,7 +2324,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.8g bouton Connect</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.8h alleger l'affichage des conversations</p>
                         </div>
 
                         {/* Navigation */}
