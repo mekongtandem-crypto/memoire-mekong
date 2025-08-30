@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.3 Memoire/photo ouverture/fermeture en grand </title>
+    <title>🐘 Mémoire du Mékong V0.5.3b Memoire/photo ouverture/fermeture en grand </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -529,7 +529,7 @@
                     {isModalOpen && selectedPhoto && (
                         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={closePhotoModal}>
                             <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-h-full flex flex-col" onClick={e => e.stopPropagation()}>
-                                <img src={selectedPhoto.fullUrl || selectedPhoto.viewUrl} alt={selectedPhoto.title} className="object-contain w-full h-auto flex-1 p-2"/>
+                                <img src={`https://drive.google.com/uc?export=view&id=${selectedPhoto.id}`} alt={selectedPhoto.title} className="object-contain w-full h-auto flex-1 p-2"/>
                                 <div className="p-4 bg-gray-50 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
                                     <p className="text-gray-800 text-center sm:text-left">{selectedPhoto.title}</p>
                                     <div className="flex space-x-3">
