@@ -296,16 +296,17 @@ const GoogleDriveAPI = {
             const token = gapi.client.getToken();
             if (token) {
                 console.log('🔄 Token existant trouvé, test de validité...');
-                try {
-                    await gapi.client.drive.files.list({ pageSize: 1 });
-                    this.isSignedIn = true;
-                    console.log('✅ Token existant valide');
-                    resolve(true);
-                } catch {
-                    console.log('🔄 Token expiré, demande de nouveau token...');
-                    gapi.client.setToken(''); // Clear le token invalide
-                    this.tokenClient.requestAccessToken({ prompt: 'consent' });
-                }
+                gapi.client.drive.files.list({ pageSize: 1 })
+                    .then(() => {
+                        this.isSignedIn = true;
+                        console.log('✅ Token existant valide');
+                        resolve(true);
+                    })
+                    .catch(() => {
+                        console.log('🔄 Token expiré, demande de nouveau token...');
+                        gapi.client.setToken(''); // Clear le token invalide
+                        this.tokenClient.requestAccessToken({ prompt: 'consent' });
+                    });
             } else {
                 console.log('🔄 Aucun token, demande d\'autorisation avec consentement...');
                 // Forcer le consentement dès la première demande pour avoir les bons scopes
