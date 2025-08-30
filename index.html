@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.1 (Corrigé)</title>
+    <title>🐘 Mémoire du Mékong V0.5.2 (Final Corrigé)</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -101,7 +101,7 @@
             }
         };
 
-        // ===== BLOC DE CODE CORRIGÉ - AJOUT DE useAppState =====
+        // ===== CORE STATES =====
         const useAppState = () => {
             const [currentPage, setCurrentPage] = React.useState('home');
             const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', ''));
@@ -123,7 +123,7 @@
             };
         };
 		
-        // ===== MASTODON DATA MANAGEMENT (CORRIGÉ POUR TITRES/APOSTROPHES) =====
+        // ===== MASTODON DATA MANAGEMENT =====
         const MastodonData = {
             decodeHtmlEntities: (text) => {
                 if (typeof text !== 'string') return '';
@@ -204,7 +204,7 @@
             },
         };
 
-        // ===== GOOGLE DRIVE API (AMÉLIORÉ POUR LES IMAGES MASTODON) =====
+        // ===== GOOGLE DRIVE API =====
         const GoogleDriveAPI = {
             isSignedIn: false,
             isInitialized: false,
@@ -349,24 +349,24 @@
 
             const updateSession = async (updatedSession) => { /* ... */ };
             const deleteSession = async (sessionId) => { /* ... */ };
-            // ... (reste du hook)
+            // ...
         };
         const useGoogleAuth = () => { /* ... */ };
 
         // ===== UI COMPONENTS =====
-        const TopBar = ({ /* ... */ }) => { /* ... */ };
-        const BottomNavBar = ({ /* ... */ }) => { /* ... */ };
-        const GoogleConnection = ({ /* ... */ }) => { /* ... */ };
+        const TopBar = (props) => { /* ... */ };
+        const BottomNavBar = (props) => { /* ... */ };
+        const GoogleConnection = (props) => { /* ... */ };
         
         // ===== GAME DATA =====
         const GAMES = [ /* ... */ ];
         const getGameById = (gameId) => GAMES.find(g => g.id === gameId);
 
         // ===== PAGES =====
-        const HomePage = ({ /* ... */ }) => { /* ... */ };
-        const UsersPage = ({ /* ... */ }) => { /* ... */ };
-        const GamesPage = ({ /* ... */ }) => { /* ... */ };
-        const SessionsPage = ({ /* ... */ }) => { /* ... */ };
+        const HomePage = (props) => { /* ... */ };
+        const UsersPage = (props) => { /* ... */ };
+        const GamesPage = (props) => { /* ... */ };
+        const SessionsPage = (props) => { /* ... */ };
         
         const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
             if (!currentSession) {
@@ -376,7 +376,7 @@
             return (
                 <div className="flex flex-col h-screen max-h-[85vh] fade-in">
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
-                       {/* ... Header de la session */}
+                       {/* Le header de la session est ici */}
                     </div>
 
                     <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
@@ -385,10 +385,10 @@
                                 <img src={currentSession.photoUrl} alt="Contexte de la session" className="max-w-xs mx-auto rounded-lg shadow-md" />
                             </div>
                         )}
-                        {/* ... Affichage des messages */}
+                        {/* L'affichage des messages est ici */}
                     </div>
                     <div className="mt-4 flex-shrink-0">
-                       {/* ... Input de message */}
+                       {/* L'input de message est ici */}
                     </div>
                 </div>
             );
@@ -619,9 +619,11 @@
         const MemoireMekong = () => {
             const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
             const googleAuth = useGoogleAuth();
+            const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
             const sessionHook = useSessionState();
             const [currentChatSession, setCurrentChatSession] = React.useState(null);
-            
+            const [toast, setToast] = React.useState({ message: '', type: '' });
+
             const handleSessionSelect = (session) => {
                 setCurrentChatSession(session);
                 setCurrentPage('chat');
@@ -636,13 +638,20 @@
                         }
                     });
                 } else {
+                    // Si aucune session n'est en attente, on navigue simplement
                     setCurrentPage(page);
                 }
             };
             
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-                    <TopBar currentPage={currentPage} currentUser={currentUser} onPageChange={setCurrentPage} googleStatus={googleAuth} onGoogleAction={() => googleAuth.isConnected ? setCurrentPage('settings') : googleAuth.signIn()} />
+                    <TopBar 
+                        currentPage={currentPage} 
+                        currentUser={currentUser} 
+                        onPageChange={setCurrentPage} 
+                        googleStatus={{ isConnected, isLoading, userInfo }} 
+                        onGoogleAction={() => { isConnected ? setCurrentPage('settings') : signIn(); }} 
+                    />
                     <main className="p-4 pb-24">
                         <div className="max-w-6xl mx-auto">
                             <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
@@ -651,12 +660,21 @@
                                 {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} />}
                                 {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession || sessionHook.currentSession} onUpdateSession={sessionHook.updateSession} onBackToSessions={() => setCurrentPage('sessions')} />}
                                 {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page) => handleCreateSessionAndNavigate(page)} />}
-                                {currentPage === 'settings' && <SettingsPage onReset={resetApp} googleAuth={googleAuth} onGoogleDisconnect={googleAuth.signOut} />}
+                                {currentPage === 'settings' && <SettingsPage onReset={resetApp} googleAuth={googleAuth} onGoogleDisconnect={signOut} />}
                                 {currentPage === 'users' && <UsersPage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
                             </div>
                         </div>
                     </main>
-                    <BottomNavBar currentPage={currentPage} onPageChange={setCurrentPage} currentUser={currentUser} />
+                    <BottomNavBar 
+                        currentPage={currentPage} 
+                        onPageChange={setCurrentPage} 
+                        currentUser={currentUser} 
+                    />
+                    <Toast 
+                        message={toast.message} 
+                        type={toast.type} 
+                        onDismiss={() => setToast({ message: '', type: '' })} 
+                    />
                 </div>
             );
         };
