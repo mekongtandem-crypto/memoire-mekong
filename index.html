@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.18b import Mastodon caractère speciaux </title>
+    <title>🐘 Mémoire du Mékong V0.4.18c amelioration de l'affichage des posts </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1961,27 +1961,36 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                     <p className="text-gray-500">Essayez d'autres mots-clés.</p>
                 </div>
             ) : currentPost ? (
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                    <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
-                        <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold">
-                            <Plus className="w-4 h-4" />
-                            <span>Session</span>
-                        </button>
-                    </div>
-                    <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
-                        <p>{currentPost.content}</p>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
-                        <span>{new Date(currentPost.published).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                        {currentPost.attachments && currentPost.attachments.length > 0 && (
-                            <span className="flex items-center space-x-1 font-medium">
-                                <Camera className="w-4 h-4"/>
-                                <span>{currentPost.attachments.length}</span>
-                            </span>
-                        )}
-                    </div>
-                </div>
+    <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center space-x-2">
+                <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
+                {/* NOUVEAU : Badge pour les posts additionnels */}
+                {currentPost.isExtraPost && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full mr-1"></span>
+                        Post additionnel
+                    </span>
+                )}
+            </div>
+            <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold">
+                <Plus className="w-4 h-4" />
+                <span>Session</span>
+            </button>
+        </div>
+        <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
+            <p>{currentPost.content}</p>
+        </div>
+        <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
+            <span>{new Date(currentPost.published).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            {currentPost.attachments && currentPost.attachments.length > 0 && (
+                <span className="flex items-center space-x-1 font-medium">
+                    <Camera className="w-4 h-4"/>
+                    <span>{currentPost.attachments.length}</span>
+                </span>
+            )}
+        </div>
+    </div>
             ) : (
                 <div className="bg-gray-50 p-8 rounded-lg text-center">
                     <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
