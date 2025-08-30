@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.4 (Stable Corrigé)</title>
+    <title>🐘 Mémoire du Mékong V0.5.1 (modifications) </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -21,31 +21,39 @@
         .lucide { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Style pour le slider */
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]:focus { outline: none; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #c2410c; cursor: pointer; margin-top: -8px; }
-        input[type=range]::-moz-range-thumb { height: 20px; width: 20px; border-radius: 50%; background: #c2410c; cursor: pointer; }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #fbbf24; border-radius: 5px; }
-        input[type=range]::-moz-range-track { width: 100%; height: 4px; cursor: pointer; background: #fbbf24; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // ===== ICONS LUCIDE =====
-        const X = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
+        // ===== ICONS LUCIDE (Inchangé)=====
         const Home = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>;
         const Users = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-2-2"/></svg>;
+        const User = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+        const Play = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>;
         const Camera = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
         const Cloud = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
-        const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14-.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25-.17-.5-.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14-.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25.17-.5.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const ChevronLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>;
+        const ChevronRight = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>;
+        const Clock = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>;
+        const Mic = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/><line x1="8" x2="16" y1="22" y2="22"/></svg>;
+        const Zap = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>;
+        const MapPin = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
         const BookOpen = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+        const Edit = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/></svg>;
         const Plus = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
         const Shuffle = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polyline points="16,3 21,3 21,8"/><line x1="4" x2="21" y1="20" y2="3"/><polyline points="21,16 21,21 16,21"/><line x1="15" x2="21" y1="15" y2="21"/><line x1="4" x2="9" y1="4" y2="9"/></svg>;
+        const Pause = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>;
+        const ArrowLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>;
+        const Send = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
+        const Trash2 = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
+        const Search = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
+        const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
+        const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
 
-		// ===== COMPOSANT TOAST (Alerte) =====
+		// ===== COMPOSANT TOAST (Alerte) (Inchangé) =====
 		const Toast = ({ message, type, onDismiss }) => {
     		if (!message) return null;
     		const styles = {
@@ -63,7 +71,7 @@
     		);
 		};
 		
-        // ===== CORE STORAGE =====
+        // ===== CORE STORAGE (Inchangé) =====
         const Storage = {
             get: (key, defaultValue = null) => {
                 try {
@@ -83,24 +91,6 @@
                     if (key.startsWith('mekong_')) localStorage.removeItem(key);
                 });
             }
-        };
-
-        // ===== CORE STATES =====
-        const useAppState = () => {
-            const [currentPage, setCurrentPage] = React.useState('home');
-            const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', ''));
-            
-            React.useEffect(() => {
-                Storage.set('currentUser', currentUser);
-            }, [currentUser]);
-
-            const resetApp = () => {
-                setCurrentPage('home');
-                setCurrentUser('');
-                Storage.clear();
-            };
-
-            return { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp };
         };
 		
         // ===== MASTODON DATA MANAGEMENT =====
@@ -123,6 +113,7 @@
                             const note = item.object;
                             const content = note.content || '';
                             
+                            // 1. Nettoyer les balises HTML principales (<p>) et autres, puis décoder
                             const cleanContent = content.replace(/<p>|<\/p>/g, '\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '').trim();
                             const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
                             
@@ -132,15 +123,18 @@
                             
                             let title;
                             if (hasJourNumber) {
+                                // 2. Extraire la première ligne après Jnnn comme titre, puis décoder
                                 const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
                                 title = MastodonData.decodeHtmlEntities(afterJour.split('\n')[0].trim());
                             } else {
+                                // 3. Utiliser le début du contenu comme titre, puis décoder
                                 title = MastodonData.decodeHtmlEntities(decodedContent.split('\n')[0].trim());
                             }
                             
                             return {
                                 id: note.id || `post-${index}`,
-                                dayNumber, hasJourNumber,
+                                dayNumber,
+                                hasJourNumber,
                                 title: title.slice(0, 80) || 'Post sans titre',
                                 content: decodedContent,
                                 published: note.published || item.published,
@@ -183,22 +177,29 @@
             },
         };
 
-        // ===== GOOGLE DRIVE API =====
+        // ===== GOOGLE DRIVE API - VERSION AMÉLIORÉE AVEC PHOTOS =====
+        const GOOGLE_CONFIG = {
+            API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
+            CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
+            SCOPES: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
+        };
+
         const GoogleDriveAPI = {
-            isSignedIn: false, isInitialized: false, tokenClient: null,
-            _folderIdCache: new Map(), _fileIdCache: new Map(),
+            isSignedIn: false,
+            isInitialized: false,
+            tokenClient: null,
             
             async init() {
                 if (this.isInitialized) return;
                 try {
                     await new Promise((resolve) => gapi.load('client', resolve));
                     await gapi.client.init({
-                        apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
+                        apiKey: GOOGLE_CONFIG.API_KEY,
                         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
                     });
                     this.tokenClient = google.accounts.oauth2.initTokenClient({
-                        client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-                        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+                        client_id: GOOGLE_CONFIG.CLIENT_ID,
+                        scope: GOOGLE_CONFIG.SCOPES,
                         callback: ''
                     });
                     this.isInitialized = true;
@@ -248,11 +249,20 @@
                 }
                 this.isSignedIn = false;
             },
+            
+            // ===== NOUVELLES FONCTIONS PHOTOS =====
+
+            // Cache pour l'ID du dossier, afin d'éviter les recherches répétées
+            _folderIdCache: new Map(),
 
             async findFolderByPath(path) {
-                if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
+                if (this._folderIdCache.has(path)) {
+                    return this._folderIdCache.get(path);
+                }
+
                 const parts = path.split('/').filter(p => p);
                 let parentId = 'root';
+
                 for (const part of parts) {
                     try {
                         const response = await gapi.client.drive.files.list({
@@ -260,450 +270,386 @@
                             fields: 'files(id, name)'
                         });
                         const folder = response.result.files[0];
-                        if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
+                        if (!folder) {
+                            throw new Error(`Dossier non trouvé: ${part}`);
+                        }
                         parentId = folder.id;
                     } catch (error) {
                         console.error(`Erreur recherche dossier ${part}:`, error);
                         return null;
                     }
                 }
+                
                 this._folderIdCache.set(path, parentId);
                 return parentId;
             },
 
             async getPhotosByDay(dayNumber) {
                 const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
+                if (!photoFolderPath) return [];
+
                 const parentFolderId = await this.findFolderByPath(photoFolderPath);
-                if (!parentFolderId) return [];
+                if (!parentFolderId) {
+                    console.warn(`Dossier racine des photos non trouvé: ${photoFolderPath}`);
+                    return [];
+                }
+
                 const dayString = String(dayNumber).padStart(3, '0');
+                
                 try {
+                    // 1. Trouver le dossier du jour (ex: "023.Titre")
                     const folderResponse = await gapi.client.drive.files.list({
                         q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`,
                         fields: 'files(id, name)'
                     });
                     const dayFolder = folderResponse.result.files[0];
                     if (!dayFolder) return [];
+
+                    // 2. Lister les images dans ce dossier
                     const photosResponse = await gapi.client.drive.files.list({
                         q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
                         fields: 'files(id, name, thumbnailLink, webViewLink, webContentLink)',
-                        pageSize: 50
+                        pageSize: 50 // Augmenté pour avoir plus de photos par jour
                     });
+
                     return (photosResponse.result.files || []).map(file => ({
-                        id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink,
-                        fullUrl: file.webContentLink, viewUrl: file.webViewLink
+                        id: file.id,
+                        title: file.name,
+                        thumbnailUrl: file.thumbnailLink,
+                        fullUrl: file.webContentLink, // lien de téléchargement direct
+                        viewUrl: file.webViewLink // lien pour voir dans drive
                     }));
+
                 } catch (error) {
                     console.error(`Erreur chargement photos jour ${dayNumber}:`, error);
                     return [];
                 }
-            },
-            
-            async findFileByPartialPath(filename, rootPath) {
-                const cacheKey = `${rootPath}:${filename}`;
-                if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
-                const rootFolderId = await this.findFolderByPath(rootPath);
-                if (!rootFolderId) return null;
-                try {
-                    const response = await gapi.client.drive.files.list({
-                        q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`,
-                        fields: 'files(id, webViewLink, webContentLink, thumbnailLink)',
-                        pageSize: 1
-                    });
-                    const file = response.result.files[0];
-                    if (file) {
-                        this._fileIdCache.set(cacheKey, file);
-                        return file;
-                    }
-                    return null;
-                } catch (error) {
-                    console.error(`Erreur recherche fichier ${filename}:`, error);
-                    return null;
-                }
             }
         };
 
-        // ===== USER CONFIG =====
+        // ===== TOUT LE RESTE DU CODE (USERS, HOOKS, PAGES, ETC.) RESTE IDENTIQUE JUSQU'À LA PAGE MÉMOIRES =====
+        // ... (coller ici tout le code depuis USERS jusqu'à juste avant MemoriesPage)
         const USERS = { tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' }, lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } };
-        const getUserStyle = (userKey) => { /* ... */ };
+        const getUserStyle = (userKey) => { const user = USERS[userKey]; if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' }; const styles = { blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' }, green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' }, amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' } }; return styles[user.color] || styles.blue; };
+        const useAppState = () => { const [currentPage, setCurrentPage] = React.useState('home'); const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', '')); React.useEffect(() => { Storage.set('currentUser', currentUser); }, [currentUser]); const resetApp = () => { setCurrentPage('home'); setCurrentUser(''); Storage.clear(); }; return { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp }; };
+        const UsersPage = ({ currentUser, onUserChange, onPageChange }) => ( <div className="space-y-6 fade-in"> <div className="text-center mb-6"> <h2 className="text-2xl font-bold text-amber-900 mb-2">Gestion des Utilisateurs</h2> <p className="text-amber-700"> Actuellement connecté en tant que <strong>{USERS[currentUser]?.name}</strong> </p> </div> <div className="space-y-4"> <h3 className="text-lg font-semibold text-amber-900">Changer d'utilisateur :</h3> <div className="grid grid-cols-1 gap-4"> {Object.entries(USERS).map(([key, user]) => ( <button key={key} onClick={() => { onUserChange(key); onPageChange('home'); }} className={`flex items-center space-x-4 p-4 border-2 rounded-lg transition-all ${ key === currentUser ? `${getUserStyle(key).bg} ${getUserStyle(key).border} ring-2 ring-amber-300` : `${getUserStyle(key).bg} hover:${getUserStyle(key).border} border-gray-200 hover:border-amber-300` }`} > <span className="text-3xl">{user.emoji}</span> <div className="flex-1 text-left"> <div className={`font-semibold text-lg ${getUserStyle(key).text}`}> {user.name} {key === currentUser && ( <span className="ml-2 text-sm bg-amber-200 text-amber-800 px-2 py-1 rounded-full"> Actuel </span> )} </div> <div className="text-sm text-gray-600"> {key === 'tom' && "Le jeune aventurier"} {key === 'lambert' && "Le sage guide"} {key === 'duo' && "Session père-fils"} </div> </div> {key !== currentUser && ( <div className="text-amber-600 font-medium">→ Changer</div> )} </button> ))} </div> </div> <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6"> <h4 className="font-semibold text-amber-900 mb-2">💡 À propos des utilisateurs</h4> <div className="text-amber-700 text-sm space-y-1"> <div><strong>Tom :</strong> Voit ses propres messages à droite, ceux de Lambert à gauche</div> <div><strong>Lambert :</strong> Voit ses propres messages à droite, ceux de Tom à gauche</div> <div><strong>Duo :</strong> Mode session partagée, messages centrés</div> </div> </div> <div className="flex justify-center pt-4"> <button onClick={() => onPageChange('home')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium" > Retour à l'accueil </button> </div> </div> );
+        const GAMES = [ { id: 1, title: "Photo roulette", duration: "15 min", type: "présentiel", icon: Camera, description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient en mémoire" }, { id: 2, title: "Timeline aveugle", duration: "20 min", type: "présentiel", icon: Clock, description: "Reconstituez la chronologie d'une étape sans regarder les dates" }, { id: 3, title: "Interview journaliste", duration: "25 min", type: "présentiel", icon: Mic, description: "L'un interviewe l'autre sur une étape précise du voyage" }, { id: 4, title: "Photo sans légende", duration: "async", type: "distanciel", icon: Camera, description: "Envoyez une photo, l'autre devine le contexte et ses souvenirs" }, { id: 5, title: "Mot déclencheur", duration: "async", type: "distanciel", icon: Zap, description: "Un mot-clé pour déclencher un souvenir chez l'autre" }, { id: 6, title: "Géolocalisation mystère", duration: "async", type: "distanciel", icon: MapPin, description: "Partagez une position GPS, l'autre raconte ce lieu" }, { id: 7, title: "Souvenir du jour", duration: "libre", type: "mémoire", icon: BookOpen, description: "Discussion autour d'un post spécifique du blog Mastodon" } ];
+        const CloudSessionStorage = { async getSessions() { try { if (!GoogleDriveAPI.isSignedIn) { return Storage.get('sessions', []); } const cloudSessions = await GoogleDriveAPI.loadSessions(); if (cloudSessions) { Storage.set('sessions', cloudSessions); return cloudSessions; } } catch (error) { console.warn('⚠️ Erreur chargement cloud:', error.message); } return Storage.get('sessions', []); }, async saveSession(session) { const sessions = Storage.get('sessions', []); const existingIndex = sessions.findIndex(s => s.id === session.id); if (existingIndex >= 0) { sessions[existingIndex] = session; } else { sessions.unshift(session); } Storage.set('sessions', sessions); if (!GoogleDriveAPI.isSignedIn) { return; } try { await GoogleDriveAPI.saveSessions(sessions); } catch (error) { throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`); } }, async deleteSession(sessionId) { const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId); Storage.set('sessions', sessions); if (!GoogleDriveAPI.isSignedIn) { return; } try { await GoogleDriveAPI.saveSessions(sessions); } catch (error) { throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`); } }, async forceSyncFromCloud() { if (!GoogleDriveAPI.isSignedIn) { throw new Error('Non connecté à Google Drive'); } try { const cloudSessions = await GoogleDriveAPI.loadSessions(); if (cloudSessions) { Storage.set('sessions', cloudSessions); return cloudSessions; } else { return Storage.get('sessions', []); } } catch (error) { throw new Error(`Échec synchronisation: ${error.message}`); } } };
+        const SessionStorage = { getSessions: () => { const sessions = Storage.get('sessions', []); return sessions.filter(session => { const isValid = session && typeof session.id !== 'undefined' && typeof session.gameId === 'number' && session.gameId > 0 && Array.isArray(session.notes); if (!isValid) { console.warn('Session corrompue supprimée:', session); } return isValid; }); }, saveSession: (session) => { const sessions = SessionStorage.getSessions(); const existingIndex = sessions.findIndex(s => s.id === session.id); if (existingIndex >= 0) { sessions[existingIndex] = session; } else { sessions.unshift(session); } Storage.set('sessions', sessions); }, deleteSession: (sessionId) => { const sessions = SessionStorage.getSessions().filter(s => s.id !== sessionId); Storage.set('sessions', sessions); } };
+        const getGameIcon = (gameId) => { if (!gameId || typeof gameId !== 'number') { return BookOpen; } const game = GAMES.find(g => g.id === gameId); if (!game) { return BookOpen; } return game.icon; };
+        const renderGameIcon = (gameId, className = "w-6 h-6 text-amber-600") => { try { const game = GAMES.find(g => g.id === gameId); if (!game || !game.icon) { return React.createElement(BookOpen, { className }); } const IconComponent = game.icon; if (typeof IconComponent !== 'function') { return React.createElement(BookOpen, { className }); } return React.createElement(IconComponent, { className }); } catch (error) { return React.createElement(BookOpen, { className }); } };
+        const getGameById = (gameId) => { return GAMES.find(g => g.id === gameId); };
+        const useSessionState = () => { const [currentSession, setCurrentSession] = React.useState(null); const [sessions, setSessions] = React.useState([]); React.useEffect(() => { const loadSessions = async () => { const loadedSessions = await CloudSessionStorage.getSessions(); setSessions(loadedSessions); }; loadSessions(); }, []); const createSession = async (game, user) => { if (!game || !game.id) { return; } const postContent = window.pendingGameSession?.postChapo; const initialNotes = []; if (postContent && postContent.trim()) { initialNotes.push({ id: Date.now() - 1, content: postContent.trim(), author: 'duo', timestamp: new Date().toISOString() }); } const newSession = { id: Date.now(), gameId: Number(game.id), gameTitle: game.title || 'Titre inconnu', gameDescription: game.description || 'Description inconnue', gameDuration: game.duration || 'Durée inconnue', postChapo: postContent || null, user: user, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), status: 'active', notes: initialNotes, participants: [user] }; await CloudSessionStorage.saveSession(newSession); const sessions = await CloudSessionStorage.getSessions(); setSessions(sessions); setCurrentSession(newSession); if (window.pendingGameSession) { delete window.pendingGameSession; } return newSession; }; const updateSession = async (updatedSession) => { const sessionToSave = { ...updatedSession, notes: updatedSession.notes || [], updatedAt: new Date().toISOString() }; await CloudSessionStorage.saveSession(sessionToSave); const newSessions = await CloudSessionStorage.getSessions(); setSessions(newSessions); setCurrentSession(sessionToSave); }; const deleteSession = async (sessionId) => { await CloudSessionStorage.deleteSession(sessionId); const sessions = await CloudSessionStorage.getSessions(); setSessions(sessions); if (currentSession?.id === sessionId) { setCurrentSession(null); } }; const syncSessions = React.useCallback(async () => { try { const syncedSessions = await CloudSessionStorage.forceSyncFromCloud(); setSessions(syncedSessions); return syncedSessions; } catch (error) { throw error; } }, []); return { currentSession, setCurrentSession, sessions, setSessions, createSession, updateSession, deleteSession, getGameIcon, renderGameIcon, syncSessions }; };
+        const useGoogleAuth = () => { const [isConnected, setIsConnected] = React.useState(false); const [isLoading, setIsLoading] = React.useState(true); const [userInfo, setUserInfo] = React.useState(null); const [shouldForceConnection, setShouldForceConnection] = React.useState(false); React.useEffect(() => { const initGoogle = async () => { setIsLoading(true); try { await GoogleDriveAPI.init(); const token = gapi.client.getToken(); if (token) { try { await new Promise(resolve => setTimeout(resolve, 100)); await gapi.client.drive.files.list({ pageSize: 1 }); const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${token.access_token}` } }); if (response.ok) { const profile = await response.json(); setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture }); setIsConnected(true); GoogleDriveAPI.isSignedIn = true; } else { throw new Error('Token invalide'); } } catch (error) { gapi.client.setToken(''); setShouldForceConnection(true); } } else { setShouldForceConnection(true); } } catch (error) { setShouldForceConnection(true); } finally { setIsLoading(false); } }; initGoogle(); }, []); const signIn = async () => { setIsLoading(true); try { const success = await GoogleDriveAPI.signIn(); if (success) { const token = gapi.client.getToken(); const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${token.access_token}` } }); if (!response.ok) { throw new Error('Impossible de récupérer le profil utilisateur'); } const profile = await response.json(); setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture }); setIsConnected(true); setShouldForceConnection(false); return true; } else { throw new Error('Échec de la connexion Google Drive'); } } catch (error) { setIsConnected(false); setUserInfo(null); alert(`Erreur de connexion: ${error.message}`); return false; } finally { setIsLoading(false); } }; const signOut = async () => { setIsLoading(true); try { const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } await GoogleDriveAPI.signOut(); setIsConnected(false); setUserInfo(null); setShouldForceConnection(true); } catch (error) { console.error('Erreur déconnexion:', error); } finally { setIsLoading(false); } }; return { isConnected, isLoading, userInfo, shouldForceConnection, signIn, signOut }; };
+        const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleStatus, onGoogleAction }) => { const PAGE_TITLES = { home: "Mémoire du Mékong", sessions: "Vos Sessions", games: "Choisir un jeu", chat: "Conversation", memories: "Mémoires du Voyage", settings: "Réglages", users: "Gestion des Utilisateurs" }; return ( <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b border-gray-200"> <div className="flex justify-between items-center h-10"> <h1 className="text-xl font-bold text-amber-900 truncate"> {PAGE_TITLES[currentPage] || "Mémoire du Mékong"} </h1> <div className="flex items-center space-x-2"> <button onClick={onGoogleAction} className={`flex items-center justify-center h-10 px-3 rounded-lg text-xs font-medium transition-colors ${ googleStatus?.isLoading ? 'bg-blue-100 text-blue-700 cursor-wait' : googleStatus?.isConnected ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200' }`} title={googleStatus?.isConnected ? `Connecté: ${googleStatus.userInfo?.email}` : 'Non connecté'} > {googleStatus?.isLoading ? <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div> : <Cloud className="w-5 h-5" /> } </button> {currentUser && ( <button onClick={() => onPageChange('users')} className={`flex items-center justify-center w-10 h-10 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`} title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour gérer les utilisateurs.`} > <span className="text-xl">{USERS[currentUser]?.emoji}</span> </button> )} </div> </div> </header> ); };
+        const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => { const navItems = [ { id: 'home', icon: Home, label: 'Accueil' }, { id: 'sessions', icon: BookOpen, label: 'Sessions' }, { id: 'memories', icon: Camera, label: 'Mémoires' }, { id: 'settings', icon: Settings, label: 'Réglages' }, ]; return ( <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-t-lg z-10"> <div className="flex justify-around items-center h-full"> {navItems.map((item) => { const Icon = item.icon; const isActive = currentPage === item.id; const isDisabled = !currentUser && item.id !== 'home'; return ( <button key={item.id} onClick={() => onPageChange(item.id)} disabled={isDisabled} className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${ isActive ? 'text-amber-600' : 'text-gray-500 hover:text-amber-500' } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`} > <Icon className="w-6 h-6 mb-1" /> <span className={`text-xs font-medium ${isActive ? 'font-bold' : ''}`}> {item.label} </span> </button> ); })} </div> </div> ); };
+        const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => { if (isLoading) { return ( <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"> <div className="flex items-center space-x-3"> <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div> <span className="text-blue-700">Connexion Google Drive...</span> </div> </div> ); } if (!isConnected) { return ( <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"> <div className="flex items-center justify-between"> <div className="flex items-center space-x-3"> <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center"> <Cloud className="w-4 h-4 text-red-600" /> </div> <div> <div className="font-medium text-red-900">Connexion Google Drive requise</div> <div className="text-sm text-red-700">Vos sessions seront partagées avec Tom/Lambert</div> </div> </div> <button onClick={onSignIn} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium" > Se connecter </button> </div> </div> ); } return ( <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4"> <div className="flex items-center justify-between"> <div className="flex items-center space-x-3"> <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"> <Cloud className="w-4 h-4 text-green-600" /> </div> <div> <div className="font-medium text-green-900">Connecté à Google Drive</div> <div className="text-xs text-green-700">{userInfo?.email}</div> </div> </div> <button onClick={onSignOut} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs" > Déconnecter </button> </div> </div> ); };
+        const ForceGoogleConnection = ({ onSignIn }) => ( <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4"> <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center"> <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4"> <Cloud className="w-8 h-8 text-amber-600" /> </div> <h1 className="text-2xl font-bold text-amber-900 mb-4">Mémoire du Mékong</h1> <h2 className="text-lg font-semibold text-gray-900 mb-4">Connexion Google Drive requise</h2> <p className="text-gray-600 mb-6"> Cette application utilise Google Drive pour synchroniser vos sessions entre vos appareils. La connexion est obligatoire pour garantir la sauvegarde de vos mémoires. </p> <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6"> <p className="text-amber-800 text-sm"> <strong>Conseil :</strong> Connectez-vous avec le compte Google partagé <strong> mekongmemoire@gmail.com</strong> pour synchroniser avec Tom/Lambert. </p> </div> <button onClick={onSignIn} className="w-full px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium flex items-center justify-center space-x-2" > <Cloud className="w-5 h-5" /> <span>Se connecter à Google Drive</span> </button> </div> </div> );
+        const HomePage = ({ currentUser, onUserChange, onPageChange }) => ( <div className="space-y-6 fade-in"> <div className="text-center"> <h2 className="text-2xl font-bold text-amber-900 mb-4"> Bienvenue dans vos mémoires du Mékong </h2> {currentUser && ( <p className="text-amber-700 mb-6"> Bonjour <strong>{USERS[currentUser]?.name}</strong> ! Que souhaitez-vous faire aujourd'hui ? </p> )} </div> {!currentUser ? ( <div className="max-w-md mx-auto space-y-4"> <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3> <div className="space-y-3"> <button onClick={() => onUserChange('tom')} className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border}`} > <span className="text-3xl">🐘</span> <div> <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphantau</div> <div className="text-sm text-gray-600">Le jeune aventurier</div> </div> </button> <button onClick={() => onUserChange('lambert')} className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('lambert').bg} hover:${getUserStyle('lambert').border}`} > <span className="text-3xl">🐘</span> <div> <div className={`font-medium text-lg ${getUserStyle('lambert').text}`}>Lambert, le vieux pachiderme</div> <div className="text-sm text-gray-600">Le sage guide</div> </div> </button> <button onClick={() => onUserChange('duo')} className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('duo').bg} hover:${getUserStyle('duo').border}`} > <span className="text-3xl">🐘🐘</span> <div> <div className={`font-medium text-lg ${getUserStyle('duo').text}`}>Duo Mekong Tandem</div> <div className="text-sm text-gray-600">Session père-fils</div> </div> </button> </div> </div> ) : ( <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('sessions')}> <div className="text-center"> <Play className="w-12 h-12 text-blue-600 mx-auto mb-4" /> <h3 className="text-lg font-semibold text-gray-900 mb-2">Sessions</h3> <p className="text-gray-600 text-sm">Créer ou reprendre une session de remémoration</p> </div> </div> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}> <div className="text-center"> <Camera className="w-12 h-12 text-green-600 mx-auto mb-4" /> <h3 className="text-lg font-semibold text-gray-900 mb-2">Mémoires</h3> <p className="text-gray-600 text-sm">Explorer le blog et les photos</p> </div> </div> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}> <div className="text-center"> <Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" /> <h3 className="text-lg font-semibold text-gray-900 mb-2">Réglages</h3> <p className="text-gray-600 text-sm">Configuration et préférences</p> </div> </div> </div> )} </div> );
+        const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => ( <div className="space-y-6 fade-in"> <div className="flex justify-between items-center"> <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2> <button onClick={() => { const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)]; onGameSelect(randomGame); }} className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg" > <Shuffle className="w-4 h-4" /> <span>Jeu au hasard</span> </button> </div> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {GAMES.map(game => { const IconComponent = game.icon; return ( <button key={game.id} onClick={() => onGameSelect(game)} className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group" > <div className="flex items-start space-x-4"> <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" /> <div className="flex-1"> <div className="flex justify-between items-start mb-2"> <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800"> {game.title} </h3> <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600"> {game.duration} </span> </div> <p className="text-gray-600 text-sm leading-relaxed mb-2"> {game.description} </p> <div className="flex justify-between items-center"> <div className="text-xs text-amber-600 font-medium"> {game.type} </div> <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"> ▶️ Créer session </div> </div> </div> </div> </button> ); })} </div> <div className="bg-amber-50 border border-amber-200 rounded-lg p-4"> <h3 className="font-semibold text-amber-900 mb-2">💡 Comment ça marche ?</h3> <p className="text-amber-700 text-sm"> Choisissez un jeu pour créer une nouvelle session de remémoration. Vous pourrez ensuite échanger vos souvenirs dans un format de chat convivial. </p> </div> </div> );
+        const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => { const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState(); const [isSyncing, setIsSyncing] = React.useState(true); const [syncComplete, setSyncComplete] = React.useState(false); React.useEffect(() => { const performInitialSync = async () => { try { setIsSyncing(true); await syncSessions(); setSyncComplete(true); } catch (error) { setSyncComplete(true); } finally { setIsSyncing(false); } }; performInitialSync(); }, []); const formatDate = (dateString) => { return new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }; const statusIcons = { active: { icon: Play, color: 'text-green-500', title: 'Active' }, paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' }, pending: { icon: Clock, color: 'text-blue-500', title: 'En attente' }, completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' } }; return ( <div className="space-y-4 fade-in"> <div className="flex justify-between items-center"> <button onClick={() => onPageChange('games')} className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow" > <Plus className="w-5 h-5" /> <span>Nouveau Jeu de Mémoire</span> </button> </div> {isSyncing && !syncComplete ? ( <div className="text-center py-12"> <div className="animate-spin w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div> <p className="text-amber-700">Synchronisation des sessions...</p> </div> ) : sessions.length === 0 ? ( <div className="text-center py-12 bg-gray-50 rounded-lg"> <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" /> <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3> <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p> <button onClick={() => onPageChange('games')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium" > Commencer un jeu </button> </div> ) : ( <div className="space-y-3"> {sessions.map((session) => { const StatusIcon = statusIcons[session.status]?.icon || FileText; const statusColor = statusIcons[session.status]?.color || 'text-gray-500'; const statusTitle = statusIcons[session.status]?.title || 'Archivée'; const lastUser = session.user; const userStyle = getUserStyle(lastUser); return ( <div key={session.id} onClick={() => onSessionSelect(session)} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3" > <div className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`} title={`Dernière modification par ${USERS[lastUser]?.name}`} > <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span> </div> <div className="flex-1"> <div className="flex justify-between items-start"> <h3 className="font-bold text-gray-800 pr-2">{session.gameTitle}</h3> <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span> </div> <div className="flex items-center justify-between mt-1"> <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span> <div className="flex items-center space-x-2"> <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} /> <button onClick={(e) => { e.stopPropagation(); if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) { deleteSession(session.id); } }} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full" > <Trash2 className="w-4 h-4" /> </button> </div> </div> </div> </div> ); })} </div> )} </div> ); };
+        const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => { const [newMessageContent, setNewMessageContent] = React.useState(''); const [editingMessage, setEditingMessage] = React.useState(null); const [editContent, setEditContent] = React.useState(''); const [editingTitle, setEditingTitle] = React.useState(false); const [titleContent, setTitleContent] = React.useState(''); const messagesEndRef = React.useRef(null); const { renderGameIcon } = useSessionState(); React.useEffect(() => { if (currentSession?.notes && messagesEndRef.current) { messagesEndRef.current.scrollIntoView({ behavior: 'smooth' }); } }, [currentSession?.notes]); if (!currentSession) { return ( <div className="text-center py-12"> <Send className="w-16 h-16 text-gray-300 mx-auto mb-4" /> <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session sélectionnée</h3> <button onClick={onBackToSessions} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium" > Retour aux sessions </button> </div> ); } const formatTime = (dateString) => { return new Date(dateString).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }; const formatDate = (dateString) => { return new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }; const startEditTitle = () => { setEditingTitle(true); setTitleContent(currentSession.gameTitle || ''); }; const saveTitle = async () => { if (!titleContent.trim()) return; const updatedSession = { ...currentSession, gameTitle: titleContent.trim() }; await onUpdateSession(updatedSession); setEditingTitle(false); }; const cancelEditTitle = () => { setEditingTitle(false); setTitleContent(''); }; const sendMessage = async () => { if (!newMessageContent.trim()) return; const newMessage = { id: Date.now(), content: newMessageContent.trim(), author: currentUser, timestamp: new Date().toISOString() }; const updatedSession = { ...currentSession, notes: [...(currentSession.notes || []), newMessage] }; await onUpdateSession(updatedSession); setNewMessageContent(''); }; const startEditMessage = (message) => { setEditingMessage(message.id); setEditContent(message.content); }; const saveEditMessage = async (messageId) => { if (!editContent.trim()) return; const updatedSession = { ...currentSession, notes: (currentSession.notes || []).map(note => note.id === messageId ? { ...note, content: editContent.trim(), edited: true } : note ) }; await onUpdateSession(updatedSession); setEditingMessage(null); setEditContent(''); }; const cancelEdit = () => { setEditingMessage(null); setEditContent(''); }; const deleteMessage = async (messageId) => { if (!confirm('Supprimer ce message ?')) return; const updatedSession = { ...currentSession, notes: (currentSession.notes || []).filter(note => note.id !== messageId) }; await onUpdateSession(updatedSession); }; const inviteOtherUser = async () => { const otherUser = currentUser === 'tom' ? 'lambert' : 'tom'; alert(`Invitation envoyée à ${USERS[otherUser]?.name} !`); const updatedSession = { ...currentSession, status: 'pending', lastPingBy: currentUser }; await onUpdateSession(updatedSession); }; const pauseSession = async () => { const updatedSession = { ...currentSession, status: 'paused' }; await onUpdateSession(updatedSession); }; const closeSession = async () => { const updatedSession = { ...currentSession, status: 'completed' }; await onUpdateSession(updatedSession); onBackToSessions(); }; const reopenSession = async () => { const updatedSession = { ...currentSession, status: 'active' }; await onUpdateSession(updatedSession); }; return ( <div className="flex flex-col h-screen max-h-[85vh] fade-in"> <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0"> <div className="flex items-center justify-between"> <div className="flex items-center space-x-3"> {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")} <div> {editingTitle ? ( <div className="flex items-center space-x-2"> <input type="text" value={titleContent} onChange={(e) => setTitleContent(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') cancelEditTitle(); }} className="font-bold text-amber-900 text-base bg-white border border-amber-300 rounded px-2 py-1 min-w-0 flex-1" autoFocus onBlur={saveTitle} /> <button onClick={saveTitle} className="p-1 bg-green-100 hover:bg-green-200 text-green-700 rounded" title="Sauvegarder" > <Edit className="w-4 h-4" /> </button> <button onClick={cancelEditTitle} className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded" title="Annuler" > × </button> </div> ) : ( <button onClick={startEditTitle} className="font-bold text-amber-900 text-base hover:bg-amber-100 px-2 py-1 rounded transition-colors flex items-center space-x-2 group" title="Cliquer pour renommer" > <span>{currentSession.gameTitle || 'Session sans titre'}</span> <Edit className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" /> </button> )} <div className="text-xs text-amber-600"> {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s) </div> </div> </div> <div className="flex items-center space-x-2"> {currentUser !== 'duo' && ( <button onClick={inviteOtherUser} className={`p-2 text-white rounded-lg text-xs flex items-center space-x-1 transition-colors ${ currentUser === 'tom' ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600' }`} title={`Inviter ${currentUser === 'tom' ? 'Lambert' : 'Tom'}`} > <Send className="w-4 h-4" /> <span className="hidden sm:inline"> Inviter {currentUser === 'tom' ? 'Lambert' : 'Tom'} </span> </button> )} </div> </div> </div> <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3"> {(!currentSession.notes || currentSession.notes.length === 0) ? ( <div className="text-center py-12 text-gray-500"> <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /> <p className="text-lg font-medium mb-2">Aucun message</p> <p className="text-sm">Commencez la conversation en écrivant vos souvenirs !</p> </div> ) : ( <> <div className="text-center py-2 border-b border-gray-200 mb-4"> <div className="text-sm text-gray-600"> Conversation entre <span className="font-medium text-blue-700">{USERS.tom?.name}</span> et <span className="font-medium text-green-700">{USERS.lambert?.name}</span> </div> </div> {(currentSession.notes || []).map((message) => { const isOwnMessage = message.author === currentUser; const isEditing = editingMessage === message.id; const getBubbleStyle = (author) => { if (author === 'tom') return 'bg-blue-500 text-white'; if (author === 'lambert') return 'bg-green-500 text-white'; if (author === 'duo') return 'bg-amber-500 text-white'; return 'bg-gray-500 text-white'; }; return ( <div key={message.id} className={`flex ${ message.author === 'duo' ? 'justify-center' : isOwnMessage ? 'justify-end' : 'justify-start' }`}> <div className={`max-w-[75%] ${ message.author === 'duo' ? '' : isOwnMessage ? 'order-2' : 'order-1' }`}> <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}> {isEditing ? ( <div className="space-y-2"> <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none" rows="3" autoFocus /> <div className="flex space-x-2"> <button onClick={() => saveEditMessage(message.id)} className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium" > Sauver </button> <button onClick={cancelEdit} className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium" > Annuler </button> </div> </div> ) : ( <> <p className="text-sm leading-relaxed whitespace-pre-wrap"> {message.content} </p> {message.edited && ( <span className="text-xs opacity-70 italic">modifié</span> )} {isOwnMessage && ( <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"> <button onClick={() => startEditMessage(message)} className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs" title="Modifier" > <Edit className="w-3 h-3" /> </button> <button onClick={() => deleteMessage(message.id)} className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1" title="Supprimer" > <Trash2 className="w-3 h-3" /> </button> </div> )} </> )} </div> </div> </div> ); })} </> )} <div ref={messagesEndRef} /> </div> <div className="mt-4 flex-shrink-0"> <div className="bg-white border-2 border-gray-200 focus-within:border-amber-500 rounded-xl p-2 transition-colors"> <div className="flex items-start space-x-2"> <textarea value={newMessageContent} onChange={(e) => setNewMessageContent(e.target.value)} placeholder="Écrivez vos souvenirs..." className="flex-1 resize-none border-none focus:outline-none bg-transparent text-gray-800 p-2" rows="3" /> <button onClick={sendMessage} disabled={!newMessageContent.trim()} className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0" title="Envoyer" > <Send className="w-6 h-6" /> </button> </div> </div> </div> </div> ); };
 
-        // ===== SESSION MANAGEMENT & HOOKS =====
-        const CloudSessionStorage = { /* ... */ };
-        const useSessionState = () => {
-            const [currentSession, setCurrentSession] = React.useState(null);
-            const [sessions, setSessions] = React.useState([]);
-
-            React.useEffect(() => { /* ... */ }, []);
-
-            const createSession = async (game, user) => {
-                const pendingSession = window.pendingGameSession || {};
-                const newSession = {
-                    id: Date.now(),
-                    gameId: Number(game.id), gameTitle: game.title, user: user,
-                    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-                    status: 'active',
-                    notes: pendingSession.postChapo ? [{ id: Date.now() - 1, content: pendingSession.postChapo.trim(), author: 'duo', timestamp: new Date().toISOString() }] : [],
-                    photoUrl: pendingSession.photoUrl || null
-                };
-                await CloudSessionStorage.saveSession(newSession);
-                const updatedSessions = await CloudSessionStorage.getSessions();
-                setSessions(updatedSessions);
-                setCurrentSession(newSession);
-                if (window.pendingGameSession) delete window.pendingGameSession;
-                return newSession;
-            };
-            const updateSession = async (updatedSession) => { /* ... */ };
-            const deleteSession = async (sessionId) => { /* ... */ };
-            return { currentSession, sessions, createSession, updateSession, deleteSession };
-        };
-        
-        const useGoogleAuth = () => {
-            const [isConnected, setIsConnected] = React.useState(false);
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [userInfo, setUserInfo] = React.useState(null);
-
-            React.useEffect(() => {
-                const initGoogle = async () => {
-                    setIsLoading(true);
-                    try {
-                        await GoogleDriveAPI.init();
-                        const token = gapi.client.getToken();
-                        if (token) {
-                            try {
-                                await new Promise(resolve => setTimeout(resolve, 100));
-                                await gapi.client.drive.files.list({ pageSize: 1 });
-                                const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                                    headers: { 'Authorization': `Bearer ${token.access_token}` }
-                                });
-                                if (response.ok) {
-                                    const profile = await response.json();
-                                    setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
-                                    setIsConnected(true);
-                                    GoogleDriveAPI.isSignedIn = true;
-                                } else { throw new Error('Token invalide'); }
-                            } catch (error) { gapi.client.setToken(''); }
-                        }
-                    } catch (error) { console.error("Erreur d'initialisation Google", error); } 
-                    finally { setIsLoading(false); }
-                };
-                initGoogle();
-            }, []);
-
-            const signIn = async () => {
-                setIsLoading(true);
-                try {
-                    const success = await GoogleDriveAPI.signIn();
-                    if (success) {
-                        const token = gapi.client.getToken();
-                        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                            headers: { 'Authorization': `Bearer ${token.access_token}` }
-                        });
-                        if (!response.ok) throw new Error('Impossible de récupérer le profil utilisateur');
-                        const profile = await response.json();
-                        setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
-                        setIsConnected(true);
-                        return true;
-                    } throw new Error('Échec de la connexion Google Drive');
-                } catch (error) {
-                    setIsConnected(false); setUserInfo(null);
-                    console.error('Erreur de connexion:', error);
-                    return false;
-                } finally { setIsLoading(false); }
-            };
-
-            const signOut = async () => {
-                setIsLoading(true);
-                try {
-                    await GoogleDriveAPI.signOut();
-                    setIsConnected(false); setUserInfo(null);
-                } catch (error) { console.error('Erreur déconnexion:', error); } 
-                finally { setIsLoading(false); }
-            };
-
-            return { isConnected, isLoading, userInfo, signIn, signOut };
-        };
-
-        // ===== UI COMPONENTS =====
-        const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleStatus, onGoogleAction }) => { /* ... */ };
-        const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => { /* ... */ };
-        const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => { /* ... */ };
-        
-        // ===== GAME DATA =====
-        const GAMES = [ /* ... */ ];
-        const getGameById = (gameId) => GAMES.find(g => g.id === gameId);
-
-        // ===== PAGES =====
-        const HomePage = ({ currentUser, onUserChange, onPageChange }) => { /* ... */ };
-        const UsersPage = ({ currentUser, onUserChange, onPageChange }) => { /* ... */ };
-        const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => { /* ... */ };
-        const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => { /* ... */ };
-        const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => { /* ... */ };
+        // ===== PAGE MÉMOIRES (AMÉLIORÉE AVEC VUE BLOG/PHOTOS) =====
         const MemoriesPage = ({ currentUser, onCreateSession }) => {
-            const [activeView, setActiveView] = React.useState('blog');
+            const [activeView, setActiveView] = React.useState('blog'); // 'blog' ou 'photos'
             const [dayNumber, setDayNumber] = React.useState(1);
+            const [searchQuery, setSearchQuery] = React.useState('');
+            
+            // État pour la vue Blog
             const [currentPost, setCurrentPost] = React.useState(null);
+            const [searchResults, setSearchResults] = React.useState([]);
+            const [isBlogView, setIsBlogView] = React.useState(true);
+
+            // État pour la vue Photos
             const [photos, setPhotos] = React.useState([]);
-            const [isLoading, setIsLoading] = React.useState(false);
-            const [error, setError] = React.useState('');
-            const [isModalOpen, setIsModalOpen] = React.useState(false);
-            const [selectedPhoto, setSelectedPhoto] = React.useState(null);
+            const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
+            const [photoError, setPhotoError] = React.useState('');
+            
             const { isConnected } = useGoogleAuth();
             const isMastodonImported = MastodonData.isImported();
             const stats = MastodonData.getStats();
-            const maxDay = stats?.dayRange?.max || 275;
+			const maxDay = stats?.dayRange?.max || 275;
 
+			const showRandomMemory = async () => {
+            const randomDay = Math.floor(Math.random() * maxDay) + 1;
+
+            const availableViews = [];
+            if (isMastodonImported) availableViews.push('blog');
+            if (isConnected) availableViews.push('photos');
+            if (availableViews.length === 0) return;
+
+            const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
+
+            setActiveView(randomView);
+            setDayNumber(randomDay);
+        };
+
+            // Effet pour charger les données (post ou photos) quand le jour ou la vue change
             React.useEffect(() => {
                 const loadDataForDay = async () => {
-                    setIsLoading(true); setError('');
-                    try {
-                        if (activeView === 'blog' && isMastodonImported) {
+                    if (activeView === 'blog') {
+                        if (isMastodonImported) {
                             const post = MastodonData.getPostByDay(dayNumber);
-                            setCurrentPost(post); setPhotos([]);
-                            if (!post) setError('Aucun post pour ce jour.');
-                        } else if (activeView === 'photos' && isConnected) {
-                            const fetchedPhotos = await GoogleDriveAPI.getPhotosByDay(dayNumber);
-                            setPhotos(fetchedPhotos); setCurrentPost(null);
-                            if (fetchedPhotos.length === 0) setError('Aucune photo trouvée pour ce jour.');
+                            setCurrentPost(post);
                         }
-                    } catch (err) { setError('Erreur lors du chargement des données.'); console.error(err); } 
-                    finally { setIsLoading(false); }
+                    } else if (activeView === 'photos') {
+                        if (isConnected) {
+                            setIsLoadingPhotos(true);
+                            setPhotoError('');
+                            try {
+                                const fetchedPhotos = await GoogleDriveAPI.getPhotosByDay(dayNumber);
+                                setPhotos(fetchedPhotos);
+                                if (fetchedPhotos.length === 0) {
+                                    setPhotoError('Aucune photo trouvée pour ce jour.');
+                                }
+                            } catch (error) {
+                                setPhotoError('Erreur lors du chargement des photos.');
+                                console.error(error);
+                            } finally {
+                                setIsLoadingPhotos(false);
+                            }
+                        }
+                    }
                 };
                 loadDataForDay();
             }, [dayNumber, activeView, isConnected, isMastodonImported]);
 
-            const showRandomMemory = async () => {
-                const randomDay = Math.floor(Math.random() * maxDay) + 1;
-                const availableViews = [];
-                if (isMastodonImported) availableViews.push('blog');
-                if (isConnected) availableViews.push('photos');
-                if (availableViews.length === 0) return;
-                const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
-                setActiveView(randomView);
-                setDayNumber(randomDay);
-            };
-
-            const openPhotoModal = (photo) => { setSelectedPhoto(photo); setIsModalOpen(true); };
-            const closePhotoModal = () => setIsModalOpen(false);
-
-            const createSessionFromModal = () => {
-                if (!selectedPhoto) return;
-                const game = getGameById(1);
-                window.pendingGameSession = { 
-                    game: { ...game, title: `Souvenir du Jour ${dayNumber}` },
-                    user: currentUser, 
-                    postChapo: `À propos de la photo: "${selectedPhoto.title}"`,
-                    photoUrl: selectedPhoto.thumbnailUrl
-                };
-                onCreateSession('chat');
-                closePhotoModal();
-            };
+            // Handlers
+            const goToPreviousDay = () => setDayNumber(d => Math.max(1, d - 1));
+            const goToNextDay = () => setDayNumber(d => Math.min(stats?.dayRange?.max || 365, d + 1));
             
-            const createSessionFromPost = (post) => {
-                const game = getGameById(7);
-                window.pendingGameSession = { 
-                    game: { ...game, title: `Souvenir du Jour ${post.dayNumber}` },
-                    user: currentUser, 
-                    postChapo: `Souvenir du Jour ${post.dayNumber}:\n${post.content.slice(0, 150)}...`
-                };
-                onCreateSession('chat');
-            };
-
-            const MastodonPostImages = ({ attachments }) => {
-                const [imageUrls, setImageUrls] = React.useState([]);
-                const mastodonMediaPath = Storage.get('mastodonMediaPath', '/Medias/Mastodon/');
-
-                React.useEffect(() => {
-                    const fetchImageUrls = async () => {
-                        const urls = new Map();
-                        for (const attachment of attachments) {
-                            if (attachment.type === 'Image' && attachment.url) {
-                                const filename = attachment.url.split('/').pop();
-                                const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
-                                const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
-                                const file = await GoogleDriveAPI.findFileByPartialPath(filename, fullPath);
-                                if (file?.webContentLink) {
-                                    urls.set(attachment.id, file.webContentLink);
-                                }
-                            }
-                        }
-                        setImageUrls(Array.from(urls.values()));
-                    };
-                    if (attachments && attachments.length > 0 && isConnected) {
-                        fetchImageUrls();
-                    }
-                }, [attachments, isConnected]);
-
-                if (imageUrls.length === 0) return null;
-                return (
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                        {imageUrls.map((url, index) => (
-                           <a key={index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" /></a>
-                        ))}
-                    </div>
-                );
-            };
-
-            return (
-                <div className="space-y-6 fade-in">
-                    <div className="flex justify-center bg-gray-100 p-1 rounded-lg">
-                        <button onClick={() => setActiveView('blog')} disabled={!isMastodonImported} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'blog' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Blog</button>
-                        <button onClick={() => setActiveView('photos')} disabled={!isConnected} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'photos' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Photos</button>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
-                        <div className="flex items-center space-x-4">
-                            <label className="font-medium text-gray-700">Jour</label>
-                            <input type="range" min="1" max={maxDay} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value))} className="flex-1"/>
-                            <span className="font-bold text-lg text-amber-800 w-12 text-center">{dayNumber}</span>
-                        </div>
-                        <div className="text-center">
-                            <button onClick={showRandomMemory} className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold flex items-center justify-center space-x-2 mx-auto">
-                                <Shuffle className="w-5 h-5"/>
-                                <span>Souvenir au hasard</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    {isLoading && <div className="text-center py-12">Chargement...</div>}
-                    {error && !isLoading && <div className="text-center py-12 text-gray-500">{error}</div>}
-
-                    {!isLoading && !error && activeView === 'blog' && currentPost && (
-                        <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-2xl font-bold text-amber-900">{currentPost.title}</h3>
-                                <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> <span>Session</span></button>
-                            </div>
-                            <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
-                            <MastodonPostImages attachments={currentPost.attachments} />
-                        </div>
-                    )}
-
-                    {!isLoading && !error && activeView === 'photos' && photos.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {photos.map(photo => (
-                                <div key={photo.id} className="group relative border rounded-lg overflow-hidden cursor-pointer" onClick={() => openPhotoModal(photo)}>
-                                    <img src={photo.thumbnailUrl} alt={photo.title} className="w-full h-full object-cover aspect-square"/>
-                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
-                                        <p className="text-white text-xs text-center">{photo.title}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {isModalOpen && selectedPhoto && (
-                        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={closePhotoModal}>
-                            <div className="bg-white rounded-lg shadow-2xl max-w-4xl max-h-full flex flex-col" onClick={e => e.stopPropagation()}>
-                                <img src={selectedPhoto.fullUrl || selectedPhoto.viewUrl} alt={selectedPhoto.title} className="object-contain w-full h-auto flex-1 p-2"/>
-                                <div className="p-4 bg-gray-50 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-                                    <p className="text-gray-800 text-center sm:text-left">{selectedPhoto.title}</p>
-                                    <div className="flex space-x-3">
-                                        <button onClick={closePhotoModal} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg">Fermer</button>
-                                        <button onClick={createSessionFromModal} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold">Créer une session</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <button onClick={closePhotoModal} className="absolute top-4 right-4 text-white hover:text-gray-300"><X className="w-8 h-8"/></button>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-		
-        const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
-            const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
-            const [photoPath, setPhotoPath] = React.useState(Storage.get('photoFolderPath', '/Medias/Photos/'));
-            const [mastodonPath, setMastodonPath] = React.useState(Storage.get('mastodonMediaPath', '/Medias/Mastodon/'));
-            
-            const savePaths = () => {
-                Storage.set('photoFolderPath', photoPath);
-                Storage.set('mastodonMediaPath', mastodonPath);
-                GoogleDriveAPI._folderIdCache.clear();
-                GoogleDriveAPI._fileIdCache.clear();
-                alert('Chemins de dossiers sauvegardés !');
-            };
-
-            return (
-                <div className="space-y-6 fade-in">
-                    <GoogleConnection isConnected={isConnected} isLoading={isLoading} userInfo={userInfo} onSignIn={signIn} onSignOut={onGoogleDisconnect || signOut} />
-                    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Configuration Google Drive</h3>
-                        <div>
-                            <label htmlFor="photoPath" className="block text-sm font-medium text-gray-700 mb-1">Chemin du dossier Photos de voyage</label>
-                            <input type="text" id="photoPath" value={photoPath} onChange={e => setPhotoPath(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="/Medias/Photos/"/>
-                        </div>
-                        <div>
-                            <label htmlFor="mastodonPath" className="block text-sm font-medium text-gray-700 mb-1">Chemin du dossier racine des Médias Mastodon</label>
-                            <input type="text" id="mastodonPath" value={mastodonPath} onChange={e => setMastodonPath(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="/Medias/Mastodon/"/>
-                             <p className="text-xs text-gray-500 mt-2">Doit pointer vers le dossier qui contient `media_attachments`.</p>
-                        </div>
-                        <div className="text-right">
-                             <button onClick={savePaths} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg">Sauvegarder les chemins</button>
-                        </div>
-                    </div>
-                    {/* ... (sections Import Mastodon et Données) */}
-                </div>
-            );
-        };
-		
-        const MemoireMekong = () => {
-            const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
-            const googleAuth = useGoogleAuth();
-            const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
-            const sessionHook = useSessionState();
-            const [currentChatSession, setCurrentChatSession] = React.useState(null);
-            const [toast, setToast] = React.useState({ message: '', type: '' });
-
-            const handleSessionSelect = (session) => {
-                setCurrentChatSession(session);
-                setCurrentPage('chat');
-            };
-
-            const handleCreateSessionAndNavigate = (page) => {
-                if (window.pendingGameSession) {
-                    sessionHook.createSession(window.pendingGameSession.game, currentUser).then(newSession => {
-                        if(newSession) {
-                            setCurrentChatSession(newSession);
-                            setCurrentPage(page);
-                        }
-                    });
+            const handleSearch = () => {
+                if (searchQuery.trim()) {
+                    const results = MastodonData.searchPosts(searchQuery);
+                    setSearchResults(results);
+                    setIsBlogView(false); 
                 } else {
-                    setCurrentPage(page);
+                    setSearchResults([]);
+                    setIsBlogView(true);
                 }
             };
             
+            // Créer une session depuis un post
+            const createSessionFromPost = (post) => {
+                const game = getGameById(7); // Souvenir du jour
+                const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
+                window.pendingGameSession = { game, user: currentUser, postChapo: `Souvenir du Jour ${post.dayNumber}:\n${postPreview}` };
+                onCreateSession('chat');
+            };
+
+            // Créer une session depuis une photo
+            const createSessionFromPhoto = (photo) => {
+                const game = getGameById(1); // Photo roulette
+                window.pendingGameSession = { game, user: currentUser, postChapo: `Souvenir de la photo: "${photo.title}" (Jour ${dayNumber})` };
+                onCreateSession('chat');
+            };
+
+            return (
+                <div className="space-y-6 fade-in">
+                    {/* Sélecteur de vue */}
+                    <div className="flex justify-center bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setActiveView('blog')} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'blog' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'}`}>
+                            Blog
+                        </button>
+                        <button onClick={() => setActiveView('photos')} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'photos' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'}`}>
+                            Photos
+                        </button>
+                    </div>
+
+                    {/* Navigation par jour */}
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
+                    	<div className="flex items-center space-x-4">
+                        	<label className="font-medium text-gray-700">Jour</label>
+                        	<input type="range" min="1" max={maxDay} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value))} className="flex-1"/>
+                        	<span className="font-bold text-lg text-amber-800 w-12 text-center">{dayNumber}</span>
+                    	</div>
+                    	<div className="text-center">
+                        	<button onClick={showRandomMemory} className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold flex items-center justify-center space-x-2 mx-auto">
+                            	<Shuffle className="w-5 h-5"/>
+                            	<span>Souvenir au hasard</span>
+                        	</button>
+                    	</div>
+                	</div>
+                    
+                    {/* Contenu conditionnel */}
+                    {activeView === 'blog' && (
+                        <div>
+                            {!isMastodonImported ? (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+                                    <h3 className="text-xl font-semibold text-blue-900 mb-4">Blog Mastodon non importé</h3>
+                                    <p className="text-blue-700">Rendez-vous dans les <strong>Réglages</strong> pour importer votre fichier `outbox.json`.</p>
+                                </div>
+                            ) : currentPost ? (
+                                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h3 className="text-2xl font-bold text-amber-900">{currentPost.title}</h3>
+                                        <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold">
+                                            <Plus className="w-4 h-4" /> <span>Session</span>
+                                        </button>
+                                    </div>
+                                    <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 text-gray-500">Aucun post pour ce jour.</div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeView === 'photos' && (
+                        <div>
+                            {!isConnected ? (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+                                    <h3 className="text-xl font-semibold text-red-900 mb-4">Google Drive déconnecté</h3>
+                                    <p className="text-red-700">Veuillez vous connecter à Google Drive dans les <strong>Réglages</strong> pour voir les photos.</p>
+                                </div>
+                            ) : isLoadingPhotos ? (
+                                <div className="text-center py-12 text-amber-700">Chargement des photos...</div>
+                            ) : photoError ? (
+                                <div className="text-center py-12 text-gray-500">{photoError}</div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {photos.map(photo => (
+                                        <div key={photo.id} className="group relative border rounded-lg overflow-hidden">
+                                            <img src={photo.thumbnailUrl} alt={photo.title} className="w-full h-full object-cover aspect-square"/>
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                                                <p className="text-white text-xs text-center mb-2">{photo.title}</p>
+                                                <button onClick={() => createSessionFromPhoto(photo)} className="px-3 py-1 bg-green-500 text-white rounded-full text-xs flex items-center space-x-1">
+                                                    <Plus className="w-3 h-3"/><span>Session</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+		
+        // ==== PAGE RÉGLAGES (AMÉLIORÉE AVEC CONFIGURATION PHOTOS) =====
+        const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
+            const [importStatus, setImportStatus] = React.useState('');
+            const [isImporting, setIsImporting] = React.useState(false);
+            const fileInputRef = React.useRef(null);
+            const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
+            
+            // NOUVEAU: État pour le chemin du dossier photos
+            const [photoPath, setPhotoPath] = React.useState(Storage.get('photoFolderPath', '/Medias/Photos/'));
+            
+            const handlePhotoPathChange = (e) => {
+                setPhotoPath(e.target.value);
+            };
+
+            const savePhotoPath = () => {
+                Storage.set('photoFolderPath', photoPath);
+                // Invalider le cache de l'ID du dossier si le chemin change
+                GoogleDriveAPI._folderIdCache.clear();
+                alert('Chemin du dossier photo sauvegardé !');
+            };
+            
+            const stats = MastodonData.getStats();
+            const isImported = MastodonData.isImported();
+
+            const handleFileImport = async (event) => { /* ... (code inchangé) ... */ };
+            const clearMastodonData = () => { /* ... (code inchangé) ... */ };
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <GoogleConnection 
+                		isConnected={isConnected}
+                		isLoading={isLoading}
+                		userInfo={userInfo}
+                		onSignIn={signIn}
+                		onSignOut={onGoogleDisconnect || signOut}
+            		/>
+                    
+                    {/* NOUVEAU: Configuration Google Drive */}
+                    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Configuration Google Drive</h3>
+                        <div>
+                            <label htmlFor="photoPath" className="block text-sm font-medium text-gray-700 mb-1">
+                                Chemin du dossier des photos
+                            </label>
+                            <div className="flex space-x-2">
+                                <input
+                                    type="text"
+                                    id="photoPath"
+                                    value={photoPath}
+                                    onChange={handlePhotoPathChange}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                    placeholder="/chemin/vers/photos"
+                                />
+                                <button
+                                    onClick={savePhotoPath}
+                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg"
+                                >
+                                    Sauver
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Doit être le chemin complet depuis "Mon Drive". Ex: `/Dossier/SousDossier/`
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Import Mastodon (inchangé) */}
+                    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
+                        {/* ... (le reste du JSX de cette section est inchangé) ... */}
+                    </div>
+
+                    {/* Données générales (inchangé) */}
+                    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Données</h3>
+                        {/* ... (le reste du JSX de cette section est inchangé) ... */}
+                    </div>
+                </div>
+            );
+        };
+		
+        // ===== MAIN APP (Légèrement modifié pour passer googleAuth) =====
+        const MemoireMekong = () => {
+            const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
+            const googleAuth = useGoogleAuth(); // Utiliser le hook
+            const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
+            const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
+            const [currentChatSession, setCurrentChatSession] = React.useState(null);
+            const [toast, setToast] = React.useState({ message: '', type: '' });
+
+            // ... (logique de useEffect et handlers inchangée) ...
+            React.useEffect(() => { let isMounted = true; const autoSync = async () => { if (isConnected && !isLoading) { try { if (isMounted) { await syncSessions(); } } catch (error) { if (isMounted) { setToast({ message: "Synchronisation auto échouée", type: 'error' }); } } } }; const timeoutId = setTimeout(autoSync, 500); return () => { isMounted = false; clearTimeout(timeoutId); }; }, [isConnected, isLoading]);
+            React.useEffect(() => { const handlePendingSession = async () => { if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') { const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user); if (newSession) { setCurrentChatSession(newSession); } } }; if (currentPage === 'chat') { handlePendingSession(); } }, [currentUser, currentPage, createSession]);
+            const handleSessionSelect = (session) => { setCurrentChatSession(session); setCurrentPage('chat'); };
+            const handleBackToSessions = () => { setCurrentChatSession(null); setCurrentPage('sessions'); };
+            const handleUpdateSession = async (updatedSession) => { try { await updateSession(updatedSession); setCurrentChatSession(updatedSession); } catch (error) { setToast({ message: error.message, type: 'error' }); const localSessions = Storage.get('sessions', []); setSessions(localSessions); setCurrentChatSession(updatedSession); } };
+
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-                    <TopBar 
-                        currentPage={currentPage} 
-                        currentUser={currentUser} 
-                        onPageChange={setCurrentPage} 
+                    <TopBar
+                        currentPage={currentPage}
+                        currentUser={currentUser}
                         onUserChange={setCurrentUser}
-                        googleStatus={{ isConnected, isLoading, userInfo }} 
-                        onGoogleAction={() => { isConnected ? setCurrentPage('settings') : signIn(); }} 
+                        onPageChange={setCurrentPage}
+                        googleStatus={{ isConnected, isLoading, userInfo }}
+                        onGoogleAction={async () => { if (!isConnected && !isLoading) { try { const success = await signIn(); if (success) { setToast({ message: "Connexion Google Drive réussie !", type: 'success' }); } } catch (error) { setToast({ message: "Erreur de connexion Google Drive", type: 'error' }); } } else { setCurrentPage('settings'); } }}
                     />
                     <main className="p-4 pb-24">
                         <div className="max-w-6xl mx-auto">
                             <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
                                 {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
-                                {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => { window.pendingGameSession = { game, user: currentUser }; handleCreateSessionAndNavigate('chat'); }} />}
+                                {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => { window.pendingGameSession = { game, user: currentUser }; setCurrentPage('chat'); }} />}
                                 {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} />}
-                                {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession || sessionHook.currentSession} onUpdateSession={sessionHook.updateSession} onBackToSessions={() => setCurrentPage('sessions')} />}
-                                {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page) => handleCreateSessionAndNavigate(page)} />}
-                                {currentPage === 'settings' && <SettingsPage onReset={resetApp} googleAuth={googleAuth} onGoogleDisconnect={signOut} />}
+                                {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession} onUpdateSession={handleUpdateSession} onBackToSessions={handleBackToSessions} />}
+                                {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page) => setCurrentPage(page)} />}
+                                {currentPage === 'settings' && <SettingsPage onReset={resetApp} googleAuth={googleAuth} onGoogleDisconnect={async () => { await signOut(); setToast({ message: "Déconnexion réussie", type: 'success' }); }} />}
                                 {currentPage === 'users' && <UsersPage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
                             </div>
                         </div>
                     </main>
-                    <BottomNavBar 
-                        currentPage={currentPage} 
-                        onPageChange={setCurrentPage} 
-                        currentUser={currentUser} 
-                    />
-                    <Toast 
-                        message={toast.message} 
-                        type={toast.type} 
-                        onDismiss={() => setToast({ message: '', type: '' })} 
-                    />
+                    <BottomNavBar currentPage={currentPage} onPageChange={setCurrentPage} currentUser={currentUser} />
+                    <Toast message={toast.message} type={toast.type} onDismiss={() => setToast({ message: '', type: '' })} />
                 </div>
             );
         };
