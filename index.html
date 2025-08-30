@@ -373,37 +373,37 @@ const GoogleDriveAPI = {
             } else {
                 console.log('🔄 Création nouveau fichier...');
                 
-                // Test d'une méthode plus simple d'abord
-                try {
-                    const boundary = '-------314159265358979323846';
-                    const delimiter = "\r\n--" + boundary + "\r\n";
-                    const close_delim = "\r\n--" + boundary + "--";
+                // L'ancien bloc 'try' interne a été retiré ici.
+                // Le 'catch' principal s'occupe déjà de la gestion des erreurs.
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
 
-                    const metadata = {
-                        'name': 'mekong_sessions.json',
-                        'mimeType': 'application/json'
-                    };
+                const metadata = {
+                    'name': 'mekong_sessions.json',
+                    'mimeType': 'application/json'
+                };
 
-                    const multipartRequestBody =
-                        delimiter +
-                        'Content-Type: application/json\r\n\r\n' +
-                        JSON.stringify(metadata) +
-                        delimiter +
-                        'Content-Type: application/json\r\n\r\n' +
-                        data +
-                        close_delim;
+                const multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    JSON.stringify(metadata) +
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    data +
+                    close_delim;
 
-                    const response = await gapi.client.request({
-                        'path': 'https://www.googleapis.com/upload/drive/v3/files',
-                        'method': 'POST',
-                        'params': {'uploadType': 'multipart'},
-                        'headers': {
-                            'Content-Type': 'multipart/related; boundary="' + boundary + '"'
-                        },
-                        'body': multipartRequestBody
-                    });
-                    console.log('✅ Sessions sauvegardées (NOUVEAU - multipart)', response);
-                    return true;
+                const response = await gapi.client.request({
+                    'path': 'https://www.googleapis.com/upload/drive/v3/files',
+                    'method': 'POST',
+                    'params': {'uploadType': 'multipart'},
+                    'headers': {
+                        'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+                    },
+                    'body': multipartRequestBody
+                });
+                console.log('✅ Sessions sauvegardées (NOUVEAU - multipart)', response);
+                return true;
             }
         } catch (error) {
             console.error('❌ Erreur sauvegarde détaillée:', error);
