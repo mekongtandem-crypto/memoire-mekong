@@ -334,22 +334,27 @@ const GoogleDriveAPI = {
     },
     
     async saveSessions(sessions) {
+        console.log('🔄 Début saveSessions, isSignedIn:', this.isSignedIn);
+        
         if (!this.isSignedIn) {
             console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
             return false;
         }
         
         try {
+            console.log('🔄 Préparation des données...');
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
                 version: '0.4.5'
             }, null, 2);
             
+            console.log('🔄 Recherche fichier existant...');
             const existingFile = await this.findMekongFile();
+            console.log('📁 Fichier existant:', existingFile);
             
             if (existingFile) {
-                // Mise à jour fichier existant
+                console.log('🔄 Mise à jour fichier existant...');
                 const response = await gapi.client.request({
                     path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
                     method: 'PATCH',
@@ -357,45 +362,66 @@ const GoogleDriveAPI = {
                     headers: { 'Content-Type': 'application/json' },
                     body: data
                 });
-                console.log('✅ Sessions sauvegardées (MAJ)');
+                console.log('✅ Sessions sauvegardées (MAJ)', response);
                 return true;
             } else {
-                // Création nouveau fichier - CORRECTION ICI
-                const boundary = '-------314159265358979323846';
-                const delimiter = "\r\n--" + boundary + "\r\n";
-                const close_delim = "\r\n--" + boundary + "--";
+                console.log('🔄 Création nouveau fichier...');
+                
+                // Test d'une méthode plus simple d'abord
+                try {
+                    const response = await gapi.client.drive.files.create({
+                        resource: {
+                            name: 'mekong_sessions.json'
+                        },
+                        media: {
+                            mimeType: 'application/json',
+                            body: data
+                        }
+                    });
+                    console.log('✅ Sessions sauvegardées (NOUVEAU - méthode simple)', response);
+                    return true;
+                } catch (createError) {
+                    console.error('❌ Erreur création simple:', createError);
+                    console.error('❌ Détails:', createError.body);
+                    
+                    // Fallback vers méthode multipart
+                    console.log('🔄 Tentative méthode multipart...');
+                    const boundary = '-------314159265358979323846';
+                    const delimiter = "\r\n--" + boundary + "\r\n";
+                    const close_delim = "\r\n--" + boundary + "--";
 
-                const metadata = {
-                    'name': 'mekong_sessions.json',
-                    'parents': []  // Racine du Drive
-                };
+                    const metadata = {
+                        'name': 'mekong_sessions.json'
+                    };
 
-                const multipartRequestBody =
-                    delimiter +
-                    'Content-Type: application/json\r\n\r\n' +
-                    JSON.stringify(metadata) +
-                    delimiter +
-                    'Content-Type: application/json\r\n\r\n' +
-                    data +
-                    close_delim;
+                    const multipartRequestBody =
+                        delimiter +
+                        'Content-Type: application/json\r\n\r\n' +
+                        JSON.stringify(metadata) +
+                        delimiter +
+                        'Content-Type: application/json\r\n\r\n' +
+                        data +
+                        close_delim;
 
-                const request = gapi.client.request({
-                    'path': 'https://www.googleapis.com/upload/drive/v3/files',
-                    'method': 'POST',
-                    'params': {'uploadType': 'multipart'},
-                    'headers': {
-                        'Content-Type': 'multipart/related; boundary="' + boundary + '"'
-                    },
-                    'body': multipartRequestBody
-                });
+                    const request = await gapi.client.request({
+                        'path': 'https://www.googleapis.com/upload/drive/v3/files',
+                        'method': 'POST',
+                        'params': {'uploadType': 'multipart'},
+                        'headers': {
+                            'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+                        },
+                        'body': multipartRequestBody
+                    });
 
-                const response = await request;
-                console.log('✅ Sessions sauvegardées (NOUVEAU)', response.result);
-                return true;
+                    console.log('✅ Sessions sauvegardées (NOUVEAU - multipart)', request);
+                    return true;
+                }
             }
         } catch (error) {
             console.error('❌ Erreur sauvegarde détaillée:', error);
-            console.error('❌ Détails erreur:', error.body, error.status);
+            console.error('❌ Status:', error.status);
+            console.error('❌ Body:', error.body);
+            console.error('❌ Details:', error.result);
             return false;
         }
     },
