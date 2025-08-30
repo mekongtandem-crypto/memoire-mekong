@@ -148,12 +148,6 @@ const MastodonData = {
                         url: note.url
                     };
                 })
-                .filter(post => {
-                    if (post.dayNumber === null) {
-                        console.log(`Post filtré (pas de numéro): "${post.content.slice(0, 50)}"`);
-                    }
-                    return post.dayNumber !== null;
-                })
                 .sort((a, b) => a.dayNumber - b.dayNumber);
 
             console.log(`✅ ${posts.length} posts Mastodon importés`);
