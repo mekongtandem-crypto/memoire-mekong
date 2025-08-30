@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.9 changement interface </title>
+    <title>🐘 Mémoire du Mékong V0.4.9b changement interface </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -922,7 +922,7 @@ const useGoogleAuth = () => {
 
 
 
-// ===== NAVIGATION : NOUVEAU COMPOSANT : TOP BAR (Version à une seule ligne) =====
+// ===== NAVIGATION : COMPOSANT TOP BAR 1 ligne (Version 2.1 - Boutons agrandis) =====
 const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogleAction }) => {
     const PAGE_TITLES = {
         home: "Mémoire du Mékong",
@@ -942,7 +942,8 @@ const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogle
                 <div className="flex items-center space-x-2">
                     <button
                         onClick={onGoogleAction}
-                        className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        // MODIFICATION : Augmentation de la taille et du padding
+                        className={`flex items-center justify-center h-10 px-3 rounded-lg text-xs font-medium transition-colors ${
                             googleStatus?.isLoading ? 'bg-blue-100 text-blue-700 cursor-wait'
                             : googleStatus?.isConnected ? 'bg-green-100 text-green-700 hover:bg-green-200'
                             : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -950,17 +951,18 @@ const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogle
                         title={googleStatus?.isConnected ? `Connecté: ${googleStatus.userInfo?.email}` : 'Non connecté'}
                     >
                         {googleStatus?.isLoading
-                            ? <div className="animate-spin w-3 h-3 border border-blue-600 border-t-transparent rounded-full"></div>
-                            : <Cloud className="w-3 h-3" />
+                            ? <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                            : <Cloud className="w-5 h-5" /> // MODIFICATION : Icône légèrement plus grande
                         }
                     </button>
                     {currentUser && (
                          <button
                             onClick={() => onUserChange('')}
-                            className={`flex items-center justify-center w-8 h-8 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
+                            // MODIFICATION : Taille augmentée de w-8 h-8 à w-10 h-10 (40px)
+                            className={`flex items-center justify-center w-10 h-10 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
                             title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour changer.`}
                         >
-                            <span className="text-lg">{USERS[currentUser]?.emoji}</span>
+                            <span className="text-xl">{USERS[currentUser]?.emoji}</span>
                         </button>
                     )}
                 </div>
@@ -1280,7 +1282,6 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     return (
         <div className="space-y-6 fade-in">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-amber-900">Vos Sessions</h2>
                 <div className="flex space-x-2">
                     <button
                         // ... (le bouton Synchroniser ne change pas) ...
@@ -1781,8 +1782,6 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             if (!isImported) {
                 return (
                     <div className="space-y-6 fade-in">
-                        <h2 className="text-2xl font-bold text-amber-900">Mémoires du voyage</h2>
-                        
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
                             <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
                             <h3 className="text-xl font-semibold text-blue-900 mb-4">Blog Mastodon non importé</h3>
@@ -1811,7 +1810,6 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             return (
                 <div className="space-y-6 fade-in">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-amber-900">Mémoires du voyage</h2>
                         <div className="text-sm text-amber-600">
                             {stats.totalPosts} posts • Jours {stats.dayRange.min}-{stats.dayRange.max}
                         </div>
@@ -2051,8 +2049,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
 
             return (
                 <div className="space-y-6 fade-in">
-                    <h2 className="text-2xl font-bold text-amber-900">Réglages</h2>
-
+                    
 					{/* Bandeau Google Drive déplacé ici */}
             		<GoogleConnection 
                 		isConnected={isConnected}
