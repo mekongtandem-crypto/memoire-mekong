@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.8f bouton Connect</title>
+    <title>🐘 Mémoire du Mékong V0.4.8g bouton Connect</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -277,60 +277,38 @@ const GoogleDriveAPI = {
                 }
                 
                 console.log('✅ Token OAuth reçu');
-                this.isSignedIn = true;
                 
                 try {
                     // Attendre un peu pour que le token soit bien appliqué
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await new Promise(resolve => setTimeout(resolve, 200));
                     
                     await gapi.client.drive.files.list({ pageSize: 1 });
                     console.log('✅ API Drive fonctionnelle');
+                    this.isSignedIn = true;
                     resolve(true);
                 } catch (error) {
-                    console.warn('⚠️ Premier test API échoué, nouvelle tentative avec consentement forcé...');
-                    
-                    // Si le premier test échoue, c'est probablement un problème de scopes
-                    // Refaire une demande avec prompt=consent pour forcer les bons scopes
-                    this.tokenClient.callback = async (secondResponse) => {
-                        if (secondResponse.error) {
-                            console.error('❌ Erreur OAuth (2e tentative):', secondResponse);
-                            this.isSignedIn = false;
-                            reject(new Error(`Erreur OAuth: ${secondResponse.error}`));
-                            return;
-                        }
-                        
-                        try {
-                            await gapi.client.drive.files.list({ pageSize: 1 });
-                            console.log('✅ API Drive fonctionnelle (2e tentative)');
-                            this.isSignedIn = true;
-                            resolve(true);
-                        } catch (secondError) {
-                            console.error('❌ Test API Drive échoué (2e tentative):', secondError);
-                            this.isSignedIn = false;
-                            reject(new Error('Accès API Drive impossible après 2 tentatives'));
-                        }
-                    };
-                    
-                    // Nouvelle demande avec consentement forcé
-                    this.tokenClient.requestAccessToken({ prompt: 'consent' });
+                    console.error('❌ Test API Drive échoué:', error);
+                    this.isSignedIn = false;
+                    reject(new Error('Accès API Drive impossible - Permissions insuffisantes'));
                 }
             };
             
             const token = gapi.client.getToken();
             if (token) {
                 console.log('🔄 Token existant trouvé, test de validité...');
-                gapi.client.drive.files.list({ pageSize: 1 })
-                    .then(() => {
-                        this.isSignedIn = true;
-                        console.log('✅ Token existant valide');
-                        resolve(true);
-                    })
-                    .catch(() => {
-                        console.log('🔄 Token expiré, demande de nouveau token...');
-                        this.tokenClient.requestAccessToken({ prompt: 'consent' });
-                    });
+                try {
+                    await gapi.client.drive.files.list({ pageSize: 1 });
+                    this.isSignedIn = true;
+                    console.log('✅ Token existant valide');
+                    resolve(true);
+                } catch {
+                    console.log('🔄 Token expiré, demande de nouveau token...');
+                    gapi.client.setToken(''); // Clear le token invalide
+                    this.tokenClient.requestAccessToken({ prompt: 'consent' });
+                }
             } else {
-                console.log('🔄 Aucun token, demande d\'autorisation...');
+                console.log('🔄 Aucun token, demande d\'autorisation avec consentement...');
+                // Forcer le consentement dès la première demande pour avoir les bons scopes
                 this.tokenClient.requestAccessToken({ prompt: 'consent' });
             }
         });
@@ -868,7 +846,10 @@ const useGoogleAuth = () => {
                 const token = gapi.client.getToken();
                 if (token) {
                     try {
+                        // Tester avec un délai pour laisser le token s'initialiser
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         await gapi.client.drive.files.list({ pageSize: 1 });
+                        
                         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                             headers: { 'Authorization': `Bearer ${token.access_token}` }
                         });
@@ -882,13 +863,13 @@ const useGoogleAuth = () => {
                             });
                             setIsConnected(true);
                             GoogleDriveAPI.isSignedIn = true;
-                            console.log('Reconnexion automatique réussie');
+                            console.log('✅ Reconnexion automatique réussie');
                         } else {
                             throw new Error('Token invalide');
                         }
                     } catch (error) {
-                        console.log('Token expiré, reconnexion nécessaire');
-                        gapi.client.setToken('');
+                        console.log('⚠️ Token expiré, reconnexion nécessaire');
+                        gapi.client.setToken(''); // Clear le token invalide
                         setShouldForceConnection(true);
                     }
                 } else {
@@ -923,52 +904,6 @@ const useGoogleAuth = () => {
                 setUserInfo({
                     name: profile.name,
                     email: profile.email,
-                    picture: profile.picture
-                });
-                setIsConnected(true);
-                setShouldForceConnection(false);
-                console.log('Connexion réussie:', profile.name);
-                return true;
-            } else {
-                throw new Error('Échec de la connexion Google Drive');
-            }
-        } catch (error) {
-            console.error('Erreur connexion:', error);
-            setIsConnected(false);
-            setUserInfo(null);
-            alert(`Erreur de connexion: ${error.message}`);
-            return false;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const signOut = async () => {
-        setIsLoading(true); // Afficher le loading pendant la déconnexion
-        
-        try {
-            const token = gapi.client.getToken();
-            if (token) {
-                google.accounts.oauth2.revoke(token.access_token);
-                gapi.client.setToken('');
-            }
-            await GoogleDriveAPI.signOut();
-            
-            // Forcer la mise à jour des états
-            setIsConnected(false);
-            setUserInfo(null);
-            setShouldForceConnection(true);
-            
-            console.log('✅ Déconnexion réussie');
-        } catch (error) {
-            console.error('Erreur déconnexion:', error);
-        } finally {
-            setIsLoading(false); // Arrêter le loading
-        }
-    };
-
-    return { isConnected, isLoading, userInfo, shouldForceConnection, signIn, signOut };
-};
 
         // ===== NAVIGATION COMPONENT =====
 const Navigation = ({ currentPage, currentUser, onPageChange, onUserChange, onBack, googleStatus, onGoogleAction }) => (
@@ -2343,7 +2278,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         {/* Header */}
                         <div className="text-center mb-4">
                             <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Mémoire du Mékong</h1>
-                            <p className="text-xs text-amber-600 mt-1">V0.4.8f bouton Connect</p>
+                            <p className="text-xs text-amber-600 mt-1">V0.4.8g bouton Connect</p>
                         </div>
 
                         {/* Navigation */}
