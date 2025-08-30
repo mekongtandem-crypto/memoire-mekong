@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.18c amelioration de l'affichage des posts </title>
+    <title>🐘 Mémoire du Mékong V0.4.18d Mastodon DAta pour import corrigé </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -95,16 +95,16 @@ const Storage = {
     }
 };
 		
-// ===== MASTODON DATA MANAGEMENT - CORRIGÉ =====
+// ===== MASTODON DATA MANAGEMENT - IMPORT TOUS LES POSTS =====
 const MastodonData = {
-    // NOUVELLE FONCTION : Décoder les entités HTML
+    // Décoder les entités HTML
     decodeHtmlEntities: (text) => {
         const textArea = document.createElement('textarea');
         textArea.innerHTML = text;
         return textArea.value;
     },
 
-    // Parser le fichier outbox.json - MODIFIÉ
+    // Parser le fichier outbox.json - MODIFIÉ POUR IMPORTER TOUS LES POSTS
     parseOutbox: (jsonData) => {
         try {
             const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
@@ -123,38 +123,72 @@ const MastodonData = {
                 throw new Error('orderedItems n\'est pas un tableau');
             }
 
-            const posts = orderedItems
+            // ÉTAPE 1 : Traiter tous les posts et identifier ceux avec/sans numéro de jour
+            const allPosts = orderedItems
                 .filter(item => item.type === 'Create' && item.object?.type === 'Note')
                 .map((item, index) => {
                     const note = item.object;
                     const content = note.content || '';
                     
-                    // MODIFICATION : Nettoyer le HTML ET décoder les entités HTML
+                    // Nettoyer le HTML et décoder les entités HTML
                     const cleanContent = content.replace(/<[^>]*>/g, '');
                     const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
                     
                     // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
                     const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
                     const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-                    
-                    console.log(`Post ${index}: "${decodedContent.slice(0, 50)}" -> Jour: ${dayNumber}`);
+                    const hasJourNumber = dayNumber !== null;
                     
                     return {
                         id: note.id || `post-${index}`,
                         dayNumber,
-                        content: decodedContent, // MODIFIÉ : contenu décodé
+                        hasJourNumber,
+                        content: decodedContent,
                         published: note.published || item.published,
                         attachments: note.attachment || [],
-                        url: note.url
+                        url: note.url,
+                        originalIndex: index
                     };
-                })
-                .sort((a, b) => a.dayNumber - b.dayNumber);
+                });
 
-            console.log(`✅ ${posts.length} posts Mastodon importés`);
-            if (posts.length > 0) {
-                console.log(`Plage de jours: ${posts[0].dayNumber} à ${posts[posts.length-1].dayNumber}`);
+            // ÉTAPE 2 : Séparer les posts avec et sans numéro de jour
+            const postsWithDay = allPosts.filter(post => post.hasJourNumber);
+            const postsWithoutDay = allPosts.filter(post => !post.hasJourNumber);
+
+            // ÉTAPE 3 : Trier les posts avec numéro de jour
+            postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
+
+            // ÉTAPE 4 : Attribuer des numéros aux posts sans jour (après le dernier jour)
+            const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
+            postsWithoutDay.forEach((post, index) => {
+                post.dayNumber = maxDayNumber + index + 1;
+                post.isExtraPost = true; // Marquer comme post additionnel
+            });
+
+            // ÉTAPE 5 : Combiner tous les posts
+            const finalPosts = [...postsWithDay, ...postsWithoutDay];
+
+            // ÉTAPE 6 : Nettoyer les propriétés temporaires
+            finalPosts.forEach(post => {
+                delete post.hasJourNumber;
+                delete post.originalIndex;
+            });
+
+            console.log(`✅ ${finalPosts.length} posts Mastodon importés`);
+            console.log(`   - ${postsWithDay.length} posts avec numéro de jour (J1 à J${maxDayNumber})`);
+            console.log(`   - ${postsWithoutDay.length} posts additionnels (J${maxDayNumber + 1} à J${maxDayNumber + postsWithoutDay.length})`);
+            
+            if (postsWithoutDay.length > 0) {
+                console.log('📋 Posts sans numéro de jour ajoutés :');
+                postsWithoutDay.slice(0, 3).forEach(post => {
+                    console.log(`   J${post.dayNumber}: "${post.content.slice(0, 60)}..."`);
+                });
+                if (postsWithoutDay.length > 3) {
+                    console.log(`   ... et ${postsWithoutDay.length - 3} autres`);
+                }
             }
-            return posts;
+            
+            return finalPosts;
         } catch (error) {
             console.error('❌ Erreur parsing outbox:', error);
             throw error;
@@ -208,8 +242,12 @@ const MastodonData = {
     getStats: () => {
         const posts = MastodonData.getPosts();
         const importedAt = Storage.get('mastodon_imported_at');
+        const extraPosts = posts.filter(p => p.isExtraPost);
+        
         return {
             totalPosts: posts.length,
+            regularPosts: posts.length - extraPosts.length,
+            extraPosts: extraPosts.length,
             dayRange: posts.length > 0 ? {
                 min: Math.min(...posts.map(p => p.dayNumber)),
                 max: Math.max(...posts.map(p => p.dayNumber))
