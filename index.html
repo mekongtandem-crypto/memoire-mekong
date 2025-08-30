@@ -74,7 +74,27 @@
 		};
 		
         // ===== CORE STORAGE =====
-
+const Storage = {
+    get: (key, defaultValue = null) => {
+        try {
+            const item = localStorage.getItem(`mekong_${key}`);
+            return item ? JSON.parse(item) : defaultValue;
+        } catch { return defaultValue; }
+    },
+    set: (key, value) => {
+        try {
+            localStorage.setItem(`mekong_${key}`, JSON.stringify(value));
+            return true;
+        } catch { return false; }
+    },
+    remove: (key) => localStorage.removeItem(`mekong_${key}`),
+    clear: () => {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('mekong_')) localStorage.removeItem(key);
+        });
+    }
+};
+		
 // ===== MASTODON DATA MANAGEMENT - CORRIGÉ =====
 const MastodonData = {
     // NOUVELLE FONCTION : Décoder les entités HTML
