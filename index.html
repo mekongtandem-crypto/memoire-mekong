@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9 (Complet reconstitué + corrections 3 </title>
+    <title>🐘 Mémoire du Mékong V0.5.10 mise en cache nu nb de photo </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -144,15 +144,19 @@
         // ===== GOOGLE DRIVE API =====
         const GoogleDriveAPI = {
         isSignedIn: false, isInitialized: false, tokenClient: null, _folderIdCache: new Map(), _fileIdCache: new Map(),
-        async init() {
-            if (this.isInitialized) return;
-            try {
-                await new Promise((resolve) => gapi.load('client', resolve));
-                await gapi.client.init({ apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-                this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', callback: '' });
-                this.isInitialized = true;
-            } catch (error) { console.error('❌ Erreur init Google Drive API:', error); throw error; }
-        },
+            
+            // NOUVEAU: Cache pour les listes de photos par jour
+            _photosByDayCache: new Map(),
+
+            async init() {
+                if (this.isInitialized) return;
+                try {
+                    await new Promise((resolve) => gapi.load('client', resolve));
+                    await gapi.client.init({ apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+                    this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', callback: '' });
+                    this.isInitialized = true;
+                } catch (error) { console.error('❌ Erreur init Google Drive API:', error); throw error; }
+            },
         async signIn() {
             if (!this.isInitialized) await this.init();
             return new Promise((resolve, reject) => {
@@ -168,6 +172,8 @@
             });
         },
         async signOut() {
+			// On vide le cache des photos à la déconnexion
+                this._photosByDayCache.clear();
             const token = gapi.client.getToken();
             if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
             this.isSignedIn = false;
@@ -187,20 +193,53 @@
             this._folderIdCache.set(path, parentId);
             return parentId;
         },
-        async getPhotosByDay(dayNumber) {
-        const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
-        const parentFolderId = await this.findFolderByPath(photoFolderPath);
-        if (!parentFolderId) return { photos: [], folderName: null }; // Objet retourné modifié
-        const dayString = String(dayNumber).padStart(3, '0');
-        try {
-            const folderResponse = await gapi.client.drive.files.list({ q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, fields: 'files(id, name)' });
-            const dayFolder = folderResponse.result.files[0];
-            if (!dayFolder) return { photos: [], folderName: null }; // Objet retourné modifié
-            const photosResponse = await gapi.client.drive.files.list({ q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`, fields: 'files(id, name, thumbnailLink, mimeType)', pageSize: 50 });
-            const photos = (photosResponse.result.files || []).map(file => ({ id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink, mimeType: file.mimeType }));
-            return { photos, folderName: dayFolder.name }; // Objet retourné modifié
-        } catch (error) { console.error(`Erreur chargement photos jour ${dayNumber}:`, error); return { photos: [], folderName: null }; }
-    },
+        // AMÉLIORÉ: Gère la pagination et le cache
+            async getPhotosByDay(dayNumber) {
+                if (this._photosByDayCache.has(dayNumber)) {
+                    return this._photosByDayCache.get(dayNumber);
+                }
+
+                const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
+                const parentFolderId = await this.findFolderByPath(photoFolderPath);
+                if (!parentFolderId) return { photos: [], folderName: null };
+                
+                const dayString = String(dayNumber).padStart(3, '0');
+                try {
+                    const folderResponse = await gapi.client.drive.files.list({ q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, fields: 'files(id, name)' });
+                    const dayFolder = folderResponse.result.files[0];
+                    if (!dayFolder) {
+                        this._photosByDayCache.set(dayNumber, { photos: [], folderName: null });
+                        return { photos: [], folderName: null };
+                    }
+
+                    let allPhotos = [];
+                    let pageToken = null;
+
+                    // Boucle pour récupérer toutes les pages de résultats
+                    do {
+                        const photosResponse = await gapi.client.drive.files.list({
+                            q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
+                            fields: 'files(id, name, thumbnailLink, mimeType), nextPageToken',
+                            pageSize: 100, // On demande le maximum de photos par page
+                            pageToken: pageToken
+                        });
+                        
+                        if (photosResponse.result.files) {
+                            allPhotos = allPhotos.concat(photosResponse.result.files);
+                        }
+                        pageToken = photosResponse.result.nextPageToken;
+                    } while (pageToken);
+
+                    const result = {
+                        photos: allPhotos.map(file => ({ id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink, mimeType: file.mimeType })),
+                        folderName: dayFolder.name
+                    };
+
+                    this._photosByDayCache.set(dayNumber, result); // Sauvegarde dans le cache
+                    return result;
+
+                } catch (error) { console.error(`Erreur chargement photos jour ${dayNumber}:`, error); return { photos: [], folderName: null }; }
+            },
         async getPhotoAsBase64(fileId, mimeType) {
             try {
                 const response = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
