@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.24b : détection des déconnexions en temps réel</title>
+    <title>🐘 Mémoire du Mékong V0.4.25 : fix Toast placement et Add Composant Loading</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -60,25 +60,55 @@
 		const CloudOff = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg>;
 
 
-		// ===== COMPOSANT TOAST (Alerte) =====
-		const Toast = ({ message, type, onDismiss }) => {
-    		if (!message) return null;
+		// ===== COMPOSANT TOAST - POSITION ET DISMISSABLE FIXES =====
+const Toast = ({ message, type, onDismiss }) => {
+    if (!message) return null;
 
-    		const styles = {
-        		error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
-        		success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' }
-    		};
-    		const style = styles[type] || styles.error;
+    const styles = {
+        error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+        success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' }
+    };
+    const style = styles[type] || styles.error;
 
-    		return (
-        		<div className={`fixed bottom-4 right-4 max-w-sm p-4 border rounded-lg shadow-lg fade-in ${style.bg} ${style.text} ${style.border}`}>
-            		<div className="flex justify-between items-center">
-                		<span>{message}</span>
-                		<button onClick={onDismiss} className="ml-4 text-xl font-bold">&times;</button>
-            		</div>
-        		</div>
-    		);
-		};
+    // Auto-dismiss après 5 secondes
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            onDismiss();
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [message, onDismiss]);
+
+    return (
+        <div className={`fixed bottom-20 right-4 left-4 sm:left-auto sm:max-w-sm p-4 border-2 rounded-lg shadow-lg fade-in z-50 ${style.bg} ${style.text} ${style.border}`}>
+            <div className="flex justify-between items-start">
+                <span className="flex-1 pr-2 text-sm leading-relaxed">{message}</span>
+                <button 
+                    onClick={onDismiss} 
+                    className="ml-2 text-xl font-bold hover:opacity-70 flex-shrink-0 w-6 h-6 flex items-center justify-center"
+                    title="Fermer"
+                >
+                    ×
+                </button>
+            </div>
+        </div>
+    );
+};
+
+		// ===== COMPOSANT LOADING =====
+const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
+    const sizeClasses = {
+        small: "w-4 h-4 border-2",
+        normal: "w-8 h-8 border-3", 
+        large: "w-12 h-12 border-4"
+    };
+
+    return (
+        <div className="flex flex-col items-center justify-center py-12 fade-in">
+            <div className={`animate-spin border-amber-600 border-t-transparent rounded-full mb-4 ${sizeClasses[size]}`}></div>
+            <p className="text-amber-700 text-center">{message}</p>
+        </div>
+    );
+};
 		
         // ===== CORE STORAGE =====
 const Storage = {
@@ -413,7 +443,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.23'
+                version: '0.4.25'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
