@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.23 App connection first avec 4 etat de connnections : checking, never-connected, connected, disconnected</title>
+    <title>🐘 Mémoire du Mékong V0.4.23b App connection first avec 4 etat de connnections : checking, never-connected, connected, disconnected</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -52,6 +52,8 @@
         const Search = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
         const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
         const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
+		const CloudOff = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg>;
+
 
 		// ===== COMPOSANT TOAST (Alerte) =====
 		const Toast = ({ message, type, onDismiss }) => {
@@ -1553,13 +1555,13 @@ const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, goo
                     <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
                     <div className="space-y-3">
                         <button
-                            onClick={() => onUserChange('tom')}
-                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border}`}
+                            onClick={() => onUserChange('duo')}
+                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('duo').bg} hover:${getUserStyle('duo').border}`}
                         >
-                            <span className="text-3xl">🐘</span>
+                            <span className="text-3xl">🐘🐘</span>
                             <div>
-                                <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphanteau</div>
-                                <div className="text-sm text-gray-600">Le jeune aventurier</div>
+                                <div className={`font-medium text-lg ${getUserStyle('duo').text}`}>Duo Mekong Tandem</div>
+                                <div className="text-sm text-gray-600">Session père-fils</div>
                             </div>
                         </button>
                         <button
