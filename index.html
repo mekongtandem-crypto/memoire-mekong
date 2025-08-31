@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.18 nouvelle Home Page </title>
+    <title>🐘 Mémoire du Mékong V0.5.19 Refresh page sans reconnection : GoogleDriveAPI avec sauvegarde token </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -178,39 +178,107 @@ const GoogleDriveAPI = {
         if (!this.isInitialized) await this.init();
         return new Promise((resolve, reject) => {
             if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
+            
             this.tokenClient.callback = async (response) => {
                 if (response.error) { 
                     this.isSignedIn = false; 
                     return reject(new Error(`Erreur OAuth: ${response.error}`)); 
                 }
                 try { 
+                    console.log('🔄 Test accès Google Drive...');
                     await Promise.race([
-                        gapi.client.drive.files.list({ pageSize: 1 }),
+                        gapi.client.drive.files.list({ 
+                            q: "name='mekong_sessions.json'",
+                            pageSize: 1 
+                        }),
                         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
                     ]);
+                    
+                    // NOUVEAU : Sauvegarder le token pour persistance
+                    const token = gapi.client.getToken();
+                    if (token) {
+                        Storage.set('google_token', {
+                            access_token: token.access_token,
+                            expires_at: Date.now() + (3600 * 1000), // 1h par défaut
+                            token_type: token.token_type
+                        });
+                        console.log('💾 Token Google sauvegardé');
+                    }
+                    
                     this.isSignedIn = true; 
+                    console.log('✅ Connexion Google Drive réussie et sauvegardée');
                     resolve(true); 
                 } catch (error) { 
                     this.isSignedIn = false; 
                     reject(new Error('Accès API Drive impossible')); 
                 }
             };
+            
+            // Tester token existant d'abord
             const token = gapi.client.getToken();
             if (token) { 
-                Promise.race([
-                    gapi.client.drive.files.list({ pageSize: 1 }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-                ]).then(() => { 
-                    this.isSignedIn = true; 
-                    resolve(true); 
-                }).catch(() => { 
-                    gapi.client.setToken(''); 
-                    this.tokenClient.requestAccessToken({ prompt: 'consent' }); 
-                }); 
+                console.log('🔄 Test token existant...');
+                gapi.client.drive.files.list({ q: "name='mekong_sessions.json'", pageSize: 1 })
+                    .then(() => { 
+                        console.log('✅ Token existant valide');
+                        this.isSignedIn = true; 
+                        resolve(true); 
+                    })
+                    .catch(() => { 
+                        console.log('⚠️ Token existant expiré, nouvelle demande...');
+                        gapi.client.setToken(''); 
+                        this.tokenClient.requestAccessToken({ prompt: '' });
+                    }); 
             } else { 
-                this.tokenClient.requestAccessToken({ prompt: 'consent' }); 
+                console.log('🔄 Aucun token, demande d\'autorisation...');
+                this.tokenClient.requestAccessToken({ prompt: '' }); 
             }
         });
+    },
+
+	// NOUVELLE MÉTHODE : Restaurer token sauvegardé
+    async restoreToken() {
+        const savedToken = Storage.get('google_token');
+        if (!savedToken) {
+            console.log('📱 Aucun token sauvegardé');
+            return false;
+        }
+        
+        // Vérifier expiration
+        if (Date.now() >= savedToken.expires_at) {
+            console.log('⏰ Token sauvegardé expiré');
+            Storage.remove('google_token');
+            return false;
+        }
+        
+        try {
+            console.log('🔄 Restauration token sauvegardé...');
+            
+            // Restaurer le token dans gapi
+            gapi.client.setToken({
+                access_token: savedToken.access_token,
+                token_type: savedToken.token_type || 'Bearer'
+            });
+            
+            // Tester si le token fonctionne encore
+            await Promise.race([
+                gapi.client.drive.files.list({ 
+                    q: "name='mekong_sessions.json'",
+                    pageSize: 1 
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
+            ]);
+            
+            this.isSignedIn = true;
+            console.log('✅ Token restauré avec succès !');
+            return true;
+            
+        } catch (error) {
+            console.log('❌ Token sauvegardé invalide, suppression...');
+            Storage.remove('google_token');
+            gapi.client.setToken('');
+            return false;
+        }
     },
 
     async signOut() {
@@ -736,73 +804,62 @@ const useSessionState = () => {
 };
 
 		// ===== GOOGLE AUTH HOOK (CORRIGÉ) =====
-        // ===== GOOGLE AUTH HOOK (AVEC AUTO-CONNEXION) =====
+        // ===== GOOGLE AUTH HOOK (AVEC PERSISTANCE) =====
         const useGoogleAuth = () => {
             const [isConnected, setIsConnected] = React.useState(false);
             const [isLoading, setIsLoading] = React.useState(true);
             const [userInfo, setUserInfo] = React.useState(null);
-            const [hasTriedAutoConnect, setHasTriedAutoConnect] = React.useState(false);
+            const [hasTriedRestore, setHasTriedRestore] = React.useState(false);
             
             React.useEffect(() => {
-                const initAndAutoConnect = async () => {
+                const initAndRestore = async () => {
+                    if (hasTriedRestore) return; // Éviter la boucle
+                    
                     setIsLoading(true);
                     
                     try {
-                        console.log('🔄 Initialisation Google Drive...');
+                        console.log('🚀 Initialisation Google Drive API...');
                         await GoogleDriveAPI.init();
                         
-                        // TENTATIVE D'AUTO-CONNEXION
-                        const token = gapi.client.getToken();
-                        if (token && !hasTriedAutoConnect) {
-                            console.log('🔄 Tentative d\'auto-connexion...');
-                            setHasTriedAutoConnect(true);
+                        // TENTATIVE 1 : Restaurer token sauvegardé
+                        console.log('🔄 Tentative de restauration token...');
+                        const tokenRestored = await GoogleDriveAPI.restoreToken();
+                        
+                        if (tokenRestored) {
+                            setIsConnected(true);
+                            console.log('🎉 Reconnexion automatique réussie !');
                             
+                            // Récupérer infos utilisateur en arrière-plan (pas critique)
                             try {
-                                // Test simple d'accès
-                                await Promise.race([
-                                    gapi.client.drive.files.list({ pageSize: 1 }),
-                                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-                                ]);
-                                
-                                setIsConnected(true);
-                                GoogleDriveAPI.isSignedIn = true;
-                                console.log('✅ Auto-connexion réussie !');
-                                
-                                // Récupérer infos utilisateur en arrière-plan (pas critique)
-                                try {
-                                    const response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', { 
-                                        headers: { 'Authorization': `Bearer ${token.access_token}` } 
-                                    });
-                                    if (response.ok) {
-                                        const profile = await response.json();
-                                        setUserInfo({ name: profile.name, email: profile.email });
-                                    }
-                                } catch (e) {
-                                    console.log('ℹ️ Infos utilisateur non disponibles (pas critique)');
+                                const token = gapi.client.getToken();
+                                const response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', { 
+                                    headers: { 'Authorization': `Bearer ${token.access_token}` } 
+                                });
+                                if (response.ok) {
+                                    const profile = await response.json();
+                                    setUserInfo({ name: profile.name, email: profile.email });
+                                    console.log('👤 Infos utilisateur récupérées');
                                 }
-                                
-                            } catch (error) { 
-                                console.log('⚠️ Auto-connexion échouée, connexion manuelle requise');
-                                gapi.client.setToken(''); 
-                                setIsConnected(false);
+                            } catch (e) {
+                                console.log('ℹ️ Infos utilisateur non disponibles (pas critique)');
                             }
-                        } else if (!token) {
-                            console.log('📱 Aucun token sauvé, connexion manuelle requise');
-                            setHasTriedAutoConnect(true);
+                            
+                        } else {
+                            console.log('📱 Aucune session sauvée, connexion manuelle requise');
+                            setIsConnected(false);
                         }
                         
                     } catch (error) { 
-                        console.error('❌ Erreur initialisation Google:', error); 
-                        setHasTriedAutoConnect(true);
+                        console.error('❌ Erreur initialisation:', error); 
+                        setIsConnected(false);
                     } finally { 
                         setIsLoading(false); 
+                        setHasTriedRestore(true);
                     }
                 };
                 
-                if (!hasTriedAutoConnect) {
-                    initAndAutoConnect();
-                }
-            }, [hasTriedAutoConnect]);
+                initAndRestore();
+            }, [hasTriedRestore]);
             
             const signIn = async () => {
                 setIsLoading(true);
@@ -844,9 +901,11 @@ const useSessionState = () => {
                 setIsLoading(true);
                 try { 
                     await GoogleDriveAPI.signOut(); 
+                    // NOUVEAU : Supprimer token sauvegardé
+                    Storage.remove('google_token');
                     setIsConnected(false); 
                     setUserInfo(null); 
-                    console.log('✅ Déconnexion réussie');
+                    console.log('✅ Déconnexion complète réussie');
                 } catch (error) { 
                     console.error('Erreur déconnexion:', error); 
                 } finally { 
