@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.8 (Complet reconstitué + corrections 3 </title>
+    <title>🐘 Mémoire du Mékong V0.5.8b (Complet reconstitué + corrections 3 </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -587,17 +587,121 @@
     const stats = MastodonData.getStats();
     const maxDay = stats?.dayRange?.max || 275;
 
-    React.useEffect(() => { /* ... (inchangé) ... */ }, [dayNumber, activeView, isConnected, isMastodonImported]);
-    const showRandomMemory = async () => { /* ... (inchangé) ... */ };
-    const openPhotoModal = async (photo) => { /* ... (inchangé) ... */ };
-    const closePhotoModal = () => { /* ... (inchangé) ... */ };
-    const createSessionFromModal = () => { /* ... (inchangé) ... */ };
-    const createSessionFromPost = (post) => { /* ... (inchangé) ... */ };
-    const MastodonPostImages = ({ attachments }) => { /* ... (inchangé) ... */ };
+    React.useEffect(() => {
+                const loadDataForDay = async () => {
+                    setIsLoading(true); setError('');
+                    try {
+                        if (activeView === 'blog' && isMastodonImported) {
+                            const post = MastodonData.getPostByDay(dayNumber);
+                            setCurrentPost(post); setPhotos([]);
+                            if (!post) setError('Aucun post pour ce jour.');
+                        } else if (activeView === 'photos' && isConnected) {
+                            const fetchedPhotos = await GoogleDriveAPI.getPhotosByDay(dayNumber);
+                            setPhotos(fetchedPhotos); setCurrentPost(null);
+                            if (fetchedPhotos.length === 0) setError('Aucune photo trouvée pour ce jour.');
+                        }
+                    } catch (err) { setError('Erreur de chargement.'); console.error(err); } 
+                    finally { setIsLoading(false); }
+                };
+                loadDataForDay();
+            }, [dayNumber, activeView, isConnected, isMastodonImported]);
 
-    return (
-        <div className="space-y-6 fade-in">
-            {/* ... (Navigation et affichage Blog/Photos inchangés) ... */ }
+            const showRandomMemory = async () => {
+                const randomDay = Math.floor(Math.random() * maxDay) + 1;
+                const availableViews = [];
+                if (isMastodonImported) availableViews.push('blog');
+                if (isConnected) availableViews.push('photos');
+                if (availableViews.length === 0) return;
+                const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
+                setActiveView(randomView);
+                setDayNumber(randomDay);
+            };
+
+            const openPhotoModal = async (photo) => {
+                setSelectedPhoto(photo); setIsModalOpen(true); setIsModalLoading(true); setModalImageSrc('');
+                const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType);
+                if (base64Src) { setModalImageSrc(base64Src); }
+                setIsModalLoading(false);
+            };
+            const closePhotoModal = () => { setIsModalOpen(false); setSelectedPhoto(null); setModalImageSrc(''); };
+
+            const createSessionFromModal = () => {
+                if (!selectedPhoto) return;
+                const game = getGameById(1);
+                window.pendingGameSession = { game: { ...game, title: `Souvenir du Jour ${dayNumber}` }, user: currentUser, postChapo: `À propos de la photo: "${selectedPhoto.title}"`, photoUrl: selectedPhoto.thumbnailUrl };
+                onCreateSession('chat');
+                closePhotoModal();
+            };
+            
+            const createSessionFromPost = (post) => {
+                const game = getGameById(7);
+                window.pendingGameSession = { game: { ...game, title: `Souvenir du Jour ${post.dayNumber}` }, user: currentUser, postChapo: `Souvenir du Jour ${post.dayNumber}:\n${post.content.slice(0, 150)}...` };
+                onCreateSession('chat');
+            };
+
+            const MastodonPostImages = ({ attachments }) => {
+                const [imageUrls, setImageUrls] = React.useState([]);
+                const mastodonMediaPath = Storage.get('mastodonMediaPath', '/Medias/Mastodon/');
+                React.useEffect(() => {
+                    const fetchImageUrls = async () => {
+                        const urls = new Map();
+                        for (const attachment of attachments) {
+                            if (attachment.type === 'Image' && attachment.url) {
+                                const filename = attachment.url.split('/').pop();
+                                const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
+                                const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
+                                const file = await GoogleDriveAPI.findFileByPartialPath(filename, fullPath);
+                                if (file?.webContentLink) { urls.set(attachment.id, file.webContentLink); }
+                            }
+                        }
+                        setImageUrls(Array.from(urls.values()));
+                    };
+                    if (attachments && attachments.length > 0 && isConnected) { fetchImageUrls(); }
+                }, [attachments, isConnected]);
+                if (imageUrls.length === 0) return null;
+                return ( <div className="mt-4 grid grid-cols-2 gap-2"> {imageUrls.map((url, index) => (<a key={index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" /></a>))} </div> );
+            };
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="flex justify-center bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setActiveView('blog')} disabled={!isMastodonImported} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'blog' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Blog</button>
+                        <button onClick={() => setActiveView('photos')} disabled={!isConnected} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'photos' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Photos</button>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
+                        <div className="flex items-center space-x-4">
+                            <label className="font-medium text-gray-700">Jour</label>
+                            <input type="range" min="1" max={maxDay} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value))} className="flex-1"/>
+                            <span className="font-bold text-lg text-amber-800 w-12 text-center">{dayNumber}</span>
+                        </div>
+                        <div className="text-center">
+                            <button onClick={showRandomMemory} className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold flex items-center justify-center space-x-2 mx-auto">
+                                <Shuffle className="w-5 h-5"/><span>Souvenir au hasard</span>
+                            </button>
+                        </div>
+                    </div>
+                    {isLoading && <div className="text-center py-12">Chargement...</div>}
+                    {error && !isLoading && <div className="text-center py-12 text-gray-500">{error}</div>}
+                    {!isLoading && !error && activeView === 'blog' && currentPost && (
+                        <div className="bg-white p-6 rounded-lg border border-gray-200">
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className="text-2xl font-bold text-amber-900">{currentPost.title}</h3>
+                                <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> <span>Session</span></button>
+                            </div>
+                            <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
+                            <MastodonPostImages attachments={currentPost.attachments} />
+                        </div>
+                    )}
+                    {!isLoading && !error && activeView === 'photos' && photos.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {photos.map(photo => (
+                                <div key={photo.id} className="group relative border rounded-lg overflow-hidden cursor-pointer" onClick={() => openPhotoModal(photo)}>
+                                    <img src={photo.thumbnailUrl} alt={photo.title} className="w-full h-full object-cover aspect-square"/>
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2"><p className="text-white text-xs text-center">{photo.title}</p></div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
             {isModalOpen && selectedPhoto && (
                 <div className="fixed inset-0 bg-black/90 z-50 flex flex-col p-4" onClick={closePhotoModal}>
