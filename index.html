@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.23e App connection first avec 4 etat de connnections : checking, never-connected, connected, disconnected</title>
+    <title>🐘 Mémoire du Mékong V0.4.24 : détection des déconnexions en temps réel</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -677,8 +677,11 @@ const GoogleDriveAPI = {
             }
         ];
 
-// ===== CLOUD SESSION STORAGE (Modifié pour les erreurs) =====
+// ===== CLOUD SESSION STORAGE - AVEC DETECTION DECONNEXION =====
 const CloudSessionStorage = {
+    // Fonction pour notifier la déconnexion détectée
+    onConnectionLost: null, // Sera défini par l'app principale
+
     async getSessions() {
         try {
             if (!GoogleDriveAPI.isSignedIn) {
@@ -694,6 +697,14 @@ const CloudSessionStorage = {
             }
         } catch (error) {
             console.warn('⚠️ Erreur chargement cloud:', error.message);
+            
+            // NOUVEAU : Détecter si c'est une erreur de connexion
+            if (this.isConnectionError(error)) {
+                console.error('🔴 Déconnexion détectée lors du chargement');
+                if (this.onConnectionLost) {
+                    this.onConnectionLost('Perte de connexion détectée lors du chargement des sessions');
+                }
+            }
         }
         return Storage.get('sessions', []);
     },
@@ -724,7 +735,17 @@ const CloudSessionStorage = {
             console.log('✅ Session sauvegardée localement + cloud');
         } catch (error) {
             console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
-            throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
+            
+            // NOUVEAU : Détecter si c'est une erreur de connexion
+            if (this.isConnectionError(error)) {
+                console.error('🔴 Déconnexion détectée lors de la sauvegarde');
+                if (this.onConnectionLost) {
+                    this.onConnectionLost('Impossible de synchroniser - Connexion Google Drive perdue');
+                }
+                throw new Error(`Connexion Google Drive perdue. Session sauvegardée localement.`);
+            } else {
+                throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
+            }
         }
     },
     
@@ -742,7 +763,17 @@ const CloudSessionStorage = {
             console.log('✅ Session supprimée localement + cloud');
         } catch (error) {
             console.warn('⚠️ Erreur suppression cloud:', error.message);
-            throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
+            
+            // NOUVEAU : Détecter si c'est une erreur de connexion
+            if (this.isConnectionError(error)) {
+                console.error('🔴 Déconnexion détectée lors de la suppression');
+                if (this.onConnectionLost) {
+                    this.onConnectionLost('Impossible de synchroniser la suppression - Connexion Google Drive perdue');
+                }
+                throw new Error(`Connexion Google Drive perdue. Suppression locale effectuée.`);
+            } else {
+                throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
+            }
         }
     },
 
@@ -758,13 +789,60 @@ const CloudSessionStorage = {
                 console.log(`🔄 ${cloudSessions.length} sessions synchronisées depuis Google Drive`);
                 return cloudSessions;
             } else {
-                console.log('📁 Aucune donnée cloud trouvée');
+                console.log('🔍 Aucune donnée cloud trouvée');
                 return Storage.get('sessions', []);
             }
         } catch (error) {
             console.error('❌ Erreur synchronisation:', error);
+            
+            // NOUVEAU : Détecter si c'est une erreur de connexion
+            if (this.isConnectionError(error)) {
+                console.error('🔴 Déconnexion détectée lors de la synchronisation');
+                if (this.onConnectionLost) {
+                    this.onConnectionLost('Échec de synchronisation - Connexion Google Drive perdue');
+                }
+            }
+            
             throw new Error(`Échec synchronisation: ${error.message}`);
         }
+    },
+
+    // NOUVEAU : Fonction pour détecter les erreurs de connexion
+    isConnectionError(error) {
+        if (!error) return false;
+        
+        const errorMessage = error.message?.toLowerCase() || '';
+        const errorStatus = error.status;
+        
+        // Erreurs réseau courantes
+        const networkErrors = [
+            'network error',
+            'failed to fetch',
+            'networkerror',
+            'network request failed',
+            'offline',
+            'no internet',
+            'connection lost',
+            'timeout'
+        ];
+        
+        // Erreurs d'authentification Google
+        const authErrors = [
+            'unauthorized',
+            'invalid_token',
+            'token_expired',
+            'access_denied',
+            'invalid_grant'
+        ];
+        
+        // Vérifier le message d'erreur
+        const hasNetworkError = networkErrors.some(term => errorMessage.includes(term));
+        const hasAuthError = authErrors.some(term => errorMessage.includes(term));
+        
+        // Vérifier les codes d'erreur HTTP
+        const isNetworkStatus = [0, 401, 403, 500, 502, 503, 504].includes(errorStatus);
+        
+        return hasNetworkError || hasAuthError || isNetworkStatus;
     }
 };
 
@@ -952,12 +1030,29 @@ const useSessionState = () => {
 
 
 // ===== GOOGLE AUTH HOOK - CONNECTION-FIRST =====
+// ===== GOOGLE AUTH HOOK - AVEC DETECTION DECONNEXION =====
 const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [userInfo, setUserInfo] = React.useState(null);
     const [hasEverBeenConnected, setHasEverBeenConnected] = React.useState(false);
     const [connectionMode, setConnectionMode] = React.useState('checking'); // checking, never-connected, connected, disconnected
+    const [lastConnectionError, setLastConnectionError] = React.useState(null);
+
+    // NOUVEAU : Fonction pour forcer la déconnexion depuis l'extérieur
+    const forceDisconnect = React.useCallback((reason) => {
+        console.log('🔴 Déconnexion forcée:', reason);
+        setIsConnected(false);
+        setConnectionMode('disconnected');
+        setLastConnectionError(reason);
+        GoogleDriveAPI.isSignedIn = false;
+        
+        // Optionnel : Invalider le token local
+        const token = gapi.client.getToken();
+        if (token) {
+            gapi.client.setToken('');
+        }
+    }, []);
 
     React.useEffect(() => {
         const initGoogle = async () => {
@@ -975,6 +1070,8 @@ const useGoogleAuth = () => {
                 if (token) {
                     try {
                         await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        // NOUVEAU : Test de connexion avec gestion d'erreur améliorée
                         await gapi.client.drive.files.list({ pageSize: 1 });
                         
                         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -991,6 +1088,7 @@ const useGoogleAuth = () => {
                             setIsConnected(true);
                             GoogleDriveAPI.isSignedIn = true;
                             setConnectionMode('connected');
+                            setLastConnectionError(null);
                             
                             // Marquer comme ayant été connecté
                             if (!everConnected) {
@@ -1003,9 +1101,10 @@ const useGoogleAuth = () => {
                             throw new Error('Token invalide');
                         }
                     } catch (error) {
-                        console.log('⚠️ Token expiré ou invalide');
+                        console.log('⚠️ Token expiré ou invalide:', error.message);
                         gapi.client.setToken('');
                         setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
+                        setLastConnectionError('Token expiré');
                     }
                 } else {
                     // Pas de token
@@ -1015,6 +1114,7 @@ const useGoogleAuth = () => {
                 console.error('Erreur init Google:', error);
                 const everConnected = Storage.get('ever_connected_to_drive', false);
                 setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
+                setLastConnectionError(error.message);
             } finally {
                 setIsLoading(false);
             }
@@ -1024,6 +1124,8 @@ const useGoogleAuth = () => {
 
     const signIn = async () => {
         setIsLoading(true);
+        setLastConnectionError(null);
+        
         try {
             const success = await GoogleDriveAPI.signIn();
             if (success) {
@@ -1044,6 +1146,7 @@ const useGoogleAuth = () => {
                 });
                 setIsConnected(true);
                 setConnectionMode('connected');
+                setLastConnectionError(null);
                 
                 // Marquer comme ayant été connecté pour la première fois
                 if (!hasEverBeenConnected) {
@@ -1061,6 +1164,7 @@ const useGoogleAuth = () => {
             setIsConnected(false);
             setUserInfo(null);
             setConnectionMode(hasEverBeenConnected ? 'disconnected' : 'never-connected');
+            setLastConnectionError(error.message);
             return { success: false, error: error.message };
         } finally {
             setIsLoading(false);
@@ -1081,27 +1185,46 @@ const useGoogleAuth = () => {
             setIsConnected(false);
             setUserInfo(null);
             setConnectionMode('disconnected'); // Reste 'disconnected' car a déjà été connecté
+            setLastConnectionError(null);
             
             console.log('✅ Déconnexion réussie');
         } catch (error) {
             console.error('Erreur déconnexion:', error);
+            setLastConnectionError(error.message);
         } finally {
             setIsLoading(false);
         }
     };
+
+    // NOUVEAU : Fonction pour tester la connexion
+    const testConnection = React.useCallback(async () => {
+        if (!isConnected || !GoogleDriveAPI.isSignedIn) {
+            return false;
+        }
+        
+        try {
+            await gapi.client.drive.files.list({ pageSize: 1 });
+            return true;
+        } catch (error) {
+            console.log('🔴 Test de connexion échoué:', error.message);
+            forceDisconnect('Test de connexion échoué');
+            return false;
+        }
+    }, [isConnected, forceDisconnect]);
 
     return { 
         isConnected, 
         isLoading, 
         userInfo, 
         hasEverBeenConnected, 
-        connectionMode,  // 'checking', 'never-connected', 'connected', 'disconnected'
+        connectionMode,
+        lastConnectionError,  // NOUVEAU
         signIn, 
-        signOut 
+        signOut,
+        forceDisconnect,      // NOUVEAU
+        testConnection        // NOUVEAU
     };
 };
-
-
 
 
 // ===== NAVIGATION : TOP BAR - CONNECTION-FIRST =====
@@ -2524,8 +2647,9 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
             );
         };
 		
-// ===== MAIN APP =====
-		// ===== MAIN APP - CONNECTION-FIRST =====
+
+// ===== MAIN APP - CONNECTION-FIRST =====
+// ===== MAIN APP - AVEC DETECTION DECONNEXION =====
 const MemoireMekong = () => {
     const {
         currentPage, setCurrentPage,
@@ -2533,11 +2657,36 @@ const MemoireMekong = () => {
         resetApp
     } = useAppState();
 
-    const { isConnected, isLoading, userInfo, hasEverBeenConnected, connectionMode, signIn, signOut } = useGoogleAuth();
+    const { 
+        isConnected, isLoading, userInfo, hasEverBeenConnected, connectionMode, lastConnectionError,
+        signIn, signOut, forceDisconnect, testConnection 
+    } = useGoogleAuth();
+    
     const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
 
     const [currentChatSession, setCurrentChatSession] = React.useState(null);
     const [toast, setToast] = React.useState({ message: '', type: '' });
+
+    // NOUVEAU : Configurer le callback de détection de déconnexion
+    React.useEffect(() => {
+        CloudSessionStorage.onConnectionLost = (reason) => {
+            console.log('🔴 CloudSessionStorage détecte une déconnexion:', reason);
+            
+            // Forcer la déconnexion dans le hook d'auth
+            forceDisconnect(reason);
+            
+            // Afficher un toast critique
+            setToast({ 
+                message: `🔴 ${reason}`, 
+                type: 'error' 
+            });
+        };
+
+        // Nettoyer le callback au démontage
+        return () => {
+            CloudSessionStorage.onConnectionLost = null;
+        };
+    }, [forceDisconnect]);
 
     // Synchronisation automatique au chargement et lors de la connexion
     React.useEffect(() => {
@@ -2554,7 +2703,10 @@ const MemoireMekong = () => {
                 } catch (error) {
                     console.warn('⚠️ Sync auto échouée:', error.message);
                     if (isMounted) {
-                        setToast({ message: "Synchronisation automatique échouée", type: 'error' });
+                        // NOUVEAU : Ne pas afficher d'erreur si la déconnexion a déjà été gérée
+                        if (connectionMode === 'connected') {
+                            setToast({ message: "Synchronisation automatique échouée", type: 'error' });
+                        }
                     }
                 }
             }
@@ -2567,7 +2719,19 @@ const MemoireMekong = () => {
             isMounted = false;
             clearTimeout(timeoutId);
         };
-    }, [isConnected, isLoading, connectionMode]);
+    }, [isConnected, isLoading, connectionMode, syncSessions]);
+
+    // NOUVEAU : Test périodique de connexion (toutes les 5 minutes si connecté)
+    React.useEffect(() => {
+        if (connectionMode !== 'connected') return;
+
+        const intervalId = setInterval(async () => {
+            console.log('🔍 Test périodique de connexion...');
+            await testConnection();
+        }, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(intervalId);
+    }, [connectionMode, testConnection]);
 
     // Gérer la création automatique de session depuis les jeux/mémoires
     React.useEffect(() => {
@@ -2600,8 +2764,15 @@ const MemoireMekong = () => {
             await updateSession(updatedSession);
             setCurrentChatSession(updatedSession);
         } catch (error) {
-            setToast({ message: error.message, type: 'error' });
-            // Met à jour l'interface avec les données locales même si le cloud a échoué
+            // NOUVEAU : Distinguer les erreurs de connexion des autres erreurs
+            if (error.message.includes('Connexion Google Drive perdue')) {
+                // L'erreur de connexion a déjà été gérée par CloudSessionStorage
+                console.log('💾 Session mise à jour localement suite à déconnexion');
+            } else {
+                setToast({ message: error.message, type: 'error' });
+            }
+            
+            // Toujours mettre à jour l'interface avec les données locales
             const localSessions = Storage.get('sessions', []);
             setSessions(localSessions); 
             setCurrentChatSession(updatedSession);
@@ -2615,6 +2786,14 @@ const MemoireMekong = () => {
                 const result = await signIn();
                 if (result === true) {
                     setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
+                    
+                    // NOUVEAU : Test de synchronisation immédiate après reconnexion
+                    try {
+                        await syncSessions();
+                        setToast({ message: "Reconnexion et synchronisation réussies !", type: 'success' });
+                    } catch (syncError) {
+                        setToast({ message: "Reconnecté mais synchronisation échouée", type: 'error' });
+                    }
                 } else if (result && result.error) {
                     setToast({ message: `Erreur de connexion: ${result.error}`, type: 'error' });
                 }
@@ -2641,6 +2820,16 @@ const MemoireMekong = () => {
             });
         }
     }, [connectionMode, currentPage]);
+
+    // NOUVEAU : Afficher le dernier message d'erreur de connexion s'il existe
+    React.useEffect(() => {
+        if (lastConnectionError && connectionMode === 'disconnected') {
+            setToast({ 
+                message: `Problème de connexion: ${lastConnectionError}`, 
+                type: 'error' 
+            });
+        }
+    }, [lastConnectionError, connectionMode]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
@@ -2677,7 +2866,7 @@ const MemoireMekong = () => {
                                     // Avertir si déconnecté
                                     if (connectionMode === 'disconnected') {
                                         setToast({ 
-                                            message: "Session créée en mode local - ne sera pas synchronisée", 
+                                            message: "⚠️ Session créée en mode local - ne sera pas synchronisée", 
                                             type: 'error' 
                                         });
                                     }
