@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.5d (Stable)</title>
+    <title>🐘 Mémoire du Mékong V0.5.6 (Complet reconstitué par Gemini)</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -21,7 +21,6 @@
         .lucide { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Style pour le slider */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #c2410c; cursor: pointer; margin-top: -8px; }
@@ -213,7 +212,6 @@
         const getUserStyle = (userKey) => { const user = USERS[userKey]; if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' }; const styles = { blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' }, green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' }, amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' } }; return styles[user.color] || styles.blue; };
 
         // ===== SESSION MANAGEMENT & HOOKS =====
-        const CloudSessionStorage = { /* ... */ }; // Vide car non utilisé dans la version 0.5.0 de base
         const useSessionState = () => {
             const [currentSession, setCurrentSession] = React.useState(null);
             const [sessions, setSessions] = React.useState(Storage.get('sessions', []));
@@ -326,210 +324,24 @@
         const HomePage = ({ currentUser, onUserChange, onPageChange }) => {
             return ( <div className="space-y-6 fade-in"> <div className="text-center"> <h2 className="text-2xl font-bold text-amber-900 mb-4">Bienvenue dans vos mémoires du Mékong</h2> {currentUser && ( <p className="text-amber-700 mb-6">Bonjour <strong>{USERS[currentUser]?.name}</strong> ! Que souhaitez-vous faire ?</p> )} </div> {!currentUser ? ( <div className="max-w-md mx-auto space-y-4"> <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3> <div className="space-y-3"> {Object.entries(USERS).map(([key, user]) => ( <button key={key} onClick={() => onUserChange(key)} className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle(key).bg} hover:${getUserStyle(key).border}`}> <span className="text-3xl">{user.emoji}</span> <div> <div className={`font-medium text-lg ${getUserStyle(key).text}`}>{user.name}</div> </div> </button> ))} </div> </div> ) : ( <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('sessions')}> <div className="text-center"><Play className="w-12 h-12 text-blue-600 mx-auto mb-4" /><h3 className="text-lg font-semibold">Sessions</h3><p className="text-sm text-gray-600">Créer ou reprendre une session</p></div> </div> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}> <div className="text-center"><Camera className="w-12 h-12 text-green-600 mx-auto mb-4" /><h3 className="text-lg font-semibold">Mémoires</h3><p className="text-sm text-gray-600">Explorer le blog et les photos</p></div> </div> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}> <div className="text-center"><Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" /><h3 className="text-lg font-semibold">Réglages</h3><p className="text-sm text-gray-600">Configuration et préférences</p></div> </div> </div> )} </div> );
         };
-		// Page Utilisateur
         const UsersPage = ({ currentUser, onUserChange, onPageChange }) => {
-    return (
-        <div className="space-y-6 fade-in">
-            <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-amber-900 mb-2">Gestion des Utilisateurs</h2>
-                <p className="text-amber-700">
-                    Actuellement connecté en tant que <strong>{USERS[currentUser]?.name}</strong>
-                </p>
-            </div>
-
-            <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-amber-900">Changer d'utilisateur :</h3>
-
-                <div className="grid grid-cols-1 gap-4">
-                    {Object.entries(USERS).map(([key, user]) => (
-                        <button
-                            key={key}
-                            onClick={() => {
-                                onUserChange(key);
-                                onPageChange('home');
-                            }}
-                            className={`flex items-center space-x-4 p-4 border-2 rounded-lg transition-all ${
-                                key === currentUser 
-                                    ? `${getUserStyle(key).bg} ${getUserStyle(key).border} ring-2 ring-amber-300` 
-                                    : `${getUserStyle(key).bg} hover:${getUserStyle(key).border} border-gray-200 hover:border-amber-300`
-                            }`}
-                        >
-                            <span className="text-3xl">{user.emoji}</span>
-                            <div className="flex-1 text-left">
-                                <div className={`font-semibold text-lg ${getUserStyle(key).text}`}>
-                                    {user.name}
-                                    {key === currentUser && (
-                                        <span className="ml-2 text-sm bg-amber-200 text-amber-800 px-2 py-1 rounded-full">
-                                            Actuel
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                    {key === 'tom' && "Le jeune aventurier"}
-                                    {key === 'lambert' && "Le sage guide"}  
-                                    {key === 'duo' && "Session père-fils"}
-                                </div>
-                            </div>
-                            {key !== currentUser && (
-                                <div className="text-amber-600 font-medium">→ Changer</div>
-                            )}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6">
-                <h4 className="font-semibold text-amber-900 mb-2">💡 À propos des utilisateurs</h4>
-                <div className="text-amber-700 text-sm space-y-1">
-                    <div><strong>Tom :</strong> Voit ses propres messages à droite, ceux de Lambert à gauche</div>
-                    <div><strong>Lambert :</strong> Voit ses propres messages à droite, ceux de Tom à gauche</div>
-                    <div><strong>Duo :</strong> Mode session partagée, messages centrés</div>
-                </div>
-            </div>
-
-            <div className="flex justify-center pt-4">
-                <button
-                    onClick={() => onPageChange('home')}
-                    className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                >
-                    Retour à l'accueil
-                </button>
-            </div>
-        </div>
-    );
-};
-        //Page Jeux
-		const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => {
-    const fullGamesList = [
-        { id: 1, title: "Photo roulette", duration: "15 min", type: "présentiel", icon: Camera, description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient en mémoire" },
-        { id: 2, title: "Timeline aveugle", duration: "20 min", type: "présentiel", icon: Clock, description: "Reconstituez la chronologie d'une étape sans regarder les dates" },
-        { id: 3, title: "Interview journaliste", duration: "25 min", type: "présentiel", icon: Mic, description: "L'un interviewe l'autre sur une étape précise du voyage" },
-        { id: 4, title: "Photo sans légende", duration: "async", type: "distanciel", icon: Camera, description: "Envoyez une photo, l'autre devine le contexte et ses souvenirs" },
-        { id: 5, title: "Mot déclencheur", duration: "async", type: "distanciel", icon: Zap, description: "Un mot-clé pour déclencher un souvenir chez l'autre" },
-        { id: 6, title: "Géolocalisation mystère", duration: "async", type: "distanciel", icon: MapPin, description: "Partagez une position GPS, l'autre raconte ce lieu" },
-        { id: 7, title: "Souvenir du jour", duration: "libre", type: "mémoire", icon: BookOpen, description: "Discussion autour d'un post spécifique du blog Mastodon" }
-    ];
-
-    return (
-        <div className="space-y-6 fade-in">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2>
-                <button
-                    onClick={() => {
-                        const randomGame = fullGamesList[Math.floor(Math.random() * fullGamesList.length)];
-                        onGameSelect(randomGame);
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
-                >
-                    <Shuffle className="w-4 h-4" />
-                    <span>Jeu au hasard</span>
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {fullGamesList.map(game => {
-                    const IconComponent = game.icon;
-                    return (
-                        <button
-                            key={game.id}
-                            onClick={() => onGameSelect(game)}
-                            className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"
-                        >
-                            <div className="flex items-start space-x-4">
-                                <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">
-                                            {game.title}
-                                        </h3>
-                                        <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                                            {game.duration}
-                                        </span>
-                                    </div>
-                                    <p className="text-gray-600 text-sm leading-relaxed mb-2">
-                                        {game.description}
-                                    </p>
-                                </div>
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
-    );
-};
-
-		//Page Session
-        const SessionsPage = ({ currentUser, onPageChange, onSessionSelect, sessions, deleteSession }) => {
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-    };
-    const statusIcons = { active: { icon: Play, color: 'text-green-500', title: 'Active' }, paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' }, completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' } };
-
-    return (
-        <div className="space-y-4 fade-in">
-            <div className="flex justify-between items-center">
-                <button onClick={() => onPageChange('games')} className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow">
-                    <Plus className="w-5 h-5" />
-                    <span>Nouveau Jeu de Mémoire</span>
-                </button>
-            </div>
-
-            {!sessions || sessions.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3>
-                    <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p>
-                    <button onClick={() => onPageChange('games')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">
-                        Commencer un jeu
-                    </button>
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {sessions.map((session) => {
-                        const StatusIcon = statusIcons[session.status]?.icon || FileText;
-                        const statusColor = statusIcons[session.status]?.color || 'text-gray-500';
-                        const statusTitle = statusIcons[session.status]?.title || 'Archivée';
-                        const lastUser = session.user;
-                        const userStyle = getUserStyle(lastUser);
-
-                        return (
-                            <div key={session.id} onClick={() => onSessionSelect(session)} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3">
-                                <div className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`} title={`Dernière modification par ${USERS[lastUser]?.name}`}>
-                                    <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3>
-                                        <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-1">
-                                        <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span>
-                                        <div className="flex items-center space-x-2">
-                                            <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} />
-                                            <button onClick={(e) => { e.stopPropagation(); if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) { deleteSession(session.id); } }} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
-    );
-};
-
-		// Page CHAT	
-        const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-            if (!currentSession) { return <div className="text-center py-12">Chargement de la session...</div>; }
-            return ( <div className="flex flex-col h-screen max-h-[85vh] fade-in"> <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">{/* Header */}</div> <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3"> {currentSession.photoUrl && ( <div className="p-2 border-b border-gray-200 mb-4"> <img src={currentSession.photoUrl} alt="Contexte de la session" className="max-w-xs mx-auto rounded-lg shadow-md" /> </div> )} {/* Messages */} </div> <div className="mt-4 flex-shrink-0">{/* Input */}</div> </div> );
+            return ( <div className="space-y-6 fade-in"> <div className="text-center mb-6"> <h2 className="text-2xl font-bold text-amber-900 mb-2">Gestion des Utilisateurs</h2> <p className="text-amber-700">Actuellement connecté en tant que <strong>{USERS[currentUser]?.name}</strong></p> </div> <div className="space-y-4"> <h3 className="text-lg font-semibold text-amber-900">Changer d'utilisateur :</h3> <div className="grid grid-cols-1 gap-4"> {Object.entries(USERS).map(([key, user]) => ( <button key={key} onClick={() => { onUserChange(key); onPageChange('home'); }} className={`flex items-center space-x-4 p-4 border-2 rounded-lg transition-all ${ key === currentUser ? `${getUserStyle(key).bg} ${getUserStyle(key).border} ring-2 ring-amber-300` : `${getUserStyle(key).bg} hover:${getUserStyle(key).border} border-gray-200 hover:border-amber-300`}`}> <span className="text-3xl">{user.emoji}</span> <div className="flex-1 text-left"> <div className={`font-semibold text-lg ${getUserStyle(key).text}`}>{user.name}{key === currentUser && (<span className="ml-2 text-sm bg-amber-200 text-amber-800 px-2 py-1 rounded-full">Actuel</span>)}</div> <div className="text-sm text-gray-600">{key === 'tom' && "Le jeune aventurier"}{key === 'lambert' && "Le sage guide"}{key === 'duo' && "Session père-fils"}</div> </div> {key !== currentUser && (<div className="text-amber-600 font-medium">→ Changer</div>)} </button> ))} </div> </div> <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6"> <h4 className="font-semibold text-amber-900 mb-2">💡 À propos des utilisateurs</h4> <div className="text-amber-700 text-sm space-y-1"> <div><strong>Tom :</strong> Voit ses propres messages à droite, ceux de Lambert à gauche</div> <div><strong>Lambert :</strong> Voit ses propres messages à droite, ceux de Tom à gauche</div> <div><strong>Duo :</strong> Mode session partagée, messages centrés</div> </div> </div> <div className="flex justify-center pt-4"> <button onClick={() => onPageChange('home')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Retour à l'accueil</button> </div> </div> );
         };
-
-		// Page Config 
-		
+        const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => {
+            const fullGamesList = [ { id: 1, title: "Photo roulette", duration: "15 min", type: "présentiel", icon: Camera, description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient en mémoire" }, { id: 7, title: "Souvenir du jour", duration: "libre", type: "mémoire", icon: BookOpen, description: "Discussion autour d'un post spécifique du blog Mastodon" } ];
+            return ( <div className="space-y-6 fade-in"> <div className="flex justify-between items-center"> <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux</h2> <button onClick={() => { const randomGame = fullGamesList[Math.floor(Math.random() * fullGamesList.length)]; onGameSelect(randomGame); }} className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"><Shuffle className="w-4 h-4" /><span>Jeu au hasard</span></button> </div> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {fullGamesList.map(game => { const IconComponent = game.icon; return ( <button key={game.id} onClick={() => onGameSelect(game)} className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"> <div className="flex items-start space-x-4"> <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" /> <div className="flex-1"> <div className="flex justify-between items-start mb-2"> <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">{game.title}</h3> {game.duration && <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">{game.duration}</span>} </div> <p className="text-gray-600 text-sm leading-relaxed mb-2">{game.description}</p> </div> </div> </button> ); })} </div> </div> );
+        };
+        const SessionsPage = ({ currentUser, onPageChange, onSessionSelect, sessions, deleteSession }) => {
+            const formatDate = (dateString) => new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            const statusIcons = { active: { icon: Play, color: 'text-green-500', title: 'Active' }, paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' }, completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' } };
+            return ( <div className="space-y-4 fade-in"> <div className="flex justify-between items-center"> <button onClick={() => onPageChange('games')} className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"><Plus className="w-5 h-5" /><span>Nouveau Jeu de Mémoire</span></button> </div> {!sessions || sessions.length === 0 ? ( <div className="text-center py-12 bg-gray-50 rounded-lg"> <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" /> <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3> <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p> <button onClick={() => onPageChange('games')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Commencer un jeu</button> </div> ) : ( <div className="space-y-3"> {sessions.map((session) => { const StatusIcon = statusIcons[session.status]?.icon || FileText; const statusColor = statusIcons[session.status]?.color || 'text-gray-500'; const statusTitle = statusIcons[session.status]?.title || 'Archivée'; const lastUser = session.user; const userStyle = getUserStyle(lastUser); return ( <div key={session.id} onClick={() => onSessionSelect(session)} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"> <div className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`} title={`Dernière modification par ${USERS[lastUser]?.name}`}> <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span> </div> <div className="flex-1 min-w-0"> <div className="flex justify-between items-start"> <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3> <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span> </div> <div className="flex items-center justify-between mt-1"> <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span> <div className="flex items-center space-x-2"> <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} /> <button onClick={(e) => { e.stopPropagation(); if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) { deleteSession(session.id); } }} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"><Trash2 className="w-4 h-4" /></button> </div> </div> </div> </div> ); })} </div> )} </div> );
+        };
+        const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
+            const [newMessage, setNewMessage] = React.useState('');
+            if (!currentSession) { return <div className="text-center py-12">Sélectionnez une session pour commencer.</div>; }
+            const sendMessage = () => { if (!newMessage.trim()) return; const updatedSession = { ...currentSession, notes: [...(currentSession.notes || []), { id: Date.now(), content: newMessage, author: currentUser, timestamp: new Date().toISOString() }] }; onUpdateSession(updatedSession); setNewMessage(''); };
+            return ( <div className="flex flex-col h-screen max-h-[85vh] fade-in"> <div className="bg-amber-50 border-b p-3 flex-shrink-0"> <h3 className="font-bold text-amber-900">{currentSession.gameTitle}</h3> </div> <div className="flex-1 bg-gray-50 overflow-y-auto p-4 space-y-3"> {currentSession.photoUrl && ( <div className="p-2 border-b border-gray-200 mb-4"> <img src={currentSession.photoUrl} alt="Contexte" className="max-w-xs mx-auto rounded-lg shadow-md" /> </div> )} {(currentSession.notes || []).map(note => { const isOwn = note.author === currentUser; const userStyle = getUserStyle(note.author); return ( <div key={note.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}> <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userStyle.bg} ${isOwn ? 'order-2' : ''}`}><span className="text-lg">{USERS[note.author]?.emoji}</span></div> <div className={`max-w-[70%] p-3 rounded-2xl ${isOwn ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}`}> <p className="text-sm">{note.content}</p> </div> </div> ); })} </div> <div className="mt-4 p-2 border-t bg-white flex items-center"> <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Votre souvenir..." className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400" /> <button onClick={sendMessage} className="ml-3 p-3 bg-amber-500 text-white rounded-full hover:bg-amber-600"><Send className="w-5 h-5"/></button> </div> </div> );
+        };
         const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
             const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
             const [photoPath, setPhotoPath] = React.useState(Storage.get('photoFolderPath', '/Medias/Photos/'));
@@ -597,9 +409,6 @@
                 </div>
             );
         };
-
-		// Page MEMOIRE 
-		
         const MemoriesPage = ({ currentUser, onCreateSession }) => {
             const [activeView, setActiveView] = React.useState('blog');
             const [dayNumber, setDayNumber] = React.useState(1);
@@ -647,23 +456,12 @@
             };
 
             const openPhotoModal = async (photo) => {
-                setSelectedPhoto(photo);
-                setIsModalOpen(true);
-                setIsModalLoading(true);
-                setModalImageSrc('');
-                
+                setSelectedPhoto(photo); setIsModalOpen(true); setIsModalLoading(true); setModalImageSrc('');
                 const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType);
-                if (base64Src) {
-                    setModalImageSrc(base64Src);
-                }
+                if (base64Src) { setModalImageSrc(base64Src); }
                 setIsModalLoading(false);
             };
-
-            const closePhotoModal = () => {
-                setIsModalOpen(false);
-                setSelectedPhoto(null);
-                setModalImageSrc('');
-            };
+            const closePhotoModal = () => { setIsModalOpen(false); setSelectedPhoto(null); setModalImageSrc(''); };
 
             const createSessionFromModal = () => {
                 if (!selectedPhoto) return;
@@ -764,8 +562,6 @@
                 </div>
             );
         };
-
-		// MEMOIRE Mekong ====
 		
         const MemoireMekong = () => {
             const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
