@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.10 Pages UX mod </title>
+    <title>🐘 Mémoire du Mékong V0.4.22 reprise de l'ancienne page memoire </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -74,69 +74,143 @@
 		};
 		
         // ===== CORE STORAGE =====
-        // ===== MASTODON DATA MANAGEMENT =====
-const MastodonData = {
-    // Parser le fichier outbox.json
-    parseOutbox: (jsonData) => {
-    try {
-        const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-        
-        // Gérer la structure ActivityPub complète avec @context
-        let orderedItems;
-        if (data.orderedItems) {
-            orderedItems = data.orderedItems;
-        } else if (data.data && data.data.orderedItems) {
-            orderedItems = data.data.orderedItems;
-        } else {
-            throw new Error('Format ActivityPub invalide - orderedItems non trouvé');
-        }
-
-        if (!Array.isArray(orderedItems)) {
-            throw new Error('orderedItems n\'est pas un tableau');
-        }
-
-        const posts = orderedItems
-            .filter(item => item.type === 'Create' && item.object?.type === 'Note')
-            .map((item, index) => {
-                const note = item.object;
-                const content = note.content || '';
-                
-                // Nettoyer le HTML d'abord
-                const cleanContent = content.replace(/<[^>]*>/g, '');
-                
-                // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
-                const dayMatch = cleanContent.match(/^J(\d{1,3})[\s:]/);
-                const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-                
-                console.log(`Post ${index}: "${cleanContent.slice(0, 50)}" -> Jour: ${dayNumber}`);
-                
-                return {
-                    id: note.id || `post-${index}`,
-                    dayNumber,
-                    content: cleanContent,
-                    published: note.published || item.published,
-                    attachments: note.attachment || [],
-                    url: note.url
-                };
-            })
-            .filter(post => {
-                if (post.dayNumber === null) {
-                    console.log(`Post filtré (pas de numéro): "${post.content.slice(0, 50)}"`);
-                }
-                return post.dayNumber !== null;
-            })
-            .sort((a, b) => a.dayNumber - b.dayNumber);
-
-        console.log(`✅ ${posts.length} posts Mastodon importés`);
-        if (posts.length > 0) {
-            console.log(`Plage de jours: ${posts[0].dayNumber} à ${posts[posts.length-1].dayNumber}`);
-        }
-        return posts;
-    } catch (error) {
-        console.error('❌ Erreur parsing outbox:', error);
-        throw error;
+const Storage = {
+    get: (key, defaultValue = null) => {
+        try {
+            const item = localStorage.getItem(`mekong_${key}`);
+            return item ? JSON.parse(item) : defaultValue;
+        } catch { return defaultValue; }
+    },
+    set: (key, value) => {
+        try {
+            localStorage.setItem(`mekong_${key}`, JSON.stringify(value));
+            return true;
+        } catch { return false; }
+    },
+    remove: (key) => localStorage.removeItem(`mekong_${key}`),
+    clear: () => {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('mekong_')) localStorage.removeItem(key);
+        });
     }
-},
+};
+		
+// ===== MASTODON DATA MANAGEMENT - IMPORT TOUS LES POSTS =====
+const MastodonData = {
+    // Décoder les entités HTML
+    decodeHtmlEntities: (text) => {
+        const textArea = document.createElement('textarea');
+        textArea.innerHTML = text;
+        return textArea.value;
+    },
+
+    // Parser le fichier outbox.json - MODIFIÉ POUR IMPORTER TOUS LES POSTS
+    parseOutbox: (jsonData) => {
+        try {
+            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+            
+            // Gérer la structure ActivityPub complète avec @context
+            let orderedItems;
+            if (data.orderedItems) {
+                orderedItems = data.orderedItems;
+            } else if (data.data && data.data.orderedItems) {
+                orderedItems = data.data.orderedItems;
+            } else {
+                throw new Error('Format ActivityPub invalide - orderedItems non trouvé');
+            }
+
+            if (!Array.isArray(orderedItems)) {
+                throw new Error('orderedItems n\'est pas un tableau');
+            }
+
+            // ÉTAPE 1 : Traiter tous les posts et identifier ceux avec/sans numéro de jour
+const allPosts = orderedItems
+    .filter(item => item.type === 'Create' && item.object?.type === 'Note')
+    .map((item, index) => {
+        const note = item.object;
+        const content = note.content || '';
+        
+        // Nettoyer le HTML et décoder les entités HTML
+        const cleanContent = content.replace(/<[^>]*>/g, '');
+        const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+        
+        // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
+        const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+        const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+        const hasJourNumber = dayNumber !== null;
+        
+        // NOUVEAU : Extraire le titre
+        let title;
+        if (hasJourNumber) {
+            // Pour les posts avec Jnnn: extraire le titre après
+            const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
+            title = afterJour.split('\n')[0].slice(0, 60).trim();
+            if (title.length === 60) title += '...';
+        } else {
+            // Pour les posts sans Jnnn: utiliser le début comme titre
+            title = decodedContent.split('\n')[0].slice(0, 60).trim();
+            if (title.length === 60) title += '...';
+        }
+        
+        // Nettoyer le titre des emojis excessifs et caractères spéciaux
+        title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
+        
+        return {
+            id: note.id || `post-${index}`,
+            dayNumber,
+            hasJourNumber,
+            title: title || 'Post sans titre', // NOUVEAU
+            content: decodedContent,
+            published: note.published || item.published,
+            attachments: note.attachment || [],
+            url: note.url,
+            originalIndex: index
+        };
+    });
+
+            // ÉTAPE 2 : Séparer les posts avec et sans numéro de jour
+            const postsWithDay = allPosts.filter(post => post.hasJourNumber);
+            const postsWithoutDay = allPosts.filter(post => !post.hasJourNumber);
+
+            // ÉTAPE 3 : Trier les posts avec numéro de jour
+            postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
+
+            // ÉTAPE 4 : Attribuer des numéros aux posts sans jour (après le dernier jour)
+            const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
+            postsWithoutDay.forEach((post, index) => {
+                post.dayNumber = maxDayNumber + index + 1;
+                post.isExtraPost = true; // Marquer comme post additionnel
+            });
+
+            // ÉTAPE 5 : Combiner tous les posts
+            const finalPosts = [...postsWithDay, ...postsWithoutDay];
+
+            // ÉTAPE 6 : Nettoyer les propriétés temporaires
+            finalPosts.forEach(post => {
+                delete post.hasJourNumber;
+                delete post.originalIndex;
+            });
+
+            console.log(`✅ ${finalPosts.length} posts Mastodon importés`);
+            console.log(`   - ${postsWithDay.length} posts avec numéro de jour (J1 à J${maxDayNumber})`);
+            console.log(`   - ${postsWithoutDay.length} posts additionnels (J${maxDayNumber + 1} à J${maxDayNumber + postsWithoutDay.length})`);
+            
+            if (postsWithoutDay.length > 0) {
+                console.log('📋 Posts sans numéro de jour ajoutés :');
+                postsWithoutDay.slice(0, 3).forEach(post => {
+                    console.log(`   J${post.dayNumber}: "${post.content.slice(0, 60)}..."`);
+                });
+                if (postsWithoutDay.length > 3) {
+                    console.log(`   ... et ${postsWithoutDay.length - 3} autres`);
+                }
+            }
+            
+            return finalPosts;
+        } catch (error) {
+            console.error('❌ Erreur parsing outbox:', error);
+            throw error;
+        }
+    },
 
     // Sauvegarder les posts
     savePosts: (posts) => {
@@ -185,8 +259,12 @@ const MastodonData = {
     getStats: () => {
         const posts = MastodonData.getPosts();
         const importedAt = Storage.get('mastodon_imported_at');
+        const extraPosts = posts.filter(p => p.isExtraPost);
+        
         return {
             totalPosts: posts.length,
+            regularPosts: posts.length - extraPosts.length,
+            extraPosts: extraPosts.length,
             dayRange: posts.length > 0 ? {
                 min: Math.min(...posts.map(p => p.dayNumber)),
                 max: Math.max(...posts.map(p => p.dayNumber))
@@ -194,26 +272,6 @@ const MastodonData = {
             importedAt
         };
     }
-};
-        const Storage = {
-            get: (key, defaultValue = null) => {
-                try {
-                    const item = localStorage.getItem(`mekong_${key}`);
-                    return item ? JSON.parse(item) : defaultValue;
-                } catch { return defaultValue; }
-            },
-            set: (key, value) => {
-                try {
-                    localStorage.setItem(`mekong_${key}`, JSON.stringify(value));
-                    return true;
-                } catch { return false; }
-            },
-            remove: (key) => localStorage.removeItem(`mekong_${key}`),
-            clear: () => {
-                Object.keys(localStorage).forEach(key => {
-                    if (key.startsWith('mekong_')) localStorage.removeItem(key);
-                });
-            }
 };
 
 // ===== GOOGLE DRIVE API - VERSION 2024 =====
@@ -352,7 +410,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.10'
+                version: '0.4.19b'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -435,6 +493,25 @@ const GoogleDriveAPI = {
         }
     }
 };
+// ===== USER CONFIG =====
+        const USERS = {
+            tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' },
+            lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' },
+            duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' }
+        };
+
+        const getUserStyle = (userKey) => {
+            const user = USERS[userKey];
+            if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' };
+            
+            const styles = {
+                blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' },
+                green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' },
+                amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' }
+            };
+            return styles[user.color] || styles.blue;
+        };
+
 
         // ===== CORE STATES =====
         const useAppState = () => {
@@ -459,23 +536,78 @@ const GoogleDriveAPI = {
             };
         };
 
-        // ===== USER CONFIG =====
-        const USERS = {
-            tom: { name: 'Tom l\'éléphantau', color: 'blue', emoji: '🐘' },
-            lambert: { name: 'Lambert, le Vieil éléphant', color: 'green', emoji: '🐘' },
-            duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' }
-        };
+        
+        // ===== PAGE USERS =====
+        const UsersPage = ({ currentUser, onUserChange, onPageChange }) => {
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-amber-900 mb-2">Gestion des Utilisateurs</h2>
+                        <p className="text-amber-700">
+                            Actuellement connecté en tant que <strong>{USERS[currentUser]?.name}</strong>
+                        </p>
+                    </div>
 
-        const getUserStyle = (userKey) => {
-            const user = USERS[userKey];
-            if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' };
-            
-            const styles = {
-                blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' },
-                green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' },
-                amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' }
-            };
-            return styles[user.color] || styles.blue;
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-amber-900">Changer d'utilisateur :</h3>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                            {Object.entries(USERS).map(([key, user]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => {
+                                        onUserChange(key);
+                                        onPageChange('home');
+                                    }}
+                                    className={`flex items-center space-x-4 p-4 border-2 rounded-lg transition-all ${
+                                        key === currentUser 
+                                            ? `${getUserStyle(key).bg} ${getUserStyle(key).border} ring-2 ring-amber-300` 
+                                            : `${getUserStyle(key).bg} hover:${getUserStyle(key).border} border-gray-200 hover:border-amber-300`
+                                    }`}
+                                >
+                                    <span className="text-3xl">{user.emoji}</span>
+                                    <div className="flex-1 text-left">
+                                        <div className={`font-semibold text-lg ${getUserStyle(key).text}`}>
+                                            {user.name}
+                                            {key === currentUser && (
+                                                <span className="ml-2 text-sm bg-amber-200 text-amber-800 px-2 py-1 rounded-full">
+                                                    Actuel
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                            {key === 'tom' && "Le jeune aventurier"}
+                                            {key === 'lambert' && "Le sage guide"}  
+                                            {key === 'duo' && "Session père-fils"}
+                                        </div>
+                                    </div>
+                                    {key !== currentUser && (
+                                        <div className="text-amber-600 font-medium">→ Changer</div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6">
+                        <h4 className="font-semibold text-amber-900 mb-2">💡 À propos des utilisateurs</h4>
+                        <div className="text-amber-700 text-sm space-y-1">
+                            <div><strong>Tom :</strong> Voit ses propres messages à droite, ceux de Lambert à gauche</div>
+                            <div><strong>Lambert :</strong> Voit ses propres messages à droite, ceux de Tom à gauche</div>
+                            <div><strong>Duo :</strong> Mode session partagée, messages centrés</div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center pt-4">
+                        <button
+                            onClick={() => onPageChange('home')}
+                            className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                        >
+                            Retour à l'accueil
+                        </button>
+                    </div>
+                </div>
+            );
         };
 
         // ===== GAMES CATALOG =====
@@ -701,7 +833,7 @@ const CloudSessionStorage = {
             return GAMES.find(g => g.id === gameId);
         };
 
-// ===== SESSION HOOKS (LÉGÈRE MODIFICATION) =====
+// ===== SESSION HOOKS - createSession MODIFIÉE =====
 const useSessionState = () => {
     const [currentSession, setCurrentSession] = React.useState(null);
     const [sessions, setSessions] = React.useState([]);
@@ -722,20 +854,34 @@ const useSessionState = () => {
             return;
         }
 
+        // NOUVEAU : Préparer le premier message si on a un contenu de post
+        const postContent = window.pendingGameSession?.postChapo;
+        const initialNotes = [];
+        
+        if (postContent && postContent.trim()) {
+            // Ajouter le contenu du post comme premier message du "duo"
+            initialNotes.push({
+                id: Date.now() - 1, // ID légèrement antérieur pour être sûr qu'il soit en premier
+                content: postContent.trim(),
+                author: 'duo',
+                timestamp: new Date().toISOString()
+            });
+            console.log('Premier message ajouté depuis post:', postContent.slice(0, 100) + '...');
+        }
+
         const newSession = {
             id: Date.now(),
-            gameId: Number(game.id), // S'assurer que c'est un nombre
+            gameId: Number(game.id),
             gameTitle: game.title || 'Titre inconnu',
             gameDescription: game.description || 'Description inconnue',
             gameDuration: game.duration || 'Durée inconnue',
-            postChapo: window.pendingGameSession?.postChapo || null, // Chapo du post
+            postChapo: postContent || null,
             user: user,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             status: 'active',
-            notes: [], // S'assurer que notes est toujours un tableau
+            notes: initialNotes, // MODIFIÉ : Contient le message du post si présent
             participants: [user]
-            // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
         };
 
         console.log('Nouvelle session créée:', newSession);
@@ -759,7 +905,6 @@ const useSessionState = () => {
             notes: updatedSession.notes || [],
             updatedAt: new Date().toISOString()
         };
-        // Lève une erreur si le cloud échoue, qui sera attrapée par l'UI
         await CloudSessionStorage.saveSession(sessionToSave);
         const newSessions = await CloudSessionStorage.getSessions();
         setSessions(newSessions);
@@ -784,11 +929,11 @@ const useSessionState = () => {
             console.error('Erreur sync:', error);
             throw error;
         }
-    }, []); // Pas de dépendances pour éviter la boucle
+    }, []);
 
     return {
         currentSession, setCurrentSession,
-        sessions, setSessions, // On expose setSessions
+        sessions, setSessions,
         createSession,
         updateSession,
         deleteSession,
@@ -923,14 +1068,15 @@ const useGoogleAuth = () => {
 
 
 // ===== NAVIGATION : COMPOSANT TOP BAR 1 ligne (Version 2.1 - Boutons agrandis) =====
-const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogleAction }) => {
+const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleStatus, onGoogleAction }) => {
     const PAGE_TITLES = {
         home: "Mémoire du Mékong",
-        sessions: "Vos Sessions",
+        sessions: "Vos Sessions", 
         games: "Choisir un jeu",
         chat: "Conversation",
         memories: "Mémoires du Voyage",
-        settings: "Réglages"
+        settings: "Réglages",
+        users: "Gestion des Utilisateurs"
     };
 
     return (
@@ -942,7 +1088,6 @@ const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogle
                 <div className="flex items-center space-x-2">
                     <button
                         onClick={onGoogleAction}
-                        // MODIFICATION : Augmentation de la taille et du padding
                         className={`flex items-center justify-center h-10 px-3 rounded-lg text-xs font-medium transition-colors ${
                             googleStatus?.isLoading ? 'bg-blue-100 text-blue-700 cursor-wait'
                             : googleStatus?.isConnected ? 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -952,15 +1097,14 @@ const TopBar = ({ currentPage, currentUser, onUserChange, googleStatus, onGoogle
                     >
                         {googleStatus?.isLoading
                             ? <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                            : <Cloud className="w-5 h-5" /> // MODIFICATION : Icône légèrement plus grande
+                            : <Cloud className="w-5 h-5" />
                         }
                     </button>
                     {currentUser && (
                          <button
-                            onClick={() => onUserChange('')}
-                            // MODIFICATION : Taille augmentée de w-8 h-8 à w-10 h-10 (40px)
+                            onClick={() => onPageChange('users')}
                             className={`flex items-center justify-center w-10 h-10 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
-                            title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour changer.`}
+                            title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour gérer les utilisateurs.`}
                         >
                             <span className="text-xl">{USERS[currentUser]?.emoji}</span>
                         </button>
@@ -1130,7 +1274,7 @@ const ForceGoogleConnection = ({ onSignIn }) => (
                             >
                                 <span className="text-3xl">🐘</span>
                                 <div>
-                                    <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom l'éléphantau</div>
+                                    <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphantau</div>
                                     <div className="text-sm text-gray-600">Le jeune aventurier</div>
                                 </div>
                             </button>
@@ -1140,7 +1284,7 @@ const ForceGoogleConnection = ({ onSignIn }) => (
                             >
                                 <span className="text-3xl">🐘</span>
                                 <div>
-                                    <div className={`font-medium text-lg ${getUserStyle('lambert').text}`}>Lambert, le Vieil éléphant</div>
+                                    <div className={`font-medium text-lg ${getUserStyle('lambert').text}`}>Lambert, le vieux pachiderme</div>
                                     <div className="text-sm text-gray-600">Le sage guide</div>
                                 </div>
                             </button>
@@ -1248,7 +1392,7 @@ const ForceGoogleConnection = ({ onSignIn }) => (
 );
 		
         
-// Page Session (MODIFIÉE)
+// Page Session (MODIFIÉE - Icônes utilisateurs colorées)
 const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
     const [isSyncing, setIsSyncing] = React.useState(true);
@@ -1277,7 +1421,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         });
     };
     
-    // MODIFICATION : Objet pour mapper les statuts à des icônes
+    // Objet pour mapper les statuts à des icônes
     const statusIcons = {
         active: { icon: Play, color: 'text-green-500', title: 'Active' },
         paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' },
@@ -1286,9 +1430,8 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     };
 
     return (
-        <div className="space-y-4 fade-in"> {/* MODIFICATION : Espace réduit pour plus de densité */}
+        <div className="space-y-4 fade-in">
             <div className="flex justify-between items-center">
-                {/* Le titre est maintenant dans la TopBar */}
                 <button
                     onClick={() => onPageChange('games')}
                     className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"
@@ -1299,15 +1442,32 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             </div>
 
             {isSyncing && !syncComplete ? (
-                // ... (l'affichage de chargement ne change pas)
+                <div className="text-center py-12">
+                    <div className="animate-spin w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-amber-700">Synchronisation des sessions...</p>
+                </div>
             ) : sessions.length === 0 ? (
-                // ... (l'affichage "Aucune session" ne change pas)
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3>
+                    <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p>
+                    <button
+                        onClick={() => onPageChange('games')}
+                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                    >
+                        Commencer un jeu
+                    </button>
+                </div>
             ) : (
                 <div className="space-y-3">
                     {sessions.map((session) => {
                         const StatusIcon = statusIcons[session.status]?.icon || FileText;
                         const statusColor = statusIcons[session.status]?.color || 'text-gray-500';
                         const statusTitle = statusIcons[session.status]?.title || 'Archivée';
+                        
+                        // NOUVEAU : Déterminer l'utilisateur qui a modifié en dernier
+                        const lastUser = session.user; // ou session.lastModifiedBy si vous l'ajoutez plus tard
+                        const userStyle = getUserStyle(lastUser);
 
                         return (
                             <div
@@ -1315,30 +1475,36 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                                 onClick={() => onSessionSelect(session)}
                                 className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"
                             >
-                                {/* MODIFICATION : Structure interne complètement revue */}
+                                {/* NOUVEAU : Icône utilisateur colorée */}
+                                <div 
+                                    className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                                    title={`Dernière modification par ${USERS[lastUser]?.name}`}
+                                >
+                                    <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span>
+                                </div>
+
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start">
                                         <h3 className="font-bold text-gray-800 pr-2">{session.gameTitle}</h3>
                                         <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
                                     </div>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                        <span className="text-lg">{USERS[session.user]?.emoji}</span>
+                                    <div className="flex items-center justify-between mt-1">
                                         <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span>
+                                        <div className="flex items-center space-x-2">
+                                            <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} />
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) {
+                                                        deleteSession(session.id);
+                                                    }
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex flex-col items-center space-y-2">
-                                     <StatusIcon className={`w-6 h-6 ${statusColor}`} title={statusTitle} />
-                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) {
-                                                deleteSession(session.id);
-                                            }
-                                        }}
-                                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
                                 </div>
                             </div>
                         );
@@ -1349,11 +1515,14 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     );
 };
 
-// Page Chat (MODIFIÉE)
+
+// Page Chat (MODIFIÉE - Édition du titre)
 const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
     const [editContent, setEditContent] = React.useState('');
+    const [editingTitle, setEditingTitle] = React.useState(false);
+    const [titleContent, setTitleContent] = React.useState('');
     const messagesEndRef = React.useRef(null);
     const { renderGameIcon } = useSessionState();
 
@@ -1393,6 +1562,29 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    // NOUVEAU : Fonctions pour éditer le titre
+    const startEditTitle = () => {
+        setEditingTitle(true);
+        setTitleContent(currentSession.gameTitle || '');
+    };
+
+    const saveTitle = async () => {
+        if (!titleContent.trim()) return;
+        
+        const updatedSession = {
+            ...currentSession,
+            gameTitle: titleContent.trim()
+        };
+        
+        await onUpdateSession(updatedSession);
+        setEditingTitle(false);
+    };
+
+    const cancelEditTitle = () => {
+        setEditingTitle(false);
+        setTitleContent('');
     };
 
     const sendMessage = async () => {
@@ -1481,6 +1673,14 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         await onUpdateSession(updatedSession);
         onBackToSessions();
     };
+	const reopenSession = async () => {
+        const updatedSession = {
+            ...currentSession,
+            status: 'active'
+        };
+        await onUpdateSession(updatedSession);
+		// NE PAS faire onBackToSessions() pour rester sur la session et permettre de la rouvrir
+    };
 
     return (
         <div className="flex flex-col h-screen max-h-[85vh] fade-in">
@@ -1488,23 +1688,48 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                        <button
-                            onClick={onBackToSessions}
-                            className="p-1 hover:bg-amber-200 rounded"
-                            title="Retour aux sessions"
-                        >
-                            <ArrowLeft className="w-5 h-5 text-amber-700" />
-                        </button>
                         {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
                         <div>
-                            <h2 className="font-bold text-amber-900 text-base">
-                                {currentSession.gameTitle || 'Session sans titre'}
-                            </h2>
-                            {currentSession.postChapo && (
-                                <p className="text-sm text-amber-700 mt-1 italic">
-                                    "{currentSession.postChapo}"
-                                </p>
+                            {editingTitle ? (
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="text"
+                                        value={titleContent}
+                                        onChange={(e) => setTitleContent(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') saveTitle();
+                                            if (e.key === 'Escape') cancelEditTitle();
+                                        }}
+                                        className="font-bold text-amber-900 text-base bg-white border border-amber-300 rounded px-2 py-1 min-w-0 flex-1"
+                                        autoFocus
+                                        onBlur={saveTitle}
+                                    />
+                                    <button
+                                        onClick={saveTitle}
+                                        className="p-1 bg-green-100 hover:bg-green-200 text-green-700 rounded"
+                                        title="Sauvegarder"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={cancelEditTitle}
+                                        className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded"
+                                        title="Annuler"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={startEditTitle}
+                                    className="font-bold text-amber-900 text-base hover:bg-amber-100 px-2 py-1 rounded transition-colors flex items-center space-x-2 group"
+                                    title="Cliquer pour renommer"
+                                >
+                                    <span>{currentSession.gameTitle || 'Session sans titre'}</span>
+                                    <Edit className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                </button>
                             )}
+                            
                             <div className="text-xs text-amber-600">
                                 {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
                             </div>
@@ -1512,35 +1737,28 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                     </div>
                     
                     {/* Menu session */}
-                    <div className="flex space-x-1">
+                    <div className="flex items-center space-x-2">
                         {currentUser !== 'duo' && (
                             <button
                                 onClick={inviteOtherUser}
-                                className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                                title="Inviter"
+                                className={`p-2 text-white rounded-lg text-xs flex items-center space-x-1 transition-colors ${
+                                    currentUser === 'tom' 
+                                        ? 'bg-green-500 hover:bg-green-600'
+                                        : 'bg-blue-500 hover:bg-blue-600'
+                                }`}
+                                title={`Inviter ${currentUser === 'tom' ? 'Lambert' : 'Tom'}`}
                             >
                                 <Send className="w-4 h-4" />
+                                <span className="hidden sm:inline">
+                                    Inviter {currentUser === 'tom' ? 'Lambert' : 'Tom'}
+                                </span>
                             </button>
                         )}
-                        <button
-                            onClick={pauseSession}
-                            className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
-                            title="Pause"
-                        >
-                            <Pause className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={closeSession}
-                            className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
-                            title="Terminer"
-                        >
-                            <Play className="w-4 h-4" />
-                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Messages Container */}
+            {/* Messages Container - Inchangé */}
             <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
                 {(!currentSession.notes || currentSession.notes.length === 0) ? (
                     <div className="text-center py-12 text-gray-500">
@@ -1562,14 +1780,21 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                             const isEditing = editingMessage === message.id;
                             
                             const getBubbleStyle = (author) => {
-                                if (author === 'tom') return 'bg-blue-500 text-white';
-                                if (author === 'lambert') return 'bg-green-500 text-white'; 
-                                return 'bg-amber-500 text-white';
-                            };
+    if (author === 'tom') return 'bg-blue-500 text-white';
+    if (author === 'lambert') return 'bg-green-500 text-white'; 
+    if (author === 'duo') return 'bg-amber-500 text-white'; // NOUVEAU : Style spécial pour duo
+    return 'bg-gray-500 text-white'; // Fallback
+};
 
                             return (
-                                <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[75%] ${isOwnMessage ? 'order-2' : 'order-1'}`}>
+                                <div key={message.id} className={`flex ${
+    								message.author === 'duo' ? 'justify-center' : 
+    								isOwnMessage ? 'justify-end' : 'justify-start'
+								}`}>
+                                    <div className={`max-w-[75%] ${
+    									message.author === 'duo' ? '' : 
+    									isOwnMessage ? 'order-2' : 'order-1'
+									}`}>
                                         <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
                                             {isEditing ? (
                                                 <div className="space-y-2">
@@ -1634,9 +1859,8 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-			{/* MODIFICATION : La zone de saisie de texte est entièrement revue */}
-			<div className="mt-4 flex-shrink-0">
+            {/* Message Input - Inchangé */}
+            <div className="mt-4 flex-shrink-0">
                 <div className="bg-white border-2 border-gray-200 focus-within:border-amber-500 rounded-xl p-2 transition-colors">
                     <div className="flex items-start space-x-2">
                         <textarea
@@ -1645,7 +1869,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                             placeholder="Écrivez vos souvenirs..."
                             className="flex-1 resize-none border-none focus:outline-none bg-transparent text-gray-800 p-2"
                             rows="3"
-                            // Le onKeyDown qui envoyait le message a été supprimé. "Entrée" crée maintenant une nouvelle ligne.
                         />
                         <button
                             onClick={sendMessage}
@@ -1660,8 +1883,11 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             </div>
         </div>
     );
-};      
+};
+
+		
 // Page Memoire (MODIFIÉE)
+// Page Memoire (repris de la version 0.4.13
 const MemoriesPage = ({ currentUser, onCreateSession }) => {
     const [currentPost, setCurrentPost] = React.useState(null);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -1669,13 +1895,11 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
     const [dayNumber, setDayNumber] = React.useState(1);
     const [viewMode, setViewMode] = React.useState('blog');
     
-    // MODIFICATION : Utilisation de useRef pour ne lancer l'effet qu'une seule fois
     const isInitialLoad = React.useRef(true);
 
     const isImported = MastodonData.isImported();
     const stats = MastodonData.getStats();
 
-    // MODIFICATION : Logique pour afficher un post aléatoire au premier chargement
     React.useEffect(() => {
         if (isImported && isInitialLoad.current) {
             const randomPost = MastodonData.getRandomPost();
@@ -1683,32 +1907,82 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                 setCurrentPost(randomPost);
                 setDayNumber(randomPost.dayNumber);
             }
-            isInitialLoad.current = false; // On désactive pour les prochains rendus
+            isInitialLoad.current = false;
         }
     }, [isImported]);
 
     React.useEffect(() => {
-        if (isImported) {
+        if (isImported && !isInitialLoad.current) { // Ne pas re-chercher au premier chargement
             const post = MastodonData.getPostByDay(dayNumber);
             setCurrentPost(post);
         }
     }, [dayNumber, isImported]);
 
-    const handleSearch = () => { /* ... (la fonction ne change pas) ... */ };
-    const showRandomPost = () => { /* ... (la fonction ne change pas) ... */ };
-    const goToPreviousDay = () => { /* ... (la fonction ne change pas) ... */ };
-    const goToNextDay = () => { /* ... (la fonction ne change pas) ... */ };
-    const createSessionFromPost = (post) => { /* ... (la fonction ne change pas) ... */ };
+    const handleSearch = () => {
+        if (searchQuery.trim()) {
+            const results = MastodonData.searchPosts(searchQuery);
+            setSearchResults(results);
+            setViewMode('search');
+        } else {
+            setSearchResults([]);
+            setViewMode('blog');
+        }
+    };
+    
+    const showRandomPost = () => {
+        const randomPost = MastodonData.getRandomPost();
+        if (randomPost) {
+            setCurrentPost(randomPost);
+            setDayNumber(randomPost.dayNumber);
+            setViewMode('blog');
+        }
+    };
+
+    const goToPreviousDay = () => {
+        if (dayNumber > 1) {
+            setDayNumber(dayNumber - 1);
+            setViewMode('blog');
+        }
+    };
+
+    const goToNextDay = () => {
+        if (stats?.dayRange && dayNumber < stats.dayRange.max) {
+            setDayNumber(dayNumber + 1);
+            setViewMode('blog');
+        }
+    };
+
+    const createSessionFromPost = (post) => {
+        const game = {
+            id: 7,
+            title: `Jour ${post.dayNumber} - Souvenir`,
+            description: `Discussion autour du post du jour ${post.dayNumber}`,
+            duration: "libre",
+            type: "mémoire",
+            icon: BookOpen
+        };
+        const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
+        window.pendingGameSession = { game, user: currentUser, postChapo: postPreview };
+        if (onCreateSession) {
+            onCreateSession('chat'); // Navigue directement au chat après la création
+        }
+    };
 
     if (!isImported) {
-        // ... (la vue "non importé" ne change pas, à part le titre h2 déjà supprimé)
-        return ( <div className="space-y-6 fade-in"> ... </div> );
+        return (
+            <div className="space-y-6 fade-in">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+                    <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-blue-900 mb-4">Blog Mastodon non importé</h3>
+                    <p className="text-blue-700 mb-6">Importez votre fichier outbox.json pour explorer vos 275 posts de voyage.</p>
+                    <p className="text-sm text-blue-600 mb-6">Rendez-vous dans <strong>Réglages</strong> → <strong>Importer blog Mastodon</strong></p>
+                </div>
+            </div>
+        );
     }
 
     return (
         <div className="space-y-6 fade-in">
-            {/* MODIFICATION : Layout réorganisé */}
-            
             {/* 1. Navigation et Hasard */}
             <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
                 <div className="flex items-center justify-center space-x-4">
@@ -1723,7 +1997,7 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                 </div>
             </div>
 
-            {/* 2. Recherche (optionnel, peut être affiché via un état) */}
+            {/* 2. Recherche */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex space-x-2">
                     <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} placeholder="Rechercher un souvenir..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500" />
@@ -1733,14 +2007,33 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
 
             {/* 3. Contenu (Post ou résultats de recherche) */}
             {viewMode === 'search' && searchResults.length > 0 ? (
-                // ... (l'affichage des résultats de recherche ne change pas)
+                // CODE CORRIGÉ : Le JSX pour les résultats de recherche est de retour
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{searchResults.length} résultat(s) pour "{searchQuery}"</h3>
+                    {searchResults.map((post) => (
+                        <div key={post.id} className="bg-white p-4 rounded-lg border border-gray-200">
+                            <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-medium text-amber-900">Jour {post.dayNumber}</h4>
+                                <div className="flex space-x-2">
+                                    <button onClick={() => { setDayNumber(post.dayNumber); setViewMode('blog'); }} className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-sm">Voir</button>
+                                    <button onClick={() => createSessionFromPost(post)} className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded text-sm flex items-center space-x-1"><Plus className="w-3 h-3" /><span>Session</span></button>
+                                </div>
+                            </div>
+                            <p className="text-gray-700 text-sm leading-relaxed">{post.content.slice(0, 300)}{post.content.length > 300 && '...'}</p>
+                        </div>
+                    ))}
+                </div>
             ) : viewMode === 'search' && searchResults.length === 0 && searchQuery ? (
-                // ... (l'affichage "Aucun résultat" ne change pas)
+                // CODE CORRIGÉ : Le JSX pour "aucun résultat" est de retour
+                <div className="bg-gray-50 p-8 rounded-lg text-center">
+                    <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun résultat</h3>
+                    <p className="text-gray-500">Essayez d'autres mots-clés.</p>
+                </div>
             ) : currentPost ? (
                 <div className="bg-white p-6 rounded-lg border border-gray-200">
                     <div className="flex justify-between items-start mb-4">
                         <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
-                        {/* MODIFICATION : Bouton "Créer session" simplifié */}
                         <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold">
                             <Plus className="w-4 h-4" />
                             <span>Session</span>
@@ -1749,7 +2042,6 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                     <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
                         <p>{currentPost.content}</p>
                     </div>
-                    {/* MODIFICATION : Footer du post simplifié */}
                     <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
                         <span>{new Date(currentPost.published).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                         {currentPost.attachments && currentPost.attachments.length > 0 && (
@@ -1761,29 +2053,17 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                     </div>
                 </div>
             ) : (
-                        // Aucun post trouvé pour ce jour
-                        <div className="bg-gray-50 p-8 rounded-lg text-center">
-                            <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun post ce jour</h3>
-                            <p className="text-gray-500">Essayez un autre jour ou utilisez la recherche</p>
-                        </div>
-                    )}
-
-                    {/* Section Photos (placeholder) */}
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-                        <div className="text-center">
-                            <Camera className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-green-900 mb-2">Photos du voyage</h3>
-                            <p className="text-green-700 text-sm mb-4">2000+ photos organisées par jour</p>
-                            <div className="bg-green-100 p-3 rounded text-green-800 text-sm">
-                                API DirectoryPicker - Prochaine étape
-                            </div>
-                        </div>
-                    </div>
+                <div className="bg-gray-50 p-8 rounded-lg text-center">
+                    <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun post ce jour</h3>
+                    <p className="text-gray-500">Essayez un autre jour ou utilisez la recherche.</p>
                 </div>
-            );
-        };
-
+            )}
+        </div>
+    );
+};
+		
+// ====Pages Config réglages Settings  =====
         const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
             const [importStatus, setImportStatus] = React.useState('');
             const [isImporting, setIsImporting] = React.useState(false);
@@ -2044,6 +2324,7 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
             currentPage={currentPage}
             currentUser={currentUser}
             onUserChange={setCurrentUser}
+            onPageChange={setCurrentPage}
             googleStatus={{ isConnected, isLoading, userInfo }}
             onGoogleAction={async () => {
                 if (!isConnected && !isLoading) {
@@ -2119,6 +2400,13 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                                 await signOut();
                                 setToast({ message: "Déconnexion réussie", type: 'success' });
                             }}
+                        />
+                    )}
+                    {currentPage === 'users' && (
+                        <UsersPage 
+                            currentUser={currentUser}
+                            onUserChange={setCurrentUser}
+                            onPageChange={setCurrentPage}
                         />
                     )}
                 </div>
