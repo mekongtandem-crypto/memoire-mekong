@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.10 mise en cache nu nb de photo </title>
+    <title>🐘 Mémoire du Mékong V0.5.11 Rzstaure CLoudSync depuis la ve 0.4.10 </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -178,6 +178,116 @@
             if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
             this.isSignedIn = false;
         },
+		async findMekongFile() {
+        if (!this.isSignedIn) return null;
+        try {
+            const response = await gapi.client.drive.files.list({
+                q: "name='mekong_sessions.json' and trashed=false",
+                fields: 'files(id, name)'
+            });
+            return response.result.files[0] || null;
+        } catch (error) {
+            console.error('❌ Erreur recherche fichier:', error);
+            return null;
+        }
+    },
+    
+    async saveSessions(sessions) {
+        console.log('🔄 Début saveSessions, isSignedIn:', this.isSignedIn);
+        
+        if (!this.isSignedIn) {
+            console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
+            return false;
+        }
+        
+        try {
+            console.log('🔄 Préparation des données...');
+            const data = JSON.stringify({ 
+                sessions, 
+                lastUpdated: new Date().toISOString(),
+                version: '0.4.10'
+            }, null, 2);
+            
+            console.log('🔄 Recherche fichier existant...');
+            const existingFile = await this.findMekongFile();
+            console.log('📁 Fichier existant:', existingFile);
+            
+            if (existingFile) {
+                console.log('🔄 Mise à jour fichier existant...');
+                const response = await gapi.client.request({
+                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
+                    method: 'PATCH',
+                    params: { uploadType: 'media' },
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data
+                });
+                console.log('✅ Sessions sauvegardées (MAJ)', response);
+                return true;
+            } else {
+                console.log('🔄 Création nouveau fichier...');
+                
+                // L'ancien bloc 'try' interne a été retiré ici.
+                // Le 'catch' principal s'occupe déjà de la gestion des erreurs.
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
+
+                const metadata = {
+                    'name': 'mekong_sessions.json',
+                    'mimeType': 'application/json'
+                };
+
+                const multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    JSON.stringify(metadata) +
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    data +
+                    close_delim;
+
+                const response = await gapi.client.request({
+                    'path': 'https://www.googleapis.com/upload/drive/v3/files',
+                    'method': 'POST',
+                    'params': {'uploadType': 'multipart'},
+                    'headers': {
+                        'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+                    },
+                    'body': multipartRequestBody
+                });
+                console.log('✅ Sessions sauvegardées (NOUVEAU - multipart)', response);
+                return true;
+            }
+        } catch (error) {
+            console.error('❌ Erreur sauvegarde détaillée:', error);
+            console.error('❌ Status:', error.status);
+            console.error('❌ Body:', error.body);
+            console.error('❌ Details:', error.result);
+            return false;
+        }
+    },
+    
+    async loadSessions() {
+        if (!this.isSignedIn) return null;
+        
+        try {
+            const file = await this.findMekongFile();
+            if (!file) return null;
+            
+            const response = await gapi.client.drive.files.get({
+                fileId: file.id,
+                alt: 'media'
+            });
+            
+            const data = JSON.parse(response.body);
+            console.log('✅ Sessions chargées depuis Google Drive');
+            return data.sessions || [];
+        } catch (error) {
+            console.error('❌ Erreur chargement:', error);
+            return null;
+        }
+    }
+			
         async findFolderByPath(path) {
             if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
             const parts = path.split('/').filter(p => p);
@@ -272,48 +382,193 @@
         const USERS = { tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' }, lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } };
         const getUserStyle = (userKey) => { const user = USERS[userKey]; if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' }; const styles = { blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' }, green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' }, amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' } }; return styles[user.color] || styles.blue; };
 
+		const CloudSessionStorage = {
+    async getSessions() {
+        try {
+            if (!GoogleDriveAPI.isSignedIn) {
+                console.log('📱 Pas connecté au cloud, utilisation cache local');
+                return Storage.get('sessions', []);
+            }
+            
+            const cloudSessions = await GoogleDriveAPI.loadSessions();
+            if (cloudSessions) {
+                Storage.set('sessions', cloudSessions);
+                console.log(`✅ ${cloudSessions.length} sessions chargées depuis Google Drive`);
+                return cloudSessions;
+            }
+        } catch (error) {
+            console.warn('⚠️ Erreur chargement cloud:', error.message);
+        }
+        return Storage.get('sessions', []);
+    },
+    
+    async saveSession(session) {
+        // Récupérer toutes les sessions
+        const sessions = Storage.get('sessions', []);
+        
+        // Mettre à jour ou ajouter la session
+        const existingIndex = sessions.findIndex(s => s.id === session.id);
+        if (existingIndex >= 0) {
+            sessions[existingIndex] = session;
+        } else {
+            sessions.unshift(session);
+        }
+        
+        // Sauvegarder localement
+        Storage.set('sessions', sessions);
+        
+        // Sauvegarder dans le cloud si connecté
+        if (!GoogleDriveAPI.isSignedIn) {
+            console.log('📱 Session sauvegardée localement (cloud déconnecté)');
+            return;
+        }
+        
+        try {
+            await GoogleDriveAPI.saveSessions(sessions);
+            console.log('✅ Session sauvegardée localement + cloud');
+        } catch (error) {
+            console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
+            throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
+        }
+    },
+    
+    async deleteSession(sessionId) {
+        const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId);
+        Storage.set('sessions', sessions);
+        
+        if (!GoogleDriveAPI.isSignedIn) {
+            console.log('🗑️ Session supprimée localement (cloud déconnecté)');
+            return;
+        }
+        
+        try {
+            await GoogleDriveAPI.saveSessions(sessions);
+            console.log('✅ Session supprimée localement + cloud');
+        } catch (error) {
+            console.warn('⚠️ Erreur suppression cloud:', error.message);
+            throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
+        }
+    },
+
+    async forceSyncFromCloud() {
+        if (!GoogleDriveAPI.isSignedIn) {
+            throw new Error('Non connecté à Google Drive');
+        }
+        
+        try {
+            const cloudSessions = await GoogleDriveAPI.loadSessions();
+            if (cloudSessions) {
+                Storage.set('sessions', cloudSessions);
+                console.log(`🔄 ${cloudSessions.length} sessions synchronisées depuis Google Drive`);
+                return cloudSessions;
+            } else {
+                console.log('📁 Aucune donnée cloud trouvée');
+                return Storage.get('sessions', []);
+            }
+        } catch (error) {
+            console.error('❌ Erreur synchronisation:', error);
+            throw new Error(`Échec synchronisation: ${error.message}`);
+        }
+    }
+};
         // ===== SESSION MANAGEMENT & HOOKS =====
         const useSessionState = () => {
-            const [currentSession, setCurrentSession] = React.useState(null);
-            const [sessions, setSessions] = React.useState(Storage.get('sessions', []));
+    const [currentSession, setCurrentSession] = React.useState(null);
+    const [sessions, setSessions] = React.useState([]);
 
-            const saveSessionsToStorage = (sessionsToSave) => {
-                Storage.set('sessions', sessionsToSave);
-                setSessions(sessionsToSave);
-            };
-
-            const createSession = async (game, user) => {
-                const pendingSession = window.pendingGameSession || {};
-                const newSession = {
-                    id: Date.now(),
-                    gameId: Number(game.id), gameTitle: game.title, user: user,
-                    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-                    status: 'active',
-                    notes: pendingSession.postChapo ? [{ id: Date.now() - 1, content: pendingSession.postChapo.trim(), author: 'duo', timestamp: new Date().toISOString() }] : [],
-                    photoUrl: pendingSession.photoUrl || null
-                };
-                const newSessions = [newSession, ...sessions];
-                saveSessionsToStorage(newSessions);
-                setCurrentSession(newSession);
-                if (window.pendingGameSession) delete window.pendingGameSession;
-                return newSession;
-            };
-
-            const updateSession = async (updatedSession) => {
-                const newSessions = sessions.map(s => s.id === updatedSession.id ? { ...updatedSession, updatedAt: new Date().toISOString() } : s);
-                saveSessionsToStorage(newSessions);
-                setCurrentSession(updatedSession);
-            };
-
-            const deleteSession = async (sessionId) => {
-                const newSessions = sessions.filter(s => s.id !== sessionId);
-                saveSessionsToStorage(newSessions);
-                if (currentSession?.id === sessionId) {
-                    setCurrentSession(null);
-                }
-            };
-            return { currentSession, sessions, createSession, updateSession, deleteSession };
+    React.useEffect(() => {
+        const loadSessions = async () => {
+            const loadedSessions = await CloudSessionStorage.getSessions();
+            setSessions(loadedSessions);
         };
+        loadSessions();
+    }, []);
+
+    const createSession = async (game, user) => {
+        console.log('createSession appelée avec:', { game, user });
+
+        if (!game || !game.id) {
+            console.error('createSession: jeu invalide', game);
+            return;
+        }
+
+        const newSession = {
+            id: Date.now(),
+            gameId: Number(game.id), // S'assurer que c'est un nombre
+            gameTitle: game.title || 'Titre inconnu',
+            gameDescription: game.description || 'Description inconnue',
+            gameDuration: game.duration || 'Durée inconnue',
+            postChapo: window.pendingGameSession?.postChapo || null, // Chapo du post
+            user: user,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            status: 'active',
+            notes: [], // S'assurer que notes est toujours un tableau
+            participants: [user]
+            // NE PAS sauvegarder gameIcon - on le récupèrera depuis GAMES
+        };
+
+        console.log('Nouvelle session créée:', newSession);
+
+        await CloudSessionStorage.saveSession(newSession);
+        const sessions = await CloudSessionStorage.getSessions();
+        setSessions(sessions);
+        setCurrentSession(newSession);
+        
+        // Nettoyer la session en attente
+        if (window.pendingGameSession) {
+            delete window.pendingGameSession;
+        }
+        
+        return newSession;
+    };
+
+    const updateSession = async (updatedSession) => {
+        const sessionToSave = {
+            ...updatedSession, 
+            notes: updatedSession.notes || [],
+            updatedAt: new Date().toISOString()
+        };
+        // Lève une erreur si le cloud échoue, qui sera attrapée par l'UI
+        await CloudSessionStorage.saveSession(sessionToSave);
+        const newSessions = await CloudSessionStorage.getSessions();
+        setSessions(newSessions);
+        setCurrentSession(sessionToSave);
+    };
+
+    const deleteSession = async (sessionId) => {
+        await CloudSessionStorage.deleteSession(sessionId);
+        const sessions = await CloudSessionStorage.getSessions();
+        setSessions(sessions);
+        if (currentSession?.id === sessionId) {
+            setCurrentSession(null);
+        }
+    };
+    
+    const syncSessions = React.useCallback(async () => {
+        try {
+            const syncedSessions = await CloudSessionStorage.forceSyncFromCloud();
+            setSessions(syncedSessions);
+            return syncedSessions;
+        } catch (error) {
+            console.error('Erreur sync:', error);
+            throw error;
+        }
+    }, []); // Pas de dépendances pour éviter la boucle
+
+    return {
+        currentSession, setCurrentSession,
+        sessions, setSessions, // On expose setSessions
+        createSession,
+        updateSession,
+        deleteSession,
+        getGameIcon,
+        renderGameIcon,
+        syncSessions
+    };
+};
+
+		// ===== GOOGLE AUTH HOOK (CORRIGÉ) =====
         const useGoogleAuth = () => {
             const [isConnected, setIsConnected] = React.useState(false);
             const [isLoading, setIsLoading] = React.useState(true);
