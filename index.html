@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.17 Auto-connexion + désactivation certaines fonctions </title>
+    <title>🐘 Mémoire du Mékong V0.5.6 (Complet reconstitué par Gemini)</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -81,852 +81,230 @@
 		
         // ===== MASTODON DATA MANAGEMENT =====
         const MastodonData = {
-    decodeHtmlEntities: (text) => {
-        if (typeof text !== 'string') return '';
-        const textArea = document.createElement('textarea');
-        textArea.innerHTML = text;
-        return textArea.value;
-    },
-    savePosts: (posts) => {
-        Storage.set('mastodon_posts', posts);
-        Storage.set('mastodon_imported_at', new Date().toISOString());
-    },
-    parseOutbox: (jsonData) => {
-        try {
-            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-            const orderedItems = data.orderedItems || data.data?.orderedItems;
-            if (!Array.isArray(orderedItems)) throw new Error('orderedItems non trouvé ou invalide');
-            const allPosts = orderedItems.filter(item => item.type === 'Create' && item.object?.type === 'Note').map((item, index) => {
-                const note = item.object;
-                const content = note.content || '';
-                const cleanContent = content.replace(/<p>|<\/p>/g, '\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '').trim();
-                const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
-                const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
-                const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-                let title = '';
-                let contentOnly = decodedContent;
+            decodeHtmlEntities: (text) => {
+                if (typeof text !== 'string') return '';
+                const textArea = document.createElement('textarea');
+                textArea.innerHTML = text;
+                return textArea.value;
+            },
+            savePosts: (posts) => {
+                Storage.set('mastodon_posts', posts);
+                Storage.set('mastodon_imported_at', new Date().toISOString());
+            },
+            parseOutbox: (jsonData) => {
+                try {
+                    const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+                    const orderedItems = data.orderedItems || data.data?.orderedItems;
+                    if (!Array.isArray(orderedItems)) throw new Error('orderedItems non trouvé ou invalide');
+                    const allPosts = orderedItems.filter(item => item.type === 'Create' && item.object?.type === 'Note').map((item, index) => {
+                        const note = item.object;
+                        const content = note.content || '';
+                        const cleanContent = content.replace(/<p>|<\/p>/g, '\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '').trim();
+                        const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+                        const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+                        const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+                        let title = dayNumber !== null ? MastodonData.decodeHtmlEntities(decodedContent.replace(/^J\d{1,3}[\s:]+/, '').split('\n')[0].trim()) : MastodonData.decodeHtmlEntities(decodedContent.split('\n')[0].trim());
+                        return { id: note.id || `post-${index}`, dayNumber, hasJourNumber: dayNumber !== null, title: title.slice(0, 80) || 'Post sans titre', content: decodedContent, published: note.published || item.published, attachments: note.attachment || [], url: note.url };
+                    });
+                    const postsWithDay = allPosts.filter(post => post.hasJourNumber);
+                    const postsWithoutDay = allPosts.filter(post => !post.hasJourNumber);
+                    postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
+                    const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
+                    postsWithoutDay.forEach((post, index) => { post.dayNumber = maxDayNumber + index + 1; post.isExtraPost = true; });
+                    const finalPosts = [...postsWithDay, ...postsWithoutDay];
+                    finalPosts.forEach(post => { delete post.hasJourNumber; });
+                    return finalPosts;
+                } catch (error) { console.error('❌ Erreur parsing outbox:', error); throw error; }
+            },
+            getPosts: () => Storage.get('mastodon_posts', []),
+            getPostByDay: (dayNumber) => MastodonData.getPosts().find(p => p.dayNumber === dayNumber),
+            isImported: () => MastodonData.getPosts().length > 0,
+            getStats: () => {
+                const posts = MastodonData.getPosts();
+                if (posts.length === 0) return { totalPosts: 0, dayRange: null, importedAt: null };
+                const dayNumbers = posts.map(p => p.dayNumber).filter(n => n !== null);
+                return { totalPosts: posts.length, dayRange: dayNumbers.length > 0 ? { min: Math.min(...dayNumbers), max: Math.max(...dayNumbers) } : null, importedAt: Storage.get('mastodon_imported_at') };
+            },
+        };
 
-                if (dayNumber !== null) {
-                    const titleAndContent = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
-                    const lines = titleAndContent.split('\n');
-                    title = MastodonData.decodeHtmlEntities(lines[0].trim());
-                    contentOnly = lines.slice(1).join('\n').trim(); // On ne garde que le reste du contenu
-                } else {
-                    const lines = decodedContent.split('\n');
-                    title = MastodonData.decodeHtmlEntities(lines[0].trim());
-                    contentOnly = lines.slice(1).join('\n').trim();
-                }
-
-                return { id: note.id || `post-${index}`, dayNumber, hasJourNumber: dayNumber !== null, title: title.slice(0, 80) || 'Post sans titre', content: contentOnly, published: note.published || item.published, attachments: note.attachment || [], url: note.url };
-            });
-            // ... Le reste de la logique de tri reste inchangé
-            const postsWithDay = allPosts.filter(post => post.hasJourNumber);
-            const postsWithoutDay = allPosts.filter(post => !post.hasJourNumber);
-            postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
-            const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
-            postsWithoutDay.forEach((post, index) => { post.dayNumber = maxDayNumber + index + 1; post.isExtraPost = true; });
-            const finalPosts = [...postsWithDay, ...postsWithoutDay];
-            finalPosts.forEach(post => { delete post.hasJourNumber; });
-            return finalPosts;
-        } catch (error) { console.error('❌ Erreur parsing outbox:', error); throw error; }
-    },
-    getPosts: () => Storage.get('mastodon_posts', []),
-    getPostByDay: (dayNumber) => MastodonData.getPosts().find(p => p.dayNumber === dayNumber),
-    isImported: () => MastodonData.getPosts().length > 0,
-    getStats: () => {
-        const posts = MastodonData.getPosts();
-        if (posts.length === 0) return { totalPosts: 0, dayRange: null, importedAt: null };
-        const dayNumbers = posts.map(p => p.dayNumber).filter(n => n !== null);
-        return { totalPosts: posts.length, dayRange: dayNumbers.length > 0 ? { min: Math.min(...dayNumbers), max: Math.max(...dayNumbers) } : null, importedAt: Storage.get('mastodon_imported_at') };
-    },
-};
-
-// ===== GOOGLE DRIVE API =====
-const GoogleDriveAPI = {
-    isSignedIn: false, 
-    isInitialized: false, 
-    tokenClient: null, 
-    _folderIdCache: new Map(), 
-    _fileIdCache: new Map(),
-    _photosByDayCache: new Map(),
-    _cacheTimeout: 5 * 60 * 1000, // 5 minutes
-    _maxCacheSize: 50, // Maximum 50 jours en cache
-
-    async init() {
+        // ===== GOOGLE DRIVE API =====
+        const GoogleDriveAPI = {
+            isSignedIn: false, isInitialized: false, tokenClient: null, _folderIdCache: new Map(), _fileIdCache: new Map(),
+            async init() {
                 if (this.isInitialized) return;
                 try {
                     await new Promise((resolve) => gapi.load('client', resolve));
-                    await gapi.client.init({ 
-                        apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', 
-                        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] 
-                    });
-                    this.tokenClient = google.accounts.oauth2.initTokenClient({ 
-                        client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', 
-                        // SCOPE RÉDUIT : moins sensible pour Google
-                        scope: 'https://www.googleapis.com/auth/drive.file', 
-                        callback: '' 
-                    });
+                    await gapi.client.init({ apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+                    this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', callback: '' });
                     this.isInitialized = true;
-                    console.log('✅ Google Drive API initialisé avec scopes réduits');
-                } catch (error) { 
-                    console.error('❌ Erreur init Google Drive API:', error); 
-                    throw error; 
-                }
+                } catch (error) { console.error('❌ Erreur init Google Drive API:', error); throw error; }
             },
+            async signIn() {
+                if (!this.isInitialized) await this.init();
+                return new Promise((resolve, reject) => {
+                    if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
+                    this.tokenClient.callback = async (response) => {
+                        if (response.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${response.error}`)); }
+                        try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } 
+                        catch (error) { this.isSignedIn = false; reject(new Error('Accès API Drive impossible')); }
+                    };
+                    const token = gapi.client.getToken();
+                    if (token) { gapi.client.drive.files.list({ pageSize: 1 }).then(() => { this.isSignedIn = true; resolve(true); }).catch(() => { gapi.client.setToken(''); this.tokenClient.requestAccessToken({ prompt: 'consent' }); }); } 
+                    else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); }
+                });
+            },
+            async signOut() {
+                const token = gapi.client.getToken();
+                if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
+                this.isSignedIn = false;
+            },
+            async findFolderByPath(path) {
+                if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
+                const parts = path.split('/').filter(p => p);
+                let parentId = 'root';
+                for (const part of parts) {
+                    try {
+                        const response = await gapi.client.drive.files.list({ q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${part}' and trashed=false`, fields: 'files(id, name)' });
+                        const folder = response.result.files[0];
+                        if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
+                        parentId = folder.id;
+                    } catch (error) { console.error(`Erreur recherche dossier ${part}:`, error); return null; }
+                }
+                this._folderIdCache.set(path, parentId);
+                return parentId;
+            },
+            async getPhotosByDay(dayNumber) {
+                const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
+                const parentFolderId = await this.findFolderByPath(photoFolderPath);
+                if (!parentFolderId) return [];
+                const dayString = String(dayNumber).padStart(3, '0');
+                try {
+                    const folderResponse = await gapi.client.drive.files.list({ q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, fields: 'files(id, name)' });
+                    const dayFolder = folderResponse.result.files[0];
+                    if (!dayFolder) return [];
+                    const photosResponse = await gapi.client.drive.files.list({ q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`, fields: 'files(id, name, thumbnailLink, mimeType)', pageSize: 50 });
+                    return (photosResponse.result.files || []).map(file => ({ id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink, mimeType: file.mimeType }));
+                } catch (error) { console.error(`Erreur chargement photos jour ${dayNumber}:`, error); return []; }
+            },
+            async getPhotoAsBase64(fileId, mimeType) {
+                try {
+                    const response = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
+                    const blob = new Blob([response.body], { type: mimeType });
+                    return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
+                } catch (error) { console.error(`Erreur chargement image ${fileId} en Base64:`, error); return null; }
+            },
+            async findFileByPartialPath(filename, rootPath) {
+                const cacheKey = `${rootPath}:${filename}`;
+                if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
+                const rootFolderId = await this.findFolderByPath(rootPath);
+                if (!rootFolderId) { console.warn(`Dossier racine pour la recherche de fichier non trouvé: ${rootPath}`); return null; }
+                try {
+                    const response = await gapi.client.drive.files.list({ q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`, fields: 'files(id, webContentLink)', pageSize: 1 });
+                    const file = response.result.files[0];
+                    if (file) { this._fileIdCache.set(cacheKey, file); return file; }
+                    return null;
+                } catch (error) { console.error(`Erreur recherche fichier ${filename}:`, error); return null; }
+            },
+        };
 
-    async signIn() {
-        if (!this.isInitialized) await this.init();
-        return new Promise((resolve, reject) => {
-            if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
-            this.tokenClient.callback = async (response) => {
-                if (response.error) { 
-                    this.isSignedIn = false; 
-                    return reject(new Error(`Erreur OAuth: ${response.error}`)); 
-                }
-                try { 
-                    await Promise.race([
-                        gapi.client.drive.files.list({ pageSize: 1 }),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-                    ]);
-                    this.isSignedIn = true; 
-                    resolve(true); 
-                } catch (error) { 
-                    this.isSignedIn = false; 
-                    reject(new Error('Accès API Drive impossible')); 
-                }
+        // ===== USER CONFIG =====
+        const USERS = { tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' }, lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } };
+        const getUserStyle = (userKey) => { const user = USERS[userKey]; if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' }; const styles = { blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' }, green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' }, amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' } }; return styles[user.color] || styles.blue; };
+
+        // ===== SESSION MANAGEMENT & HOOKS =====
+        const useSessionState = () => {
+            const [currentSession, setCurrentSession] = React.useState(null);
+            const [sessions, setSessions] = React.useState(Storage.get('sessions', []));
+
+            const saveSessionsToStorage = (sessionsToSave) => {
+                Storage.set('sessions', sessionsToSave);
+                setSessions(sessionsToSave);
             };
-            const token = gapi.client.getToken();
-            if (token) { 
-                Promise.race([
-                    gapi.client.drive.files.list({ pageSize: 1 }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-                ]).then(() => { 
-                    this.isSignedIn = true; 
-                    resolve(true); 
-                }).catch(() => { 
-                    gapi.client.setToken(''); 
-                    this.tokenClient.requestAccessToken({ prompt: 'consent' }); 
-                }); 
-            } else { 
-                this.tokenClient.requestAccessToken({ prompt: 'consent' }); 
-            }
-        });
-    },
 
-    async signOut() {
-        // Vider tous les caches à la déconnexion
-        this._photosByDayCache.clear();
-        this._folderIdCache.clear();
-        this._fileIdCache.clear();
-        const token = gapi.client.getToken();
-        if (token) { 
-            google.accounts.oauth2.revoke(token.access_token); 
-            gapi.client.setToken(''); 
-        }
-        this.isSignedIn = false;
-    },
-
-    async findMekongFile() {
-        if (!this.isSignedIn) return null;
-        try {
-            const response = await Promise.race([
-                gapi.client.drive.files.list({
-                    q: "name='mekong_sessions.json' and trashed=false",
-                    fields: 'files(id, name)'
-                }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
-            ]);
-            return response.result.files[0] || null;
-        } catch (error) {
-            console.error('❌ Erreur recherche fichier:', error);
-            return null;
-        }
-    },
-
-    async saveSessions(sessions) {
-        console.log('📄 Début saveSessions, isSignedIn:', this.isSignedIn);
-        
-        if (!this.isSignedIn) {
-            console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
-            return false;
-        }
-        
-        try {
-            const data = JSON.stringify({ 
-                sessions, 
-                lastUpdated: new Date().toISOString(),
-                version: '0.5.11'
-            }, null, 2);
-            
-            const existingFile = await this.findMekongFile();
-            
-            if (existingFile) {
-                const response = await Promise.race([
-                    gapi.client.request({
-                        path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
-                        method: 'PATCH',
-                        params: { uploadType: 'media' },
-                        headers: { 'Content-Type': 'application/json' },
-                        body: data
-                    }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout sauvegarde')), 30000))
-                ]);
-                console.log('✅ Sessions sauvegardées (MAJ)', response);
-                return true;
-            } else {
-                const boundary = '-------314159265358979323846';
-                const delimiter = "\r\n--" + boundary + "\r\n";
-                const close_delim = "\r\n--" + boundary + "--";
-
-                const metadata = {
-                    'name': 'mekong_sessions.json',
-                    'mimeType': 'application/json'
+            const createSession = async (game, user) => {
+                const pendingSession = window.pendingGameSession || {};
+                const newSession = {
+                    id: Date.now(),
+                    gameId: Number(game.id), gameTitle: game.title, user: user,
+                    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+                    status: 'active',
+                    notes: pendingSession.postChapo ? [{ id: Date.now() - 1, content: pendingSession.postChapo.trim(), author: 'duo', timestamp: new Date().toISOString() }] : [],
+                    photoUrl: pendingSession.photoUrl || null
                 };
-
-                const multipartRequestBody =
-                    delimiter +
-                    'Content-Type: application/json\r\n\r\n' +
-                    JSON.stringify(metadata) +
-                    delimiter +
-                    'Content-Type: application/json\r\n\r\n' +
-                    data +
-                    close_delim;
-
-                const response = await Promise.race([
-                    gapi.client.request({
-                        'path': 'https://www.googleapis.com/upload/drive/v3/files',
-                        'method': 'POST',
-                        'params': {'uploadType': 'multipart'},
-                        'headers': {
-                            'Content-Type': 'multipart/related; boundary="' + boundary + '"'
-                        },
-                        'body': multipartRequestBody
-                    }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout création')), 30000))
-                ]);
-                console.log('✅ Sessions sauvegardées (NOUVEAU)', response);
-                return true;
-            }
-        } catch (error) {
-            console.error('❌ Erreur sauvegarde détaillée:', error);
-            return false;
-        }
-    },
-
-    async loadSessions() {
-        if (!this.isSignedIn) return null;
-        
-        try {
-            const file = await this.findMekongFile();
-            if (!file) return null;
-            
-            const response = await Promise.race([
-                gapi.client.drive.files.get({
-                    fileId: file.id,
-                    alt: 'media'
-                }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout chargement')), 20000))
-            ]);
-            
-            const data = JSON.parse(response.body);
-            console.log('✅ Sessions chargées depuis Google Drive');
-            return data.sessions || [];
-        } catch (error) {
-            console.error('❌ Erreur chargement:', error);
-            return null;
-        }
-    },
-
-    _cleanCache() {
-        // Nettoyer le cache si trop volumineux
-        if (this._photosByDayCache.size > this._maxCacheSize) {
-            const entries = Array.from(this._photosByDayCache.entries());
-            // Garder les 30 plus récents
-            const toKeep = entries.slice(-30);
-            this._photosByDayCache.clear();
-            toKeep.forEach(([key, value]) => this._photosByDayCache.set(key, value));
-            console.log('🧹 Cache photos nettoyé');
-        }
-    },
-
-    async findFolderByPath(path) {
-        if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
-        const parts = path.split('/').filter(p => p);
-        let parentId = 'root';
-        
-        try {
-            for (const part of parts) {
-                const response = await Promise.race([
-                    gapi.client.drive.files.list({ 
-                        q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${part}' and trashed=false`, 
-                        fields: 'files(id, name)' 
-                    }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
-                ]);
-                const folder = response.result.files[0];
-                if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
-                parentId = folder.id;
-            }
-            this._folderIdCache.set(path, parentId);
-            return parentId;
-        } catch (error) { 
-            console.error(`Erreur recherche dossier ${path}:`, error); 
-            return null; 
-        }
-    },
-
-    async getPhotosByDay(dayNumber) {
-        // Vérifier le cache avec timestamp
-        const cacheKey = dayNumber;
-        const cached = this._photosByDayCache.get(cacheKey);
-        if (cached && cached.timestamp && (Date.now() - cached.timestamp < this._cacheTimeout)) {
-            console.log(`📸 Cache hit pour jour ${dayNumber}`);
-            return { photos: cached.photos, folderName: cached.folderName };
-        }
-
-        const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
-        const parentFolderId = await this.findFolderByPath(photoFolderPath);
-        if (!parentFolderId) {
-            console.warn('❌ Dossier photos parent non trouvé');
-            return { photos: [], folderName: null };
-        }
-        
-        const dayString = String(dayNumber).padStart(3, '0');
-        try {
-            const folderResponse = await Promise.race([
-                gapi.client.drive.files.list({ 
-                    q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, 
-                    fields: 'files(id, name)' 
-                }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout recherche dossier')), 15000))
-            ]);
-
-            const dayFolder = folderResponse.result.files[0];
-            if (!dayFolder) {
-                const emptyResult = { photos: [], folderName: null, timestamp: Date.now() };
-                this._photosByDayCache.set(cacheKey, emptyResult);
-                this._cleanCache();
-                return { photos: [], folderName: null };
-            }
-
-            let allPhotos = [];
-            let pageToken = null;
-            let requestCount = 0;
-            const maxRequests = 10; // Limite de sécurité
-
-            do {
-                if (requestCount >= maxRequests) {
-                    console.warn(`⚠️ Limite de requêtes atteinte pour jour ${dayNumber}`);
-                    break;
-                }
-
-                const photosResponse = await Promise.race([
-                    gapi.client.drive.files.list({
-                        q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
-                        fields: 'files(id, name, thumbnailLink, mimeType), nextPageToken',
-                        pageSize: 100,
-                        pageToken: pageToken
-                    }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout photos')), 20000))
-                ]);
-                
-                if (photosResponse.result.files) {
-                    allPhotos = allPhotos.concat(photosResponse.result.files);
-                }
-                pageToken = photosResponse.result.nextPageToken;
-                requestCount++;
-            } while (pageToken);
-
-            const result = {
-                photos: allPhotos.map(file => ({ 
-                    id: file.id, 
-                    title: file.name, 
-                    thumbnailUrl: file.thumbnailLink, 
-                    mimeType: file.mimeType 
-                })),
-                folderName: dayFolder.name,
-                timestamp: Date.now()
+                const newSessions = [newSession, ...sessions];
+                saveSessionsToStorage(newSessions);
+                setCurrentSession(newSession);
+                if (window.pendingGameSession) delete window.pendingGameSession;
+                return newSession;
             };
 
-            this._photosByDayCache.set(cacheKey, result);
-            this._cleanCache();
-            console.log(`📸 ${result.photos.length} photos chargées pour jour ${dayNumber}`);
-            return { photos: result.photos, folderName: result.folderName };
+            const updateSession = async (updatedSession) => {
+                const newSessions = sessions.map(s => s.id === updatedSession.id ? { ...updatedSession, updatedAt: new Date().toISOString() } : s);
+                saveSessionsToStorage(newSessions);
+                setCurrentSession(updatedSession);
+            };
 
-        } catch (error) { 
-            console.error(`❌ Erreur chargement photos jour ${dayNumber}:`, error);
-            // Cache l'erreur pour éviter les re-tentatives immédiates
-            const errorResult = { photos: [], folderName: null, timestamp: Date.now(), error: true };
-            this._photosByDayCache.set(cacheKey, errorResult);
-            return { photos: [], folderName: null, error: error.message }; 
-        }
-    },
-
-    async getPhotoAsBase64(fileId, mimeType) {
-        try {
-            const response = await Promise.race([
-                gapi.client.drive.files.get({ fileId: fileId, alt: 'media' }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout image')), 30000))
-            ]);
-            
-            const raw = response.body;
-            const rawLength = raw.length;
-            const array = new Uint8Array(new ArrayBuffer(rawLength));
-            for (let i = 0; i < rawLength; i++) {
-                array[i] = raw.charCodeAt(i);
-            }
-            const blob = new Blob([array], { type: mimeType });
-            return new Promise((resolve, reject) => { 
-                const reader = new FileReader(); 
-                reader.onloadend = () => resolve(reader.result); 
-                reader.onerror = reject; 
-                reader.readAsDataURL(blob); 
-            });
-        } catch (error) { 
-            console.error(`❌ Erreur chargement image ${fileId}:`, error); 
-            return null; 
-        }
-    },
-
-    async findFileByPartialPath(filename, rootPath) {
-        const cacheKey = `${rootPath}:${filename}`;
-        if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
-        
-        const rootFolderId = await this.findFolderByPath(rootPath);
-        if (!rootFolderId) { 
-            console.warn(`Dossier racine non trouvé: ${rootPath}`); 
-            return null; 
-        }
-        
-        try {
-            const response = await Promise.race([
-                gapi.client.drive.files.list({ 
-                    q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`, 
-                    fields: 'files(id, webContentLink)', 
-                    pageSize: 1 
-                }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
-            ]);
-            
-            const file = response.result.files[0];
-            if (file) { 
-                this._fileIdCache.set(cacheKey, file); 
-                return file; 
-            }
-            return null;
-        } catch (error) { 
-            console.error(`Erreur recherche fichier ${filename}:`, error); 
-            return null; 
-        }
-    },
-
-    // Méthode pour vider le cache manuellement
-    clearPhotoCache() {
-        this._photosByDayCache.clear();
-        console.log('🧹 Cache photos vidé manuellement');
-    }
-};
-// ===== USER CONFIG =====
-        const USERS = { 
-            tom: { name: 'Tom le jeune éléphantau', color: 'blue', emoji: '🐘' }, 
-            lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, 
-            duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } 
-        };
-        
-        const getUserStyle = (userKey) => { 
-            const user = USERS[userKey]; 
-            if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' }; 
-            const styles = { 
-                blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' }, 
-                green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' }, 
-                amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' } 
-            }; 
-            return styles[user.color] || styles.blue; 
-        };
-
-        const CloudSessionStorage = {
-            async getSessions() {
-                try {
-                    if (!GoogleDriveAPI.isSignedIn) {
-                        console.log('📱 Pas connecté au cloud, utilisation cache local');
-                        return Storage.get('sessions', []);
-                    }
-                    
-                    const cloudSessions = await GoogleDriveAPI.loadSessions();
-                    if (cloudSessions) {
-                        Storage.set('sessions', cloudSessions);
-                        console.log(`✅ ${cloudSessions.length} sessions chargées depuis Google Drive`);
-                        return cloudSessions;
-                    }
-                } catch (error) {
-                    console.warn('⚠️ Erreur chargement cloud:', error.message);
+            const deleteSession = async (sessionId) => {
+                const newSessions = sessions.filter(s => s.id !== sessionId);
+                saveSessionsToStorage(newSessions);
+                if (currentSession?.id === sessionId) {
+                    setCurrentSession(null);
                 }
-                return Storage.get('sessions', []);
-            },
-            
-            async saveSession(session) {
-                const sessions = Storage.get('sessions', []);
-                const existingIndex = sessions.findIndex(s => s.id === session.id);
-                if (existingIndex >= 0) {
-                    sessions[existingIndex] = session;
-                } else {
-                    sessions.unshift(session);
-                }
-                Storage.set('sessions', sessions);
-                
-                if (!GoogleDriveAPI.isSignedIn) {
-                    console.log('📱 Session sauvegardée localement (cloud déconnecté)');
-                    return;
-                }
-                
-                try {
-                    await GoogleDriveAPI.saveSessions(sessions);
-                    console.log('✅ Session sauvegardée localement + cloud');
-                } catch (error) {
-                    console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
-                    throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
-                }
-            },
-            
-            async deleteSession(sessionId) {
-                const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId);
-                Storage.set('sessions', sessions);
-                
-                if (!GoogleDriveAPI.isSignedIn) {
-                    console.log('🗑️ Session supprimée localement (cloud déconnecté)');
-                    return;
-                }
-                
-                try {
-                    await GoogleDriveAPI.saveSessions(sessions);
-                    console.log('✅ Session supprimée localement + cloud');
-                } catch (error) {
-                    console.warn('⚠️ Erreur suppression cloud:', error.message);
-                    throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
-                }
-            }
+            };
+            return { currentSession, sessions, createSession, updateSession, deleteSession };
         };
-// ===== SESSION MANAGEMENT & HOOKS =====
-const useSessionState = () => {
-    const [currentSession, setCurrentSession] = React.useState(null);
-    const [sessions, setSessions] = React.useState([]);
-
-    React.useEffect(() => {
-        const loadSessions = async () => {
-            const loadedSessions = await CloudSessionStorage.getSessions();
-            setSessions(loadedSessions);
-        };
-        loadSessions();
-    }, []);
-
-    const createSession = async (game, user) => {
-        console.log('createSession appelée avec:', { game, user });
-
-        if (!game || !game.id) {
-            console.error('createSession: jeu invalide', game);
-            return;
-        }
-
-        const newSession = {
-            id: Date.now(),
-            gameId: Number(game.id),
-            gameTitle: game.title || 'Titre inconnu',
-            gameDescription: game.description || 'Description inconnue',
-            gameDuration: game.duration || 'Durée inconnue',
-            postChapo: window.pendingGameSession?.postChapo || null,
-            user: user,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            status: 'active',
-            notes: [],
-            participants: [user],
-            photoUrl: window.pendingGameSession?.photoUrl || null
-        };
-
-        console.log('Nouvelle session créée:', newSession);
-
-        try {
-            await CloudSessionStorage.saveSession(newSession);
-            const updatedSessions = await CloudSessionStorage.getSessions();
-            setSessions(updatedSessions);
-            setCurrentSession(newSession);
-            
-            if (window.pendingGameSession) {
-                delete window.pendingGameSession;
-            }
-            return newSession;
-        } catch (error) {
-            console.error('Erreur création session:', error);
-            // Fallback : sauvegarder localement
-            const localSessions = [newSession, ...sessions];
-            setSessions(localSessions);
-            setCurrentSession(newSession);
-            if (window.pendingGameSession) {
-                delete window.pendingGameSession;
-            }
-            return newSession;
-        }
-    };
-
-    const updateSession = async (updatedSession) => {
-        const sessionToSave = {
-            ...updatedSession, 
-            notes: updatedSession.notes || [],
-            updatedAt: new Date().toISOString()
-        };
-        
-        try {
-            await CloudSessionStorage.saveSession(sessionToSave);
-            const updatedSessions = await CloudSessionStorage.getSessions();
-            setSessions(updatedSessions);
-            setCurrentSession(sessionToSave);
-        } catch (error) {
-            console.error('Erreur mise à jour session:', error);
-            // Fallback local
-            const updatedSessions = sessions.map(s => 
-                s.id === sessionToSave.id ? sessionToSave : s
-            );
-            setSessions(updatedSessions);
-            setCurrentSession(sessionToSave);
-            throw error; // Re-lancer pour l'UI
-        }
-    };
-
-    const deleteSession = async (sessionId) => {
-        try {
-            await CloudSessionStorage.deleteSession(sessionId);
-            const updatedSessions = await CloudSessionStorage.getSessions();
-            setSessions(updatedSessions);
-            if (currentSession?.id === sessionId) {
-                setCurrentSession(null);
-            }
-        } catch (error) {
-            console.error('Erreur suppression session:', error);
-            // Fallback local
-            const updatedSessions = sessions.filter(s => s.id !== sessionId);
-            setSessions(updatedSessions);
-            if (currentSession?.id === sessionId) {
-                setCurrentSession(null);
-            }
-            throw error;
-        }
-    };
-
-    const getGameIcon = (gameId) => {
-        const game = GAMES.find(g => g.id === gameId);
-        return game?.icon || BookOpen;
-    };
-
-    const renderGameIcon = (gameId, className = "w-6 h-6") => {
-        const IconComponent = getGameIcon(gameId);
-        return React.createElement(IconComponent, { className });
-    };
-
-    return {
-        currentSession, 
-        setCurrentSession,
-        sessions, 
-        setSessions,
-        createSession,
-        updateSession,
-        deleteSession,
-        getGameIcon,
-        renderGameIcon
-    };
-};
-
-		// ===== GOOGLE AUTH HOOK (CORRIGÉ) =====
-        // ===== GOOGLE AUTH HOOK (AVEC AUTO-CONNEXION) =====
         const useGoogleAuth = () => {
             const [isConnected, setIsConnected] = React.useState(false);
             const [isLoading, setIsLoading] = React.useState(true);
             const [userInfo, setUserInfo] = React.useState(null);
-            const [hasTriedAutoConnect, setHasTriedAutoConnect] = React.useState(false);
-            
             React.useEffect(() => {
-                const initAndAutoConnect = async () => {
+                const initGoogle = async () => {
                     setIsLoading(true);
-                    
                     try {
-                        console.log('🔄 Initialisation Google Drive...');
                         await GoogleDriveAPI.init();
-                        
-                        // TENTATIVE D'AUTO-CONNEXION
                         const token = gapi.client.getToken();
-                        if (token && !hasTriedAutoConnect) {
-                            console.log('🔄 Tentative d\'auto-connexion...');
-                            setHasTriedAutoConnect(true);
-                            
+                        if (token) {
                             try {
-                                // Test simple d'accès
-                                await Promise.race([
-                                    gapi.client.drive.files.list({ pageSize: 1 }),
-                                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-                                ]);
-                                
-                                setIsConnected(true);
-                                GoogleDriveAPI.isSignedIn = true;
-                                console.log('✅ Auto-connexion réussie !');
-                                
-                                // Récupérer infos utilisateur en arrière-plan (pas critique)
-                                try {
-                                    const response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', { 
-                                        headers: { 'Authorization': `Bearer ${token.access_token}` } 
-                                    });
-                                    if (response.ok) {
-                                        const profile = await response.json();
-                                        setUserInfo({ name: profile.name, email: profile.email });
-                                    }
-                                } catch (e) {
-                                    console.log('ℹ️ Infos utilisateur non disponibles (pas critique)');
-                                }
-                                
-                            } catch (error) { 
-                                console.log('⚠️ Auto-connexion échouée, connexion manuelle requise');
-                                gapi.client.setToken(''); 
-                                setIsConnected(false);
-                            }
-                        } else if (!token) {
-                            console.log('📱 Aucun token sauvé, connexion manuelle requise');
-                            setHasTriedAutoConnect(true);
+                                await gapi.client.drive.files.list({ pageSize: 1 });
+                                const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${token.access_token}` } });
+                                if (response.ok) {
+                                    const profile = await response.json();
+                                    setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
+                                    setIsConnected(true); GoogleDriveAPI.isSignedIn = true;
+                                } else { throw new Error('Token invalide'); }
+                            } catch (error) { gapi.client.setToken(''); }
                         }
-                        
-                    } catch (error) { 
-                        console.error('❌ Erreur initialisation Google:', error); 
-                        setHasTriedAutoConnect(true);
-                    } finally { 
-                        setIsLoading(false); 
-                    }
+                    } catch (error) { console.error("Erreur d'initialisation Google", error); } 
+                    finally { setIsLoading(false); }
                 };
-                
-                if (!hasTriedAutoConnect) {
-                    initAndAutoConnect();
-                }
-            }, [hasTriedAutoConnect]);
-            
+                initGoogle();
+            }, []);
             const signIn = async () => {
                 setIsLoading(true);
-                
                 try {
-                    const success = await GoogleDriveAPI.signIn();
-                    if (success) {
-                        setIsConnected(true);
-                        console.log('✅ Connexion manuelle Google Drive réussie');
-                        
-                        // Récupérer infos utilisateur
-                        try {
-                            const token = gapi.client.getToken();
-                            const response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', { 
-                                headers: { 'Authorization': `Bearer ${token.access_token}` } 
-                            });
-                            if (response.ok) {
-                                const profile = await response.json();
-                                setUserInfo({ name: profile.name, email: profile.email });
-                            }
-                        } catch (e) {
-                            console.log('ℹ️ Infos utilisateur non récupérées');
-                        }
-                        
-                        return true;
-                    }
-                    return false;
-                } catch (error) { 
-                    setIsConnected(false); 
-                    setUserInfo(null); 
-                    console.error('❌ Erreur connexion:', error); 
-                    return false; 
-                } finally { 
-                    setIsLoading(false); 
-                }
+                    await GoogleDriveAPI.signIn();
+                    const token = gapi.client.getToken();
+                    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${token.access_token}` } });
+                    if (!response.ok) throw new Error('Impossible de récupérer le profil utilisateur');
+                    const profile = await response.json();
+                    setUserInfo({ name: profile.name, email: profile.email, picture: profile.picture });
+                    setIsConnected(true); return true;
+                } catch (error) { setIsConnected(false); setUserInfo(null); console.error('Erreur de connexion:', error); return false; } 
+                finally { setIsLoading(false); }
             };
-            
             const signOut = async () => {
                 setIsLoading(true);
-                try { 
-                    await GoogleDriveAPI.signOut(); 
-                    setIsConnected(false); 
-                    setUserInfo(null); 
-                    console.log('✅ Déconnexion réussie');
-                } catch (error) { 
-                    console.error('Erreur déconnexion:', error); 
-                } finally { 
-                    setIsLoading(false); 
-                }
+                try { await GoogleDriveAPI.signOut(); setIsConnected(false); setUserInfo(null); } 
+                catch (error) { console.error('Erreur déconnexion:', error); } 
+                finally { setIsLoading(false); }
             };
-            
             return { isConnected, isLoading, userInfo, signIn, signOut };
         };
 
         // ===== UI COMPONENTS =====
         const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleStatus, onGoogleAction }) => {
             const PAGE_TITLES = { home: "Mémoire du Mékong", sessions: "Vos Sessions", games: "Choisir un jeu", chat: "Conversation", memories: "Mémoires du Voyage", settings: "Réglages", users: "Gestion des Utilisateurs" };
-            
-            const getConnectionButton = () => {
-                const { isLoading, isConnected, userInfo } = googleStatus;
-                
-                if (isLoading) {
-                    return {
-                        className: 'bg-blue-100 text-blue-700 cursor-wait',
-                        content: <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>,
-                        title: 'Connexion Google Drive...'
-                    };
-                }
-                
-                if (isConnected) {
-                    return {
-                        className: 'bg-green-100 text-green-700 hover:bg-green-200',
-                        content: (
-                            <>
-                                <Cloud className="w-4 h-4" />
-                                <span className="ml-1 hidden sm:inline">✓ Drive</span>
-                            </>
-                        ),
-                        title: `Connecté: ${userInfo?.email}`
-                    };
-                }
-                
-                // PAS CONNECTÉ = ALERTE ROUGE
-                return {
-                    className: 'bg-red-100 text-red-700 hover:bg-red-200 animate-pulse border-2 border-red-300',
-                    content: (
-                        <>
-                            <Cloud className="w-4 h-4" />
-                            <span className="ml-1 font-bold">Se connecter !</span>
-                        </>
-                    ),
-                    title: 'CONNEXION GOOGLE DRIVE REQUISE - Cliquer pour se connecter'
-                };
-            };
-            
-            const connectionBtn = getConnectionButton();
-            
-            return ( 
-                <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b border-gray-200"> 
-                    <div className="flex justify-between items-center h-10"> 
-                        <h1 className="text-xl font-bold text-amber-900 truncate">
-                            {PAGE_TITLES[currentPage] || "Mémoire du Mékong"}
-                        </h1> 
-                        <div className="flex items-center space-x-2"> 
-                            <button 
-                                onClick={onGoogleAction} 
-                                className={`flex items-center justify-center h-10 px-3 rounded-lg text-xs font-medium transition-colors ${connectionBtn.className}`}
-                                title={connectionBtn.title}
-                            > 
-                                {connectionBtn.content}
-                            </button> 
-                            {currentUser && ( 
-                                <button 
-                                    onClick={() => onPageChange('users')} 
-                                    className={`flex items-center justify-center w-10 h-10 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`} 
-                                    title={`Connecté en tant que ${USERS[currentUser]?.name}.`}
-                                > 
-                                    <span className="text-xl">{USERS[currentUser]?.emoji}</span> 
-                                </button> 
-                            )} 
-                        </div> 
-                    </div> 
-                </header> 
-            );
+            return ( <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b border-gray-200"> <div className="flex justify-between items-center h-10"> <h1 className="text-xl font-bold text-amber-900 truncate">{PAGE_TITLES[currentPage] || "Mémoire du Mékong"}</h1> <div className="flex items-center space-x-2"> <button onClick={onGoogleAction} className={`flex items-center justify-center h-10 px-3 rounded-lg text-xs font-medium transition-colors ${ googleStatus?.isLoading ? 'bg-blue-100 text-blue-700 cursor-wait' : googleStatus?.isConnected ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200' }`} title={googleStatus?.isConnected ? `Connecté: ${googleStatus.userInfo?.email}` : 'Non connecté'}> {googleStatus?.isLoading ? <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div> : <Cloud className="w-5 h-5" />} </button> {currentUser && ( <button onClick={() => onPageChange('users')} className={`flex items-center justify-center w-10 h-10 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`} title={`Connecté en tant que ${USERS[currentUser]?.name}.`}> <span className="text-xl">{USERS[currentUser]?.emoji}</span> </button> )} </div> </div> </header> );
         };
         const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
             const navItems = [ { id: 'home', icon: Home, label: 'Accueil' }, { id: 'sessions', icon: BookOpen, label: 'Sessions' }, { id: 'memories', icon: Camera, label: 'Mémoires' }, { id: 'settings', icon: Settings, label: 'Réglages' }, ];
@@ -953,172 +331,17 @@ const useSessionState = () => {
             const fullGamesList = [ { id: 1, title: "Photo roulette", duration: "15 min", type: "présentiel", icon: Camera, description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient en mémoire" }, { id: 7, title: "Souvenir du jour", duration: "libre", type: "mémoire", icon: BookOpen, description: "Discussion autour d'un post spécifique du blog Mastodon" } ];
             return ( <div className="space-y-6 fade-in"> <div className="flex justify-between items-center"> <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux</h2> <button onClick={() => { const randomGame = fullGamesList[Math.floor(Math.random() * fullGamesList.length)]; onGameSelect(randomGame); }} className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"><Shuffle className="w-4 h-4" /><span>Jeu au hasard</span></button> </div> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {fullGamesList.map(game => { const IconComponent = game.icon; return ( <button key={game.id} onClick={() => onGameSelect(game)} className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"> <div className="flex items-start space-x-4"> <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" /> <div className="flex-1"> <div className="flex justify-between items-start mb-2"> <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">{game.title}</h3> {game.duration && <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">{game.duration}</span>} </div> <p className="text-gray-600 text-sm leading-relaxed mb-2">{game.description}</p> </div> </div> </button> ); })} </div> </div> );
         };
-//Page SESSIONS
         const SessionsPage = ({ currentUser, onPageChange, onSessionSelect, sessions, deleteSession }) => {
-    const formatDate = (dateString) => new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-    const statusIcons = { active: { icon: Play, color: 'text-green-500', title: 'Active' }, paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' }, completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' } };
-
-    return (
-        <div className="space-y-4 fade-in">
-            <button onClick={() => onPageChange('games')} className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow">
-                <Plus className="w-5 h-5" />
-                <span>Nouveau Jeu de Mémoire</span>
-            </button>
-
-            {!sessions || sessions.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3>
-                    <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p>
-                    <button onClick={() => onPageChange('games')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Commencer un jeu</button>
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {sessions.map((session) => {
-                        const StatusIcon = statusIcons[session.status]?.icon || FileText;
-                        const lastUser = session.lastModifiedBy || session.user; // On utilise le dernier modificateur, ou le créateur par défaut
-                        const userStyle = getUserStyle(lastUser);
-
-                        return (
-                            <div key={session.id} onClick={() => onSessionSelect(session)} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3">
-                                <div className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`} title={`Dernière modification par ${USERS[lastUser]?.name}`}>
-                                    <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3>
-                                        <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-1">
-                                        <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span>
-                                        <div className="flex items-center space-x-2">
-                                            <StatusIcon className={`w-5 h-5 ${statusIcons[session.status]?.color || 'text-gray-500'}`} title={statusIcons[session.status]?.title || 'Archivée'} />
-                                            <button onClick={(e) => { e.stopPropagation(); if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) { deleteSession(session.id); } }} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
-    );
-};
-//Page CHAT
+            const formatDate = (dateString) => new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            const statusIcons = { active: { icon: Play, color: 'text-green-500', title: 'Active' }, paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' }, completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' } };
+            return ( <div className="space-y-4 fade-in"> <div className="flex justify-between items-center"> <button onClick={() => onPageChange('games')} className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"><Plus className="w-5 h-5" /><span>Nouveau Jeu de Mémoire</span></button> </div> {!sessions || sessions.length === 0 ? ( <div className="text-center py-12 bg-gray-50 rounded-lg"> <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" /> <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3> <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p> <button onClick={() => onPageChange('games')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Commencer un jeu</button> </div> ) : ( <div className="space-y-3"> {sessions.map((session) => { const StatusIcon = statusIcons[session.status]?.icon || FileText; const statusColor = statusIcons[session.status]?.color || 'text-gray-500'; const statusTitle = statusIcons[session.status]?.title || 'Archivée'; const lastUser = session.user; const userStyle = getUserStyle(lastUser); return ( <div key={session.id} onClick={() => onSessionSelect(session)} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"> <div className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`} title={`Dernière modification par ${USERS[lastUser]?.name}`}> <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span> </div> <div className="flex-1 min-w-0"> <div className="flex justify-between items-start"> <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3> <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span> </div> <div className="flex items-center justify-between mt-1"> <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span> <div className="flex items-center space-x-2"> <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} /> <button onClick={(e) => { e.stopPropagation(); if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) { deleteSession(session.id); } }} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"><Trash2 className="w-4 h-4" /></button> </div> </div> </div> </div> ); })} </div> )} </div> );
+        };
         const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-    const [newMessageContent, setNewMessageContent] = React.useState('');
-    const [editingMessage, setEditingMessage] = React.useState(null); // { id, content }
-    const [editingTitle, setEditingTitle] = React.useState(false);
-    const [titleContent, setTitleContent] = React.useState('');
-    const messagesEndRef = React.useRef(null);
-
-    React.useEffect(() => { if (messagesEndRef.current) { messagesEndRef.current.scrollIntoView({ behavior: "smooth" }); } }, [currentSession?.notes]);
-
-    if (!currentSession) { return <div className="text-center py-12">Sélectionnez une session pour commencer.</div>; }
-
-    const handleUpdate = (updatedSession) => { onUpdateSession(updatedSession); };
-
-    const sendMessage = () => {
-        if (!newMessageContent.trim()) return;
-        const updatedSession = { ...currentSession, notes: [...(currentSession.notes || []), { id: Date.now(), content: newMessageContent.trim(), author: currentUser, timestamp: new Date().toISOString() }], lastModifiedBy: currentUser };
-        handleUpdate(updatedSession);
-        setNewMessageContent('');
-    };
-
-    const startEditMessage = (message) => setEditingMessage({ id: message.id, content: message.content });
-    const cancelEditMessage = () => setEditingMessage(null);
-    const saveEditMessage = () => {
-        if (!editingMessage || !editingMessage.content.trim()) return;
-        const updatedNotes = (currentSession.notes || []).map(note => note.id === editingMessage.id ? { ...note, content: editingMessage.content.trim(), edited: true } : note);
-        handleUpdate({ ...currentSession, notes: updatedNotes, lastModifiedBy: currentUser });
-        setEditingMessage(null);
-    };
-    const deleteMessage = (messageId) => {
-        if (confirm('Supprimer ce message ?')) {
-            const updatedNotes = (currentSession.notes || []).filter(note => note.id !== messageId);
-            handleUpdate({ ...currentSession, notes: updatedNotes, lastModifiedBy: currentUser });
-        }
-    };
-
-    const startEditTitle = () => { setTitleContent(currentSession.gameTitle); setEditingTitle(true); };
-    const saveTitle = () => {
-        if (!titleContent.trim()) { setEditingTitle(false); return; }
-        const updatedSession = { ...currentSession, gameTitle: titleContent.trim() };
-        handleUpdate(updatedSession);
-        setEditingTitle(false);
-    };
-
-    const getBubbleStyle = (author) => {
-        const user = USERS[author];
-        if (!user) return 'bg-gray-200 text-gray-800';
-        const colorMap = { blue: 'bg-blue-500 text-white', green: 'bg-green-500 text-white', amber: 'bg-amber-500 text-white' };
-        return colorMap[user.color];
-    };
-
-    return (
-        <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-            <div className="bg-amber-50 border-b p-3 flex-shrink-0 flex justify-between items-center">
-                {editingTitle ? (
-                    <div className="flex-1 flex items-center gap-2">
-                        <input type="text" value={titleContent} onChange={e => setTitleContent(e.target.value)} className="font-bold text-amber-900 text-lg bg-white border border-amber-300 rounded px-2 py-1 flex-1" autoFocus onBlur={saveTitle} onKeyDown={e => e.key === 'Enter' && saveTitle()} />
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 group cursor-pointer" onClick={startEditTitle}>
-                        <h3 className="font-bold text-amber-900 text-lg">{currentSession.gameTitle}</h3>
-                        <Edit className="w-4 h-4 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                )}
-            </div>
-            <div className="flex-1 bg-gray-50 overflow-y-auto p-4 space-y-4">
-                {currentSession.photoUrl && ( <div className="p-2 border-b border-gray-200 mb-4"><img src={currentSession.photoUrl} alt="Contexte" className="max-w-xs mx-auto rounded-lg shadow-md" /></div> )}
-                {(currentSession.notes || []).map(note => {
-                    const isOwn = note.author === currentUser;
-                    const isDuo = note.author === 'duo';
-                    const userStyle = getUserStyle(note.author);
-                    const isEditing = editingMessage?.id === note.id;
-                    let justifyContent = isDuo ? 'justify-center' : isOwn ? 'justify-end' : 'justify-start';
-                    return (
-                        <div key={note.id} className={`flex items-end gap-2 ${justifyContent}`}>
-                            {!isDuo && !isOwn && (<div className={`w-8 h-8 rounded-full flex items-center justify-center ${userStyle.bg} flex-shrink-0`}><span className="text-lg">{USERS[note.author]?.emoji}</span></div>)}
-                            <div className={`max-w-[70%] relative group ${isDuo ? '' : 'p-3 rounded-2xl'} ${isDuo ? 'bg-amber-100 text-amber-800 p-3 rounded-lg' : getBubbleStyle(note.author)}`}>
-                                {isEditing ? (
-                                    <div className="w-full">
-                                        <textarea value={editingMessage.content} onChange={e => setEditingMessage({...editingMessage, content: e.target.value})} className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none" rows="3" autoFocus></textarea>
-                                        <div className="flex justify-end gap-2 mt-1">
-                                            <button onClick={cancelEditMessage} className="px-2 py-1 text-xs bg-gray-200 rounded">Annuler</button>
-                                            <button onClick={saveEditMessage} className="px-2 py-1 text-xs bg-green-500 text-white rounded">Sauver</button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <p className="text-sm whitespace-pre-wrap">{note.content}</p>
-                                        {note.edited && <span className="text-xs opacity-70 italic pl-2">(modifié)</span>}
-                                    </>
-                                )}
-                                {isOwn && !isEditing && !isDuo && (
-                                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex bg-black/20 rounded-full p-1 -mt-2 -mr-2">
-                                        <button onClick={() => startEditMessage(note)} className="p-1 hover:text-white"><Edit className="w-3 h-3"/></button>
-                                        <button onClick={() => deleteMessage(note.id)} className="p-1 hover:text-white"><Trash2 className="w-3 h-3"/></button>
-                                    </div>
-                                )}
-                            </div>
-                            {!isDuo && isOwn && (<div className={`w-8 h-8 rounded-full flex items-center justify-center ${userStyle.bg} flex-shrink-0`}><span className="text-lg">{USERS[note.author]?.emoji}</span></div>)}
-                        </div>
-                    );
-                })}
-                <div ref={messagesEndRef} />
-            </div>
-            <div className="mt-auto p-2 border-t bg-white flex items-center">
-                <input type="text" value={newMessageContent} onChange={e => setNewMessageContent(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Votre souvenir..." className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                <button onClick={sendMessage} className="ml-3 p-3 bg-amber-500 text-white rounded-full hover:bg-amber-600 disabled:bg-gray-300" disabled={!newMessageContent.trim()}><Send className="w-5 h-5"/></button>
-            </div>
-        </div>
-    );
-};
-		//Page CONFIG
+            const [newMessage, setNewMessage] = React.useState('');
+            if (!currentSession) { return <div className="text-center py-12">Sélectionnez une session pour commencer.</div>; }
+            const sendMessage = () => { if (!newMessage.trim()) return; const updatedSession = { ...currentSession, notes: [...(currentSession.notes || []), { id: Date.now(), content: newMessage, author: currentUser, timestamp: new Date().toISOString() }] }; onUpdateSession(updatedSession); setNewMessage(''); };
+            return ( <div className="flex flex-col h-screen max-h-[85vh] fade-in"> <div className="bg-amber-50 border-b p-3 flex-shrink-0"> <h3 className="font-bold text-amber-900">{currentSession.gameTitle}</h3> </div> <div className="flex-1 bg-gray-50 overflow-y-auto p-4 space-y-3"> {currentSession.photoUrl && ( <div className="p-2 border-b border-gray-200 mb-4"> <img src={currentSession.photoUrl} alt="Contexte" className="max-w-xs mx-auto rounded-lg shadow-md" /> </div> )} {(currentSession.notes || []).map(note => { const isOwn = note.author === currentUser; const userStyle = getUserStyle(note.author); return ( <div key={note.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}> <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userStyle.bg} ${isOwn ? 'order-2' : ''}`}><span className="text-lg">{USERS[note.author]?.emoji}</span></div> <div className={`max-w-[70%] p-3 rounded-2xl ${isOwn ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}`}> <p className="text-sm">{note.content}</p> </div> </div> ); })} </div> <div className="mt-4 p-2 border-t bg-white flex items-center"> <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Votre souvenir..." className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400" /> <button onClick={sendMessage} className="ml-3 p-3 bg-amber-500 text-white rounded-full hover:bg-amber-600"><Send className="w-5 h-5"/></button> </div> </div> );
+        };
         const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
             const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
             const [photoPath, setPhotoPath] = React.useState(Storage.get('photoFolderPath', '/Medias/Photos/'));
@@ -1186,471 +409,196 @@ const useSessionState = () => {
                 </div>
             );
         };
-//Page Memoires
-const MemoriesPage = ({ currentUser, onCreateSession }) => {
-    const [activeView, setActiveView] = React.useState('blog');
-    const [dayNumber, setDayNumber] = React.useState(1);
-    const [currentPost, setCurrentPost] = React.useState(null);
-    const [photos, setPhotos] = React.useState([]);
-    const [currentDayTitle, setCurrentDayTitle] = React.useState('');
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [error, setError] = React.useState('');
-    const [isModalOpen, setIsModalOpen] = React.useState(false);
-    const [selectedPhoto, setSelectedPhoto] = React.useState(null);
-    const [modalImageSrc, setModalImageSrc] = React.useState('');
-    const [isModalLoading, setIsModalLoading] = React.useState(false);
-    const [retryCount, setRetryCount] = React.useState(0);
-    
-    const { isConnected } = useGoogleAuth();
-    const isMastodonImported = MastodonData.isImported();
-    const stats = MastodonData.getStats();
-    const maxDay = stats?.dayRange?.max || 275;
+        const MemoriesPage = ({ currentUser, onCreateSession }) => {
+            const [activeView, setActiveView] = React.useState('blog');
+            const [dayNumber, setDayNumber] = React.useState(1);
+            const [currentPost, setCurrentPost] = React.useState(null);
+            const [photos, setPhotos] = React.useState([]);
+            const [isLoading, setIsLoading] = React.useState(false);
+            const [error, setError] = React.useState('');
+            const [isModalOpen, setIsModalOpen] = React.useState(false);
+            const [selectedPhoto, setSelectedPhoto] = React.useState(null);
+            const [modalImageSrc, setModalImageSrc] = React.useState('');
+            const [isModalLoading, setIsModalLoading] = React.useState(false);
+            const { isConnected } = useGoogleAuth();
+            const isMastodonImported = MastodonData.isImported();
+            const stats = MastodonData.getStats();
+            const maxDay = stats?.dayRange?.max || 275;
 
-    React.useEffect(() => {
-        const loadDataForDay = async () => {
-            setIsLoading(true); 
-            setError(''); 
-            setCurrentDayTitle('');
+            React.useEffect(() => {
+                const loadDataForDay = async () => {
+                    setIsLoading(true); setError('');
+                    try {
+                        if (activeView === 'blog' && isMastodonImported) {
+                            const post = MastodonData.getPostByDay(dayNumber);
+                            setCurrentPost(post); setPhotos([]);
+                            if (!post) setError('Aucun post pour ce jour.');
+                        } else if (activeView === 'photos' && isConnected) {
+                            const fetchedPhotos = await GoogleDriveAPI.getPhotosByDay(dayNumber);
+                            setPhotos(fetchedPhotos); setCurrentPost(null);
+                            if (fetchedPhotos.length === 0) setError('Aucune photo trouvée pour ce jour.');
+                        }
+                    } catch (err) { setError('Erreur de chargement.'); console.error(err); } 
+                    finally { setIsLoading(false); }
+                };
+                loadDataForDay();
+            }, [dayNumber, activeView, isConnected, isMastodonImported]);
+
+            const showRandomMemory = async () => {
+                const randomDay = Math.floor(Math.random() * maxDay) + 1;
+                const availableViews = [];
+                if (isMastodonImported) availableViews.push('blog');
+                if (isConnected) availableViews.push('photos');
+                if (availableViews.length === 0) return;
+                const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
+                setActiveView(randomView);
+                setDayNumber(randomDay);
+            };
+
+            const openPhotoModal = async (photo) => {
+                setSelectedPhoto(photo); setIsModalOpen(true); setIsModalLoading(true); setModalImageSrc('');
+                const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType);
+                if (base64Src) { setModalImageSrc(base64Src); }
+                setIsModalLoading(false);
+            };
+            const closePhotoModal = () => { setIsModalOpen(false); setSelectedPhoto(null); setModalImageSrc(''); };
+
+            const createSessionFromModal = () => {
+                if (!selectedPhoto) return;
+                const game = getGameById(1);
+                window.pendingGameSession = { game: { ...game, title: `Souvenir du Jour ${dayNumber}` }, user: currentUser, postChapo: `À propos de la photo: "${selectedPhoto.title}"`, photoUrl: selectedPhoto.thumbnailUrl };
+                onCreateSession('chat');
+                closePhotoModal();
+            };
             
-            try {
-                if (activeView === 'blog' && isMastodonImported) {
-                    const post = MastodonData.getPostByDay(dayNumber);
-                    setCurrentPost(post); 
-                    setPhotos([]);
-                    if (!post) {
-                        setError('Aucun post pour ce jour.');
-                    }
-                } else if (activeView === 'photos' && isConnected) {
-                    const result = await GoogleDriveAPI.getPhotosByDay(dayNumber);
-                    setPhotos(result.photos || []); 
-                    setCurrentPost(null); 
-                    setCurrentDayTitle(result.folderName || '');
-                    
-                    if (result.error) {
-                        setError(`Erreur Google Drive: ${result.error}`);
-                    } else if (result.photos.length === 0) {
-                        setError('Aucune photo trouvée pour ce jour.');
-                    }
-                } else if (activeView === 'photos' && !isConnected) {
-                    setError('Connexion Google Drive requise pour voir les photos.');
-                }
-            } catch (err) { 
-                console.error('Erreur loadDataForDay:', err);
-                setError(`Erreur de chargement: ${err.message}`); 
-            } finally { 
-                setIsLoading(false); 
-            }
-        };
-        loadDataForDay();
-    }, [dayNumber, activeView, isConnected, isMastodonImported]);
+            const createSessionFromPost = (post) => {
+                const game = getGameById(7);
+                window.pendingGameSession = { game: { ...game, title: `Souvenir du Jour ${post.dayNumber}` }, user: currentUser, postChapo: `Souvenir du Jour ${post.dayNumber}:\n${post.content.slice(0, 150)}...` };
+                onCreateSession('chat');
+            };
 
-    const showRandomMemory = async () => {
-        const randomDay = Math.floor(Math.random() * maxDay) + 1;
-        const availableViews = [];
-        if (isMastodonImported) availableViews.push('blog');
-        if (isConnected) availableViews.push('photos');
-        if (availableViews.length === 0) {
-            setError('Aucune source de mémoires disponible');
-            return;
-        }
-        const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
-        setActiveView(randomView);
-        setDayNumber(randomDay);
-    };
-
-    const retryLoadPhotos = () => {
-        setRetryCount(prev => prev + 1);
-        setError('');
-        // Le useEffect se redéclenche automatiquement
-    };
-
-    const openPhotoModal = async (photo) => {
-        setSelectedPhoto(photo); 
-        setIsModalOpen(true); 
-        setIsModalLoading(true); 
-        setModalImageSrc('');
-        
-        try {
-            const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType);
-            if (base64Src) { 
-                setModalImageSrc(base64Src); 
-            } else {
-                setError('Impossible de charger l\'image en haute résolution');
-            }
-        } catch (error) {
-            console.error('Erreur chargement image modal:', error);
-            setError('Erreur de chargement de l\'image');
-        } finally {
-            setIsModalLoading(false);
-        }
-    };
-    
-    const closePhotoModal = () => { 
-        setIsModalOpen(false); 
-        setSelectedPhoto(null); 
-        setModalImageSrc(''); 
-    };
-
-    const createSessionFromModal = () => {
-        if (!selectedPhoto) return;
-        const game = getGameById(1);
-        window.pendingGameSession = {
-            game: { ...game, title: `Photo du Jour ${dayNumber}` },
-            user: currentUser, 
-            postChapo: currentDayTitle || `Photo du Jour ${dayNumber}`,
-            photoUrl: selectedPhoto.thumbnailUrl
-        };
-        onCreateSession('chat');
-        closePhotoModal();
-    };
-            
-    const createSessionFromPost = (post) => {
-        const game = getGameById(7);
-        window.pendingGameSession = { 
-            game: { ...game, title: `${post.title}` }, 
-            user: currentUser, 
-            postChapo: `${post.title}\n\n${post.content.slice(0, 200)}...` 
-        };
-        onCreateSession('chat');
-    };
-
-    const MastodonPostImages = ({ attachments }) => {
-        const [imageUrls, setImageUrls] = React.useState([]);
-        const [imageError, setImageError] = React.useState('');
-        const mastodonMediaPath = Storage.get('mastodonMediaPath', '/Medias/Mastodon/');
-        
-        React.useEffect(() => {
-            const fetchImageUrls = async () => {
-                if (!attachments || attachments.length === 0 || !isConnected) return;
-                
-                setImageError('');
-                const urls = [];
-                
-                try {
-                    for (const attachment of attachments) {
-                        if (attachment.type === 'Image' && attachment.url) {
-                            const filename = attachment.url.split('/').pop();
-                            const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
-                            const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
-                            
-                            try {
+            const MastodonPostImages = ({ attachments }) => {
+                const [imageUrls, setImageUrls] = React.useState([]);
+                const mastodonMediaPath = Storage.get('mastodonMediaPath', '/Medias/Mastodon/');
+                React.useEffect(() => {
+                    const fetchImageUrls = async () => {
+                        const urls = new Map();
+                        for (const attachment of attachments) {
+                            if (attachment.type === 'Image' && attachment.url) {
+                                const filename = attachment.url.split('/').pop();
+                                const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
+                                const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
                                 const file = await GoogleDriveAPI.findFileByPartialPath(filename, fullPath);
-                                if (file?.webContentLink) { 
-                                    urls.push(file.webContentLink); 
-                                }
-                            } catch (err) {
-                                console.warn(`Image Mastodon non trouvée: ${filename}`);
+                                if (file?.webContentLink) { urls.set(attachment.id, file.webContentLink); }
                             }
                         }
-                    }
-                    setImageUrls(urls);
-                } catch (error) {
-                    console.error('Erreur chargement images Mastodon:', error);
-                    setImageError('Erreur de chargement des images');
-                }
+                        setImageUrls(Array.from(urls.values()));
+                    };
+                    if (attachments && attachments.length > 0 && isConnected) { fetchImageUrls(); }
+                }, [attachments, isConnected]);
+                if (imageUrls.length === 0) return null;
+                return ( <div className="mt-4 grid grid-cols-2 gap-2"> {imageUrls.map((url, index) => (<a key={index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" /></a>))} </div> );
             };
-            fetchImageUrls();
-        }, [attachments, isConnected]);
-        
-        if (imageError) {
-            return <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{imageError}</div>;
-        }
-        
-        if (imageUrls.length === 0) return null;
-        
-        return ( 
-            <div className="mt-4 grid grid-cols-2 gap-2"> 
-                {imageUrls.map((url, index) => (
-                    <a key={index} href={url} target="_blank" rel="noopener noreferrer">
-                        <img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" />
-                    </a>
-                ))} 
-            </div> 
-        );
-    };
 
-    return (
-        <div className="space-y-6 fade-in">
-            <div className="flex justify-center bg-gray-100 p-1 rounded-lg">
-                <button 
-                    onClick={() => setActiveView('blog')} 
-                    disabled={!isMastodonImported} 
-                    className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${
-                        activeView === 'blog' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                    Blog
-                </button>
-                <button 
-                    onClick={() => setActiveView('photos')} 
-                    disabled={!isConnected} 
-                    className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${
-                        activeView === 'photos' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                    Photos {photos.length > 0 && `(${photos.length})`}
-                </button>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
-                <div className="flex items-center space-x-4">
-                    <label className="font-medium text-gray-700">Jour</label>
-                    <input 
-                        type="range" 
-                        min="1" 
-                        max={maxDay} 
-                        value={dayNumber} 
-                        onChange={(e) => setDayNumber(parseInt(e.target.value))} 
-                        className="flex-1"
-                    />
-                    <span className="font-bold text-lg text-amber-800 w-12 text-center">{dayNumber}</span>
-                </div>
-                <div className="text-center">
-                    <button 
-                        onClick={showRandomMemory} 
-                        className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold flex items-center justify-center space-x-2 mx-auto"
-                    >
-                        <Shuffle className="w-5 h-5"/>
-                        <span>Souvenir au hasard</span>
-                    </button>
-                </div>
-            </div>
-            
-            {isLoading && <div className="text-center py-12">Chargement...</div>}
-            
-            {error && !isLoading && (
-                <div className="text-center py-12 text-gray-500">
-                    <p className="mb-4">{error}</p>
-                    {error.includes('Google Drive') && (
-                        <button 
-                            onClick={retryLoadPhotos}
-                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                        >
-                            Réessayer
-                        </button>
-                    )}
-                </div>
-            )}
-            
-            {!isLoading && !error && activeView === 'blog' && currentPost && (
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                    <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-2xl font-bold text-amber-900">{currentPost.title}</h3>
-                        <button 
-                            onClick={() => createSessionFromPost(currentPost)} 
-                            className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"
-                        >
-                            <Plus className="w-4 h-4" /> 
-                            <span>Session</span>
-                        </button>
+            return (
+                <div className="space-y-6 fade-in">
+                    <div className="flex justify-center bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setActiveView('blog')} disabled={!isMastodonImported} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'blog' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Blog</button>
+                        <button onClick={() => setActiveView('photos')} disabled={!isConnected} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'photos' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Photos</button>
                     </div>
-                    <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
-                    <MastodonPostImages attachments={currentPost.attachments} />
-                </div>
-            )}
-            
-            {!isLoading && !error && activeView === 'photos' && photos.length > 0 && (
-                <div>
-                    {currentDayTitle && (
-                        <div className="bg-amber-50 p-3 rounded-lg mb-4 text-center">
-                            <h3 className="font-semibold text-amber-900">{currentDayTitle}</h3>
-                            <p className="text-sm text-amber-700">{photos.length} photo(s)</p>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
+                        <div className="flex items-center space-x-4">
+                            <label className="font-medium text-gray-700">Jour</label>
+                            <input type="range" min="1" max={maxDay} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value))} className="flex-1"/>
+                            <span className="font-bold text-lg text-amber-800 w-12 text-center">{dayNumber}</span>
+                        </div>
+                        <div className="text-center">
+                            <button onClick={showRandomMemory} className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold flex items-center justify-center space-x-2 mx-auto">
+                                <Shuffle className="w-5 h-5"/><span>Souvenir au hasard</span>
+                            </button>
+                        </div>
+                    </div>
+                    {isLoading && <div className="text-center py-12">Chargement...</div>}
+                    {error && !isLoading && <div className="text-center py-12 text-gray-500">{error}</div>}
+                    {!isLoading && !error && activeView === 'blog' && currentPost && (
+                        <div className="bg-white p-6 rounded-lg border border-gray-200">
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className="text-2xl font-bold text-amber-900">{currentPost.title}</h3>
+                                <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> <span>Session</span></button>
+                            </div>
+                            <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
+                            <MastodonPostImages attachments={currentPost.attachments} />
                         </div>
                     )}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {photos.map(photo => (
-                            <div 
-                                key={photo.id} 
-                                className="group relative border rounded-lg overflow-hidden cursor-pointer" 
-                                onClick={() => openPhotoModal(photo)}
-                            >
-                                <img 
-                                    src={photo.thumbnailUrl} 
-                                    alt={photo.title} 
-                                    className="w-full h-full object-cover aspect-square"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                />
-                                <div className="hidden w-full aspect-square bg-gray-200 items-center justify-center text-gray-500 text-xs">
-                                    Image indisponible
+                    {!isLoading && !error && activeView === 'photos' && photos.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {photos.map(photo => (
+                                <div key={photo.id} className="group relative border rounded-lg overflow-hidden cursor-pointer" onClick={() => openPhotoModal(photo)}>
+                                    <img src={photo.thumbnailUrl} alt={photo.title} className="w-full h-full object-cover aspect-square"/>
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2"><p className="text-white text-xs text-center">{photo.title}</p></div>
                                 </div>
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
-                                    <p className="text-white text-xs text-center">{photo.title}</p>
+                            ))}
+                        </div>
+                    )}
+                    {isModalOpen && selectedPhoto && (
+                        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={closePhotoModal}>
+                            <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                                <div className="flex-1 p-2 flex items-center justify-center min-h-[200px] overflow-hidden">
+                                    {isModalLoading && <div className="text-gray-600">Chargement de l'image...</div>}
+                                    {!isModalLoading && modalImageSrc && (<img src={modalImageSrc} alt={selectedPhoto.title} className="object-contain max-w-full max-h-full"/>)}
+                                    {!isModalLoading && !modalImageSrc && <div className="text-red-600">Erreur de chargement de l'image.</div>}
+                                </div>
+                                <div className="p-4 bg-gray-50 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <p className="text-gray-800 text-center sm:text-left truncate">{selectedPhoto.title}</p>
+                                    <div className="flex space-x-3 flex-shrink-0">
+                                        <button onClick={closePhotoModal} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg">Fermer</button>
+                                        <button onClick={createSessionFromModal} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold">Créer une session</button>
+                                    </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                            <button onClick={closePhotoModal} className="absolute top-4 right-4 text-white hover:text-gray-300"><X className="w-8 h-8"/></button>
+                        </div>
+                    )}
                 </div>
-            )}
-
-            {isModalOpen && selectedPhoto && (
-                <div 
-                    className="fixed inset-0 bg-black/90 z-50 flex flex-col" 
-                    onClick={(e) => {
-                        // Fermeture uniquement si on clique sur l'arrière-plan noir
-                        if (e.target === e.currentTarget) {
-                            closePhotoModal();
-                        }
-                    }}
-                >
-                    {/* Zone image - occupe tout l'espace */}
-                    <div 
-                        className="flex-1 flex items-center justify-center p-4" 
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {isModalLoading && (
-                            <div className="text-white text-lg">
-                                <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
-                                Chargement...
-                            </div>
-                        )}
-                        {!isModalLoading && !modalImageSrc && (
-                            <div className="text-white text-center">
-                                <div className="text-6xl mb-4">⚠️</div>
-                                <div>Erreur de chargement</div>
-                            </div>
-                        )}
-                        {!isModalLoading && modalImageSrc && (
-                            <img 
-                                src={modalImageSrc} 
-                                alt={selectedPhoto.title} 
-                                className="object-contain max-w-full max-h-full rounded-lg shadow-2xl"
-                            />
-                        )}
-                    </div>
-                    
-                    {/* Barre d'outils en bas - plus accessible sur mobile */}
-                    <div 
-                        className="flex-shrink-0 bg-black/60 backdrop-blur-sm p-4"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="flex justify-between items-center max-w-md mx-auto">
-                            {/* Info photo - afficher le nom du jour au lieu du nom de fichier */}
-                            <div className="text-white text-sm flex-1 pr-4">
-                                <div className="font-medium">Jour {dayNumber}</div>
-                                <div className="text-gray-300">{currentDayTitle || `Photos du voyage`}</div>
-                            </div>
-                            
-                            {/* Boutons d'action */}
-                            <div className="flex space-x-3">
-                                <button 
-                                    onClick={createSessionFromModal} 
-                                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-full font-medium transition-colors"
-                                >
-                                    <Plus className="w-5 h-5"/>
-                                    <span>Session</span>
-                                </button>
-                                
-                                <button 
-                                    onClick={closePhotoModal} 
-                                    className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-full font-medium transition-colors"
-                                >
-                                    <X className="w-5 h-5"/>
-                                    <span>Fermer</span>
-                                </button>
+            );
+        };
+		
+        const MemoireMekong = () => {
+            const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
+            const googleAuth = useGoogleAuth();
+            const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
+            const sessionHook = useSessionState();
+            const [currentChatSession, setCurrentChatSession] = React.useState(null);
+            const [toast, setToast] = React.useState({ message: '', type: '' });
+            const handleSessionSelect = (session) => { setCurrentChatSession(session); setCurrentPage('chat'); };
+            const handleCreateSessionAndNavigate = (page) => {
+                if (window.pendingGameSession) {
+                    sessionHook.createSession(window.pendingGameSession.game, currentUser).then(newSession => {
+                        if(newSession) { setCurrentChatSession(newSession); setCurrentPage(page); }
+                    });
+                } else { setCurrentPage(page); }
+            };
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+                    <TopBar currentPage={currentPage} currentUser={currentUser} onPageChange={setCurrentPage} onUserChange={setCurrentUser} googleStatus={{ isConnected, isLoading, userInfo }} onGoogleAction={() => { isConnected ? setCurrentPage('settings') : signIn(); }} />
+                    <main className="p-4 pb-24">
+                        <div className="max-w-6xl mx-auto">
+                            <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                                {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
+                                {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => { window.pendingGameSession = { game, user: currentUser }; handleCreateSessionAndNavigate('chat'); }} />}
+                                {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} sessions={sessionHook.sessions} deleteSession={sessionHook.deleteSession} />}
+                                {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession || sessionHook.currentSession} onUpdateSession={sessionHook.updateSession} onBackToSessions={() => setCurrentPage('sessions')} />}
+                                {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page) => handleCreateSessionAndNavigate(page)} />}
+                                {currentPage === 'settings' && <SettingsPage onReset={resetApp} googleAuth={googleAuth} onGoogleDisconnect={signOut} />}
+                                {currentPage === 'users' && <UsersPage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
                             </div>
                         </div>
-                        
-                        {/* Astuce pour fermer */}
-                        <div className="text-center mt-2">
-                            <div className="text-gray-400 text-xs">
-                                Ou touchez l'arrière-plan pour fermer
-                            </div>
-                        </div>
-                    </div>
+                    </main>
+                    <BottomNavBar currentPage={currentPage} onPageChange={setCurrentPage} currentUser={currentUser} />
+                    <Toast message={toast.message} type={toast.type} onDismiss={() => setToast({ message: '', type: '' })} />
                 </div>
-            )}
-        </div>
-    );
-};
-// ===== MAIN APP =====
-const MemoireMekong = () => {
-    const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
-    const googleAuth = useGoogleAuth();
-    const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
-    const sessionHook = useSessionState();
-    const [currentChatSession, setCurrentChatSession] = React.useState(null);
-    const [toast, setToast] = React.useState({ message: '', type: '' });
-
-    // Synchronisation simplifiée à la connexion Google
-    React.useEffect(() => {
-        if (isConnected && !isLoading) {
-            console.log('🔄 Synchronisation sessions à la connexion...');
-            CloudSessionStorage.getSessions().then(sessions => {
-                sessionHook.setSessions(sessions);
-                console.log(`✅ ${sessions.length} sessions synchronisées`);
-            }).catch(error => {
-                console.warn('⚠️ Erreur sync sessions:', error.message);
-                setToast({ message: "Erreur de synchronisation", type: 'error' });
-            });
-        }
-    }, [isConnected]);
-
-    const handleSessionSelect = (session) => { 
-        setCurrentChatSession(session); 
-        setCurrentPage('chat'); 
-    };
-    
-    const handleUpdateSession = async (updatedSession) => {
-        try {
-            await sessionHook.updateSession(updatedSession);
-            setCurrentChatSession(updatedSession);
-        } catch (error) {
-            setToast({ message: error.message, type: 'error' });
-            setCurrentChatSession(updatedSession); // Au moins mettre à jour localement
-        }
-    };
-
-    const handleCreateSessionAndNavigate = (page, options = {}) => {
-        if (options.game) {
-            window.pendingGameSession = { ...(window.pendingGameSession || {}), game: options.game, user: currentUser };
-        }
-        if (window.pendingGameSession) {
-            sessionHook.createSession(window.pendingGameSession.game, currentUser).then(newSession => {
-                if(newSession) { 
-                    setCurrentChatSession(newSession);
-                    setCurrentPage(page);
-                }
-            });
-        } else {
-            setCurrentPage(page);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-            <TopBar 
-                currentPage={currentPage} 
-                currentUser={currentUser} 
-                onPageChange={setCurrentPage} 
-                onUserChange={setCurrentUser}
-                googleStatus={{ isConnected, isLoading, userInfo }} 
-                onGoogleAction={() => { isConnected ? setCurrentPage('settings') : signIn(); }} 
-            />
-            <main className="p-4 md:p-6 pb-24">
-                {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
-                {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => handleCreateSessionAndNavigate('chat', { game })} />}
-                {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} sessions={sessionHook.sessions} deleteSession={sessionHook.deleteSession} />}
-                {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession} onUpdateSession={handleUpdateSession} onBackToSessions={() => setCurrentPage('sessions')} />}
-                {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page, options) => handleCreateSessionAndNavigate(page, options)} />}
-                {currentPage === 'settings' && <SettingsPage onReset={resetApp} googleAuth={googleAuth} onGoogleDisconnect={signOut} />}
-                {currentPage === 'users' && <UsersPage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
-            </main>
-            <BottomNavBar 
-                currentPage={currentPage} 
-                onPageChange={setCurrentPage} 
-                currentUser={currentUser} 
-            />
-            <Toast 
-                message={toast.message} 
-                type={toast.type} 
-                onDismiss={() => setToast({ message: '', type: '' })} 
-            />
-        </div>
-    );
-};
+            );
+        };
 
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
