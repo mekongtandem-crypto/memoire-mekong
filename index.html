@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.17 Auto-connexion + désactivation certaines fonctions si offline </title>
+    <title>🐘 Mémoire du Mékong V0.5.17 Auto-connexion + désactivation certaines fonctions </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -928,51 +928,10 @@ const useSessionState = () => {
                 </header> 
             );
         };
-
-		
-        const BottomNavBar = ({ currentPage, onPageChange, currentUser, isGoogleConnected }) => {
-            const navItems = [ 
-                { id: 'home', icon: Home, label: 'Accueil', requiresGoogle: false }, 
-                { id: 'sessions', icon: BookOpen, label: 'Sessions', requiresGoogle: true }, 
-                { id: 'memories', icon: Camera, label: 'Mémoires', requiresGoogle: true }, 
-                { id: 'settings', icon: Settings, label: 'Réglages', requiresGoogle: false }, 
-            ];
-            
-            return ( 
-                <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-t-lg z-10"> 
-                    <div className="flex justify-around items-center h-full"> 
-                        {navItems.map((item) => { 
-                            const Icon = item.icon; 
-                            const isActive = currentPage === item.id; 
-                            const isUserDisabled = !currentUser && item.id !== 'home' && item.id !== 'settings';
-                            const isGoogleDisabled = item.requiresGoogle && !isGoogleConnected;
-                            const isDisabled = isUserDisabled || isGoogleDisabled;
-                            
-                            return ( 
-                                <button 
-                                    key={item.id} 
-                                    onClick={() => !isDisabled && onPageChange(item.id)} 
-                                    disabled={isDisabled} 
-                                    className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 relative ${
-                                        isActive ? 'text-amber-600' : 'text-gray-500 hover:text-amber-500'
-                                    } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                                    title={isGoogleDisabled ? 'Connexion Google Drive requise' : (isUserDisabled ? 'Sélection utilisateur requise' : '')}
-                                > 
-                                    <Icon className="w-6 h-6 mb-1" /> 
-                                    <span className={`text-xs font-medium ${isActive ? 'font-bold' : ''}`}>
-                                        {item.label}
-                                    </span>
-                                    {isGoogleDisabled && (
-                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                                    )}
-                                </button> 
-                            ); 
-                        })} 
-                    </div> 
-                </div> 
-            );
+        const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
+            const navItems = [ { id: 'home', icon: Home, label: 'Accueil' }, { id: 'sessions', icon: BookOpen, label: 'Sessions' }, { id: 'memories', icon: Camera, label: 'Mémoires' }, { id: 'settings', icon: Settings, label: 'Réglages' }, ];
+            return ( <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-t-lg z-10"> <div className="flex justify-around items-center h-full"> {navItems.map((item) => { const Icon = item.icon; const isActive = currentPage === item.id; const isDisabled = !currentUser && item.id !== 'home'; return ( <button key={item.id} onClick={() => onPageChange(item.id)} disabled={isDisabled} className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${ isActive ? 'text-amber-600' : 'text-gray-500 hover:text-amber-500' } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}> <Icon className="w-6 h-6 mb-1" /> <span className={`text-xs font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span> </button> ); })} </div> </div> );
         };
-		
         const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => {
             if (isLoading) { return ( <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"> <div className="flex items-center space-x-3"> <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div> <span className="text-blue-700">Connexion Google Drive...</span> </div> </div> ); }
             if (!isConnected) { return ( <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"> <div className="flex items-center justify-between"> <div className="flex items-center space-x-3"> <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center"><Cloud className="w-4 h-4 text-red-600" /></div> <div> <div className="font-medium text-red-900">Connexion Google Drive requise</div> <div className="text-sm text-red-700">Vos sessions seront partagées</div> </div> </div> <button onClick={onSignIn} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium">Se connecter</button> </div> </div> ); }
