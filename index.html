@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6 (Complet reconstitué par Gemini)</title>
+    <title>🐘 Mémoire du Mékong V0.5.7 (Complet reconstitué + corrections </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -129,83 +129,90 @@
 
         // ===== GOOGLE DRIVE API =====
         const GoogleDriveAPI = {
-            isSignedIn: false, isInitialized: false, tokenClient: null, _folderIdCache: new Map(), _fileIdCache: new Map(),
-            async init() {
-                if (this.isInitialized) return;
-                try {
-                    await new Promise((resolve) => gapi.load('client', resolve));
-                    await gapi.client.init({ apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-                    this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', callback: '' });
-                    this.isInitialized = true;
-                } catch (error) { console.error('❌ Erreur init Google Drive API:', error); throw error; }
-            },
-            async signIn() {
-                if (!this.isInitialized) await this.init();
-                return new Promise((resolve, reject) => {
-                    if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
-                    this.tokenClient.callback = async (response) => {
-                        if (response.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${response.error}`)); }
-                        try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } 
-                        catch (error) { this.isSignedIn = false; reject(new Error('Accès API Drive impossible')); }
-                    };
-                    const token = gapi.client.getToken();
-                    if (token) { gapi.client.drive.files.list({ pageSize: 1 }).then(() => { this.isSignedIn = true; resolve(true); }).catch(() => { gapi.client.setToken(''); this.tokenClient.requestAccessToken({ prompt: 'consent' }); }); } 
-                    else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); }
-                });
-            },
-            async signOut() {
+        isSignedIn: false, isInitialized: false, tokenClient: null, _folderIdCache: new Map(), _fileIdCache: new Map(),
+        async init() {
+            if (this.isInitialized) return;
+            try {
+                await new Promise((resolve) => gapi.load('client', resolve));
+                await gapi.client.init({ apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+                this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', callback: '' });
+                this.isInitialized = true;
+            } catch (error) { console.error('❌ Erreur init Google Drive API:', error); throw error; }
+        },
+        async signIn() {
+            if (!this.isInitialized) await this.init();
+            return new Promise((resolve, reject) => {
+                if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
+                this.tokenClient.callback = async (response) => {
+                    if (response.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${response.error}`)); }
+                    try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } 
+                    catch (error) { this.isSignedIn = false; reject(new Error('Accès API Drive impossible')); }
+                };
                 const token = gapi.client.getToken();
-                if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
-                this.isSignedIn = false;
-            },
-            async findFolderByPath(path) {
-                if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
-                const parts = path.split('/').filter(p => p);
-                let parentId = 'root';
-                for (const part of parts) {
-                    try {
-                        const response = await gapi.client.drive.files.list({ q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${part}' and trashed=false`, fields: 'files(id, name)' });
-                        const folder = response.result.files[0];
-                        if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
-                        parentId = folder.id;
-                    } catch (error) { console.error(`Erreur recherche dossier ${part}:`, error); return null; }
+                if (token) { gapi.client.drive.files.list({ pageSize: 1 }).then(() => { this.isSignedIn = true; resolve(true); }).catch(() => { gapi.client.setToken(''); this.tokenClient.requestAccessToken({ prompt: 'consent' }); }); } 
+                else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); }
+            });
+        },
+        async signOut() {
+            const token = gapi.client.getToken();
+            if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
+            this.isSignedIn = false;
+        },
+        async findFolderByPath(path) {
+            if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
+            const parts = path.split('/').filter(p => p);
+            let parentId = 'root';
+            for (const part of parts) {
+                try {
+                    const response = await gapi.client.drive.files.list({ q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${part}' and trashed=false`, fields: 'files(id, name)' });
+                    const folder = response.result.files[0];
+                    if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
+                    parentId = folder.id;
+                } catch (error) { console.error(`Erreur recherche dossier ${part}:`, error); return null; }
+            }
+            this._folderIdCache.set(path, parentId);
+            return parentId;
+        },
+        async getPhotosByDay(dayNumber) {
+            const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
+            const parentFolderId = await this.findFolderByPath(photoFolderPath);
+            if (!parentFolderId) return [];
+            const dayString = String(dayNumber).padStart(3, '0');
+            try {
+                const folderResponse = await gapi.client.drive.files.list({ q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, fields: 'files(id, name)' });
+                const dayFolder = folderResponse.result.files[0];
+                if (!dayFolder) return [];
+                const photosResponse = await gapi.client.drive.files.list({ q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`, fields: 'files(id, name, thumbnailLink, mimeType)', pageSize: 50 });
+                return (photosResponse.result.files || []).map(file => ({ id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink, mimeType: file.mimeType }));
+            } catch (error) { console.error(`Erreur chargement photos jour ${dayNumber}:`, error); return []; }
+        },
+        async getPhotoAsBase64(fileId, mimeType) {
+            try {
+                const response = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
+                // Conversion robuste des données binaires en Base64
+                const raw = response.body;
+                const rawLength = raw.length;
+                const array = new Uint8Array(new ArrayBuffer(rawLength));
+                for (let i = 0; i < rawLength; i++) {
+                    array[i] = raw.charCodeAt(i);
                 }
-                this._folderIdCache.set(path, parentId);
-                return parentId;
-            },
-            async getPhotosByDay(dayNumber) {
-                const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
-                const parentFolderId = await this.findFolderByPath(photoFolderPath);
-                if (!parentFolderId) return [];
-                const dayString = String(dayNumber).padStart(3, '0');
-                try {
-                    const folderResponse = await gapi.client.drive.files.list({ q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, fields: 'files(id, name)' });
-                    const dayFolder = folderResponse.result.files[0];
-                    if (!dayFolder) return [];
-                    const photosResponse = await gapi.client.drive.files.list({ q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`, fields: 'files(id, name, thumbnailLink, mimeType)', pageSize: 50 });
-                    return (photosResponse.result.files || []).map(file => ({ id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink, mimeType: file.mimeType }));
-                } catch (error) { console.error(`Erreur chargement photos jour ${dayNumber}:`, error); return []; }
-            },
-            async getPhotoAsBase64(fileId, mimeType) {
-                try {
-                    const response = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
-                    const blob = new Blob([response.body], { type: mimeType });
-                    return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
-                } catch (error) { console.error(`Erreur chargement image ${fileId} en Base64:`, error); return null; }
-            },
-            async findFileByPartialPath(filename, rootPath) {
-                const cacheKey = `${rootPath}:${filename}`;
-                if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
-                const rootFolderId = await this.findFolderByPath(rootPath);
-                if (!rootFolderId) { console.warn(`Dossier racine pour la recherche de fichier non trouvé: ${rootPath}`); return null; }
-                try {
-                    const response = await gapi.client.drive.files.list({ q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`, fields: 'files(id, webContentLink)', pageSize: 1 });
-                    const file = response.result.files[0];
-                    if (file) { this._fileIdCache.set(cacheKey, file); return file; }
-                    return null;
-                } catch (error) { console.error(`Erreur recherche fichier ${filename}:`, error); return null; }
-            },
-        };
+                const blob = new Blob([array], { type: mimeType });
+                return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
+            } catch (error) { console.error(`Erreur chargement image ${fileId} en Base64:`, error); return null; }
+        },
+        async findFileByPartialPath(filename, rootPath) {
+            const cacheKey = `${rootPath}:${filename}`;
+            if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
+            const rootFolderId = await this.findFolderByPath(rootPath);
+            if (!rootFolderId) { console.warn(`Dossier racine pour la recherche de fichier non trouvé: ${rootPath}`); return null; }
+            try {
+                const response = await gapi.client.drive.files.list({ q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`, fields: 'files(id, webContentLink)', pageSize: 1 });
+                const file = response.result.files[0];
+                if (file) { this._fileIdCache.set(cacheKey, file); return file; }
+                return null;
+            } catch (error) { console.error(`Erreur recherche fichier ${filename}:`, error); return null; }
+        },
+    };
 
         // ===== USER CONFIG =====
         const USERS = { tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' }, lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } };
@@ -331,17 +338,175 @@
             const fullGamesList = [ { id: 1, title: "Photo roulette", duration: "15 min", type: "présentiel", icon: Camera, description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient en mémoire" }, { id: 7, title: "Souvenir du jour", duration: "libre", type: "mémoire", icon: BookOpen, description: "Discussion autour d'un post spécifique du blog Mastodon" } ];
             return ( <div className="space-y-6 fade-in"> <div className="flex justify-between items-center"> <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux</h2> <button onClick={() => { const randomGame = fullGamesList[Math.floor(Math.random() * fullGamesList.length)]; onGameSelect(randomGame); }} className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"><Shuffle className="w-4 h-4" /><span>Jeu au hasard</span></button> </div> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {fullGamesList.map(game => { const IconComponent = game.icon; return ( <button key={game.id} onClick={() => onGameSelect(game)} className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"> <div className="flex items-start space-x-4"> <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" /> <div className="flex-1"> <div className="flex justify-between items-start mb-2"> <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">{game.title}</h3> {game.duration && <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">{game.duration}</span>} </div> <p className="text-gray-600 text-sm leading-relaxed mb-2">{game.description}</p> </div> </div> </button> ); })} </div> </div> );
         };
+//Page SESSIONS
         const SessionsPage = ({ currentUser, onPageChange, onSessionSelect, sessions, deleteSession }) => {
-            const formatDate = (dateString) => new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-            const statusIcons = { active: { icon: Play, color: 'text-green-500', title: 'Active' }, paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' }, completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' } };
-            return ( <div className="space-y-4 fade-in"> <div className="flex justify-between items-center"> <button onClick={() => onPageChange('games')} className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"><Plus className="w-5 h-5" /><span>Nouveau Jeu de Mémoire</span></button> </div> {!sessions || sessions.length === 0 ? ( <div className="text-center py-12 bg-gray-50 rounded-lg"> <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" /> <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3> <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p> <button onClick={() => onPageChange('games')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Commencer un jeu</button> </div> ) : ( <div className="space-y-3"> {sessions.map((session) => { const StatusIcon = statusIcons[session.status]?.icon || FileText; const statusColor = statusIcons[session.status]?.color || 'text-gray-500'; const statusTitle = statusIcons[session.status]?.title || 'Archivée'; const lastUser = session.user; const userStyle = getUserStyle(lastUser); return ( <div key={session.id} onClick={() => onSessionSelect(session)} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"> <div className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`} title={`Dernière modification par ${USERS[lastUser]?.name}`}> <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span> </div> <div className="flex-1 min-w-0"> <div className="flex justify-between items-start"> <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3> <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span> </div> <div className="flex items-center justify-between mt-1"> <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span> <div className="flex items-center space-x-2"> <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} /> <button onClick={(e) => { e.stopPropagation(); if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) { deleteSession(session.id); } }} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"><Trash2 className="w-4 h-4" /></button> </div> </div> </div> </div> ); })} </div> )} </div> );
-        };
+    const formatDate = (dateString) => new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const statusIcons = { active: { icon: Play, color: 'text-green-500', title: 'Active' }, paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' }, completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' } };
+
+    return (
+        <div className="space-y-4 fade-in">
+            <button onClick={() => onPageChange('games')} className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow">
+                <Plus className="w-5 h-5" />
+                <span>Nouveau Jeu de Mémoire</span>
+            </button>
+
+            {!sessions || sessions.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3>
+                    <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p>
+                    <button onClick={() => onPageChange('games')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Commencer un jeu</button>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {sessions.map((session) => {
+                        const StatusIcon = statusIcons[session.status]?.icon || FileText;
+                        const lastUser = session.lastModifiedBy || session.user; // On utilise le dernier modificateur, ou le créateur par défaut
+                        const userStyle = getUserStyle(lastUser);
+
+                        return (
+                            <div key={session.id} onClick={() => onSessionSelect(session)} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3">
+                                <div className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`} title={`Dernière modification par ${USERS[lastUser]?.name}`}>
+                                    <span className="text-xl">{USERS[lastUser]?.emoji || '🐘'}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="font-bold text-gray-800 pr-2 truncate">{session.gameTitle}</h3>
+                                        <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <span className="text-xs text-gray-500">{formatDate(session.updatedAt)}</span>
+                                        <div className="flex items-center space-x-2">
+                                            <StatusIcon className={`w-5 h-5 ${statusIcons[session.status]?.color || 'text-gray-500'}`} title={statusIcons[session.status]?.title || 'Archivée'} />
+                                            <button onClick={(e) => { e.stopPropagation(); if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) { deleteSession(session.id); } }} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+//Page CHAT
         const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-            const [newMessage, setNewMessage] = React.useState('');
-            if (!currentSession) { return <div className="text-center py-12">Sélectionnez une session pour commencer.</div>; }
-            const sendMessage = () => { if (!newMessage.trim()) return; const updatedSession = { ...currentSession, notes: [...(currentSession.notes || []), { id: Date.now(), content: newMessage, author: currentUser, timestamp: new Date().toISOString() }] }; onUpdateSession(updatedSession); setNewMessage(''); };
-            return ( <div className="flex flex-col h-screen max-h-[85vh] fade-in"> <div className="bg-amber-50 border-b p-3 flex-shrink-0"> <h3 className="font-bold text-amber-900">{currentSession.gameTitle}</h3> </div> <div className="flex-1 bg-gray-50 overflow-y-auto p-4 space-y-3"> {currentSession.photoUrl && ( <div className="p-2 border-b border-gray-200 mb-4"> <img src={currentSession.photoUrl} alt="Contexte" className="max-w-xs mx-auto rounded-lg shadow-md" /> </div> )} {(currentSession.notes || []).map(note => { const isOwn = note.author === currentUser; const userStyle = getUserStyle(note.author); return ( <div key={note.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}> <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userStyle.bg} ${isOwn ? 'order-2' : ''}`}><span className="text-lg">{USERS[note.author]?.emoji}</span></div> <div className={`max-w-[70%] p-3 rounded-2xl ${isOwn ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}`}> <p className="text-sm">{note.content}</p> </div> </div> ); })} </div> <div className="mt-4 p-2 border-t bg-white flex items-center"> <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Votre souvenir..." className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400" /> <button onClick={sendMessage} className="ml-3 p-3 bg-amber-500 text-white rounded-full hover:bg-amber-600"><Send className="w-5 h-5"/></button> </div> </div> );
+    const [newMessageContent, setNewMessageContent] = React.useState('');
+    const [editingTitle, setEditingTitle] = React.useState(false);
+    const [titleContent, setTitleContent] = React.useState('');
+    const messagesEndRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [currentSession?.notes]);
+
+    if (!currentSession) {
+        return <div className="text-center py-12">Sélectionnez une session pour commencer.</div>;
+    }
+
+    const handleUpdate = (updatedSession) => {
+        onUpdateSession(updatedSession);
+    };
+
+    const sendMessage = () => {
+        if (!newMessageContent.trim()) return;
+        const updatedSession = {
+            ...currentSession,
+            notes: [...(currentSession.notes || []), {
+                id: Date.now(),
+                content: newMessageContent.trim(),
+                author: currentUser,
+                timestamp: new Date().toISOString()
+            }],
+            lastModifiedBy: currentUser // Met à jour le dernier utilisateur à avoir modifié
         };
+        handleUpdate(updatedSession);
+        setNewMessageContent('');
+    };
+
+    const startEditTitle = () => {
+        setTitleContent(currentSession.gameTitle);
+        setEditingTitle(true);
+    };
+
+    const saveTitle = () => {
+        if (!titleContent.trim()) return;
+        const updatedSession = { ...currentSession, gameTitle: titleContent.trim() };
+        handleUpdate(updatedSession);
+        setEditingTitle(false);
+    };
+
+    const getBubbleStyle = (author) => {
+        const userStyle = getUserStyle(author);
+        // Convertit le style Tailwind en couleurs réelles pour l'affichage
+        const colorMap = {
+            blue: 'bg-blue-500 text-white',
+            green: 'bg-green-500 text-white',
+            amber: 'bg-amber-500 text-white'
+        };
+        const userColor = USERS[author]?.color || 'amber';
+        return colorMap[userColor];
+    };
+
+    return (
+        <div className="flex flex-col h-screen max-h-[85vh] fade-in">
+            <div className="bg-amber-50 border-b p-3 flex-shrink-0 flex justify-between items-center">
+                {editingTitle ? (
+                    <div className="flex-1 flex items-center gap-2">
+                        <input type="text" value={titleContent} onChange={e => setTitleContent(e.target.value)} className="font-bold text-amber-900 text-lg bg-white border border-amber-300 rounded px-2 py-1 flex-1" autoFocus onBlur={saveTitle} onKeyPress={e => e.key === 'Enter' && saveTitle()} />
+                        <button onClick={saveTitle} className="p-2 bg-green-100 hover:bg-green-200 rounded">✔️</button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 group cursor-pointer" onClick={startEditTitle}>
+                        <h3 className="font-bold text-amber-900 text-lg">{currentSession.gameTitle}</h3>
+                        <Edit className="w-4 h-4 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                )}
+            </div>
+
+            <div className="flex-1 bg-gray-50 overflow-y-auto p-4 space-y-4">
+                {currentSession.photoUrl && (
+                    <div className="p-2 border-b border-gray-200 mb-4">
+                        <img src={currentSession.photoUrl} alt="Contexte" className="max-w-xs mx-auto rounded-lg shadow-md" />
+                    </div>
+                )}
+                {(currentSession.notes || []).map(note => {
+                    const isOwn = note.author === currentUser;
+                    const isDuo = note.author === 'duo';
+                    const userStyle = getUserStyle(note.author);
+
+                    let justifyContent = 'justify-start';
+                    if (isDuo) justifyContent = 'justify-center';
+                    else if (isOwn) justifyContent = 'justify-end';
+
+                    return (
+                        <div key={note.id} className={`flex items-end gap-2 ${justifyContent}`}>
+                            {!isDuo && !isOwn && (<div className={`w-8 h-8 rounded-full flex items-center justify-center ${userStyle.bg} flex-shrink-0`}><span className="text-lg">{USERS[note.author]?.emoji}</span></div>)}
+
+                            <div className={`max-w-[70%] p-3 rounded-2xl ${isDuo ? 'bg-amber-100 text-amber-800' : getBubbleStyle(note.author)}`}>
+                                <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                            </div>
+
+                            {!isDuo && isOwn && (<div className={`w-8 h-8 rounded-full flex items-center justify-center ${userStyle.bg} flex-shrink-0`}><span className="text-lg">{USERS[note.author]?.emoji}</span></div>)}
+                        </div>
+                    );
+                })}
+                <div ref={messagesEndRef} />
+            </div>
+
+            <div className="mt-auto p-2 border-t bg-white flex items-center">
+                <input type="text" value={newMessageContent} onChange={e => setNewMessageContent(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Votre souvenir..." className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <button onClick={sendMessage} className="ml-3 p-3 bg-amber-500 text-white rounded-full hover:bg-amber-600 disabled:bg-gray-300" disabled={!newMessageContent.trim()}><Send className="w-5 h-5"/></button>
+            </div>
+        </div>
+    );
+};
+		//Page CONFIG
         const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
             const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
             const [photoPath, setPhotoPath] = React.useState(Storage.get('photoFolderPath', '/Medias/Photos/'));
