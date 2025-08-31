@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.17 Auto-connexion + désactivation certaines fonctions </title>
+    <title>🐘 Mémoire du Mékong V0.5.18 nouvelle Home Page </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -943,9 +943,207 @@ const useSessionState = () => {
         const getGameById = (gameId) => GAMES.find(g => g.id === gameId);
 
         // ===== PAGES =====
-        const HomePage = ({ currentUser, onUserChange, onPageChange }) => {
-            return ( <div className="space-y-6 fade-in"> <div className="text-center"> <h2 className="text-2xl font-bold text-amber-900 mb-4">Bienvenue dans vos mémoires du Mékong</h2> {currentUser && ( <p className="text-amber-700 mb-6">Bonjour <strong>{USERS[currentUser]?.name}</strong> ! Que souhaitez-vous faire ?</p> )} </div> {!currentUser ? ( <div className="max-w-md mx-auto space-y-4"> <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3> <div className="space-y-3"> {Object.entries(USERS).map(([key, user]) => ( <button key={key} onClick={() => onUserChange(key)} className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle(key).bg} hover:${getUserStyle(key).border}`}> <span className="text-3xl">{user.emoji}</span> <div> <div className={`font-medium text-lg ${getUserStyle(key).text}`}>{user.name}</div> </div> </button> ))} </div> </div> ) : ( <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('sessions')}> <div className="text-center"><Play className="w-12 h-12 text-blue-600 mx-auto mb-4" /><h3 className="text-lg font-semibold">Sessions</h3><p className="text-sm text-gray-600">Créer ou reprendre une session</p></div> </div> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}> <div className="text-center"><Camera className="w-12 h-12 text-green-600 mx-auto mb-4" /><h3 className="text-lg font-semibold">Mémoires</h3><p className="text-sm text-gray-600">Explorer le blog et les photos</p></div> </div> <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}> <div className="text-center"><Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" /><h3 className="text-lg font-semibold">Réglages</h3><p className="text-sm text-gray-600">Configuration et préférences</p></div> </div> </div> )} </div> );
+		// Home Page
+        const HomePage = ({ currentUser, onUserChange, onPageChange, googleStatus }) => {
+            const { isConnected, isLoading, userInfo } = googleStatus;
+            const [localSessions, setLocalSessions] = React.useState([]);
+            const [mastodonImported, setMastodonImported] = React.useState(false);
+
+            React.useEffect(() => {
+                // Vérifier les données disponibles localement
+                const sessions = Storage.get('sessions', []);
+                setLocalSessions(sessions);
+                setMastodonImported(MastodonData.isImported());
+            }, []);
+
+            const getConnectionStatusCard = () => {
+                if (isLoading) {
+                    return (
+                        <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 text-center">
+                            <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                            <h3 className="text-lg font-semibold text-blue-900 mb-2">Connexion à Google Drive...</h3>
+                            <p className="text-blue-700 text-sm">Vérification de votre connexion</p>
+                        </div>
+                    );
+                }
+
+                if (isConnected) {
+                    return (
+                        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
+                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Cloud className="w-6 h-6 text-green-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-green-900 mb-2">✅ Connecté à Google Drive</h3>
+                            <p className="text-green-700 text-sm mb-2">Synchronisation active • {userInfo?.email}</p>
+                            <div className="bg-green-100 rounded-lg p-3 text-xs text-green-800">
+                                <strong>Avantages :</strong> Partage Tom/Lambert • Photos du voyage • Sauvegarde automatique
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-6 text-center">
+                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Cloud className="w-6 h-6 text-orange-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-orange-900 mb-2">⚠️ Mode Hors Ligne</h3>
+                        <p className="text-orange-700 text-sm mb-4">Fonctionnalités limitées • Pas de synchronisation</p>
+                        <button
+                            onClick={() => onPageChange('settings')}
+                            className="w-full px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold mb-3"
+                        >
+                            Se connecter maintenant
+                        </button>
+                        <div className="bg-orange-100 rounded-lg p-3 text-xs text-orange-800">
+                            <strong>Connexion recommandée pour :</strong><br/>
+                            • Partager avec Tom/Lambert • Accéder aux photos • Synchroniser vos sessions
+                        </div>
+                    </div>
+                );
+            };
+
+            const getAvailableActions = () => {
+                const actions = [];
+
+                // Sessions - toujours disponibles mais avec différences
+                actions.push({
+                    id: 'sessions',
+                    icon: BookOpen,
+                    title: 'Sessions',
+                    description: isConnected 
+                        ? `${localSessions.length} session(s) • Partage & synchronisation`
+                        : `${localSessions.length} session(s) locales • Pas de partage`,
+                    bgColor: isConnected ? 'bg-blue-50 hover:bg-blue-100 border-blue-200' : 'bg-gray-50 hover:bg-gray-100 border-gray-200',
+                    textColor: isConnected ? 'text-blue-900' : 'text-gray-700',
+                    iconColor: isConnected ? 'text-blue-600' : 'text-gray-500',
+                    available: true,
+                    badge: localSessions.length > 0 ? `${localSessions.length}` : null
+                });
+
+                // Mémoires - dépend de l'état
+                actions.push({
+                    id: 'memories',
+                    icon: Camera,
+                    title: 'Mémoires',
+                    description: isConnected 
+                        ? 'Blog + Photos du voyage • Accès complet'
+                        : mastodonImported 
+                            ? 'Blog uniquement • Photos non disponibles'
+                            : 'Import du blog requis',
+                    bgColor: (isConnected || mastodonImported) ? 'bg-green-50 hover:bg-green-100 border-green-200' : 'bg-gray-50 hover:bg-gray-100 border-gray-200',
+                    textColor: (isConnected || mastodonImported) ? 'text-green-900' : 'text-gray-700',
+                    iconColor: (isConnected || mastodonImported) ? 'text-green-600' : 'text-gray-500',
+                    available: isConnected || mastodonImported,
+                    badge: !isConnected && mastodonImported ? '⚠️' : null
+                });
+
+                return actions;
+            };
+
+            return (
+                <div className="space-y-6 fade-in">
+                    {/* Titre et utilisateur */}
+                    <div className="text-center">
+                        <h2 className="text-2xl font-bold text-amber-900 mb-4">
+                            Mémoire du Mékong
+                        </h2>
+                        {currentUser ? (
+                            <p className="text-amber-700 mb-6">
+                                Bonjour <strong>{USERS[currentUser]?.name}</strong> ! 
+                            </p>
+                        ) : (
+                            <p className="text-amber-700 mb-6">
+                                Bienvenue dans vos mémoires du voyage !
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Sélection utilisateur si nécessaire */}
+                    {!currentUser && (
+                        <div className="max-w-md mx-auto space-y-4 mb-6">
+                            <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
+                            <div className="space-y-3">
+                                {Object.entries(USERS).map(([key, user]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => onUserChange(key)}
+                                        className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle(key).bg} hover:${getUserStyle(key).border}`}
+                                    >
+                                        <span className="text-3xl">{user.emoji}</span>
+                                        <div>
+                                            <div className={`font-medium text-lg ${getUserStyle(key).text}`}>{user.name}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* État de connexion - toujours visible */}
+                    {getConnectionStatusCard()}
+
+                    {/* Actions disponibles */}
+                    {currentUser && (
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-amber-900 text-center">Que voulez-vous faire ?</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                                {getAvailableActions().map(action => {
+                                    const IconComponent = action.icon;
+                                    return (
+                                        <button
+                                            key={action.id}
+                                            onClick={() => action.available && onPageChange(action.id)}
+                                            disabled={!action.available}
+                                            className={`p-6 border-2 rounded-xl text-left transition-all relative ${action.bgColor} ${action.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                                        >
+                                            <div className="flex items-start space-x-4">
+                                                <div className={`p-2 rounded-lg bg-white/50`}>
+                                                    <IconComponent className={`w-8 h-8 ${action.iconColor}`} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className={`font-semibold text-lg mb-2 ${action.textColor}`}>
+                                                        {action.title}
+                                                        {action.badge && (
+                                                            <span className="ml-2 px-2 py-1 text-xs bg-amber-200 text-amber-800 rounded-full">
+                                                                {action.badge}
+                                                            </span>
+                                                        )}
+                                                    </h4>
+                                                    <p className={`text-sm ${action.textColor} opacity-80`}>
+                                                        {action.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Message éducatif selon l'état */}
+                    <div className="max-w-2xl mx-auto">
+                        {isConnected ? (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                                <p className="text-amber-800 text-sm">
+                                    <strong>💡 Parfait !</strong> Vous pouvez maintenant partager vos mémoires avec Tom/Lambert 
+                                    et accéder à toutes vos photos du voyage.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                <p className="text-blue-800 text-sm">
+                                    <strong>ℹ️ Mode limité :</strong> Connectez-vous à Google Drive pour synchroniser 
+                                    vos sessions avec Tom/Lambert et accéder aux 2000+ photos du voyage !
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
         };
+		//User Page
         const UsersPage = ({ currentUser, onUserChange, onPageChange }) => {
             return ( <div className="space-y-6 fade-in"> <div className="text-center mb-6"> <h2 className="text-2xl font-bold text-amber-900 mb-2">Gestion des Utilisateurs</h2> <p className="text-amber-700">Actuellement connecté en tant que <strong>{USERS[currentUser]?.name}</strong></p> </div> <div className="space-y-4"> <h3 className="text-lg font-semibold text-amber-900">Changer d'utilisateur :</h3> <div className="grid grid-cols-1 gap-4"> {Object.entries(USERS).map(([key, user]) => ( <button key={key} onClick={() => { onUserChange(key); onPageChange('home'); }} className={`flex items-center space-x-4 p-4 border-2 rounded-lg transition-all ${ key === currentUser ? `${getUserStyle(key).bg} ${getUserStyle(key).border} ring-2 ring-amber-300` : `${getUserStyle(key).bg} hover:${getUserStyle(key).border} border-gray-200 hover:border-amber-300`}`}> <span className="text-3xl">{user.emoji}</span> <div className="flex-1 text-left"> <div className={`font-semibold text-lg ${getUserStyle(key).text}`}>{user.name}{key === currentUser && (<span className="ml-2 text-sm bg-amber-200 text-amber-800 px-2 py-1 rounded-full">Actuel</span>)}</div> <div className="text-sm text-gray-600">{key === 'tom' && "Le jeune aventurier"}{key === 'lambert' && "Le sage guide"}{key === 'duo' && "Session père-fils"}</div> </div> {key !== currentUser && (<div className="text-amber-600 font-medium">→ Changer</div>)} </button> ))} </div> </div> <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6"> <h4 className="font-semibold text-amber-900 mb-2">💡 À propos des utilisateurs</h4> <div className="text-amber-700 text-sm space-y-1"> <div><strong>Tom :</strong> Voit ses propres messages à droite, ceux de Lambert à gauche</div> <div><strong>Lambert :</strong> Voit ses propres messages à droite, ceux de Tom à gauche</div> <div><strong>Duo :</strong> Mode session partagée, messages centrés</div> </div> </div> <div className="flex justify-center pt-4"> <button onClick={() => onPageChange('home')} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Retour à l'accueil</button> </div> </div> );
         };
@@ -1630,8 +1828,7 @@ const MemoireMekong = () => {
                 onGoogleAction={() => { isConnected ? setCurrentPage('settings') : signIn(); }} 
             />
             <main className="p-4 md:p-6 pb-24">
-                {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} />}
-                {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => handleCreateSessionAndNavigate('chat', { game })} />}
+                {currentPage === 'home' && <HomePage currentUser={currentUser} onUserChange={setCurrentUser} onPageChange={setCurrentPage} googleStatus={{ isConnected, isLoading, userInfo }} />}                {currentPage === 'games' && <GamesPage currentUser={currentUser} onPageChange={setCurrentPage} onGameSelect={(game) => handleCreateSessionAndNavigate('chat', { game })} />}
                 {currentPage === 'sessions' && <SessionsPage currentUser={currentUser} onPageChange={setCurrentPage} onSessionSelect={handleSessionSelect} sessions={sessionHook.sessions} deleteSession={sessionHook.deleteSession} />}
                 {currentPage === 'chat' && <ChatPage currentUser={currentUser} currentSession={currentChatSession} onUpdateSession={handleUpdateSession} onBackToSessions={() => setCurrentPage('sessions')} />}
                 {currentPage === 'memories' && <MemoriesPage currentUser={currentUser} onCreateSession={(page, options) => handleCreateSessionAndNavigate(page, options)} />}
