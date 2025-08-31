@@ -286,7 +286,7 @@
             console.error('❌ Erreur chargement:', error);
             return null;
         }
-    }
+    },
 			
         async findFolderByPath(path) {
             if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
