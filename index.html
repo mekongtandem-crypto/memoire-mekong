@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.20b WO Affichage image de post-insertion de log debug </title>
+    <title>🐘 Mémoire du Mékong V0.5.19 Refresh page sans reconnection : GoogleDriveAPI avec sauvegarde token </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1574,115 +1574,55 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
     const MastodonPostImages = ({ attachments }) => {
         const [imageUrls, setImageUrls] = React.useState([]);
         const [imageError, setImageError] = React.useState('');
-        const [debugInfo, setDebugInfo] = React.useState('');
         const mastodonMediaPath = Storage.get('mastodonMediaPath', '/Medias/Mastodon/');
         
         React.useEffect(() => {
             const fetchImageUrls = async () => {
-                setDebugInfo(`Début recherche images...`);
-                
-                if (!attachments || attachments.length === 0) {
-                    setDebugInfo('Aucun attachment fourni');
-                    return;
-                }
-                
-                if (!isConnected) {
-                    setImageError('Connexion Google Drive requise');
-                    setDebugInfo('Pas connecté à Google Drive');
-                    return;
-                }
+                if (!attachments || attachments.length === 0 || !isConnected) return;
                 
                 setImageError('');
-                setDebugInfo(`Recherche de ${attachments.length} attachment(s)...`);
-                
                 const urls = [];
                 
                 try {
-                    for (const [index, attachment] of attachments.entries()) {
-                        setDebugInfo(`Traitement ${index + 1}/${attachments.length}: Type="${attachment.type}", MediaType="${attachment.mediaType}", URL="${attachment.url?.substring(0, 50)}..."`);
-                        
-                        // Test plus flexible pour détecter les images
-                        const isImage = (
-                            attachment.type === 'Image' || 
-                            attachment.type === 'image' ||
-                            attachment.mediaType?.startsWith('image/') ||
-                            (attachment.url && (
-                                attachment.url.includes('.jpg') || 
-                                attachment.url.includes('.jpeg') || 
-                                attachment.url.includes('.png') || 
-                                attachment.url.includes('.gif') ||
-                                attachment.url.includes('.webp')
-                            ))
-                        );
-                        
-                        if (isImage && attachment.url) {
+                    for (const attachment of attachments) {
+                        if (attachment.type === 'Image' && attachment.url) {
                             const filename = attachment.url.split('/').pop();
                             const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
                             const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
-                            
-                            setDebugInfo(`Recherche image: ${filename} dans ${fullPath}`);
                             
                             try {
                                 const file = await GoogleDriveAPI.findFileByPartialPath(filename, fullPath);
                                 if (file?.webContentLink) { 
                                     urls.push(file.webContentLink); 
-                                    setDebugInfo(`✅ Image trouvée: ${filename}`);
-                                } else {
-                                    setDebugInfo(`❌ Image non trouvée: ${filename}`);
                                 }
                             } catch (err) {
-                                console.warn(`Image Mastodon non trouvée: ${filename}`, err);
-                                setDebugInfo(`⚠️ Erreur recherche: ${filename}`);
+                                console.warn(`Image Mastodon non trouvée: ${filename}`);
                             }
-                        } else {
-                            setDebugInfo(`⏭️ Ignoré (pas une image): ${attachment.type}`);
                         }
                     }
                     setImageUrls(urls);
-                    setDebugInfo(`Terminé: ${urls.length} image(s) trouvée(s)`);
                 } catch (error) {
                     console.error('Erreur chargement images Mastodon:', error);
                     setImageError('Erreur de chargement des images');
-                    setDebugInfo(`❌ Erreur globale: ${error.message}`);
                 }
             };
             fetchImageUrls();
         }, [attachments, isConnected]);
         
-        // TOUJOURS afficher quelque chose pour debug
-        return (
-            <div className="mt-4 space-y-2">
-                {/* Infos de debug */}
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs">
-                    <strong>🔧 DEBUG Images Mastodon:</strong>
-                    <div className="mt-1">{debugInfo}</div>
-                    <div className="mt-1">Chemin configuré: <code>{mastodonMediaPath}</code></div>
-                    <div className="mt-1">Connecté Google Drive: {isConnected ? '✅' : '❌'}</div>
-                </div>
-                
-                {imageError && (
-                    <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                        ❌ {imageError}
-                    </div>
-                )}
-                
-                {imageUrls.length > 0 && (
-                    <div>
-                        <h4 className="font-medium text-gray-900 mb-2">📸 Images du post ({imageUrls.length})</h4>
-                        <div className="grid grid-cols-2 gap-2"> 
-                            {imageUrls.map((url, index) => (
-                                <a key={index} href={url} target="_blank" rel="noopener noreferrer">
-                                    <img 
-                                        src={url} 
-                                        alt={`Image ${index + 1} du post`} 
-                                        className="rounded-lg border hover:opacity-80 w-full h-32 object-cover" 
-                                    />
-                                </a>
-                            ))} 
-                        </div>
-                    </div>
-                )}
-            </div>
+        if (imageError) {
+            return <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{imageError}</div>;
+        }
+        
+        if (imageUrls.length === 0) return null;
+        
+        return ( 
+            <div className="mt-4 grid grid-cols-2 gap-2"> 
+                {imageUrls.map((url, index) => (
+                    <a key={index} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" />
+                    </a>
+                ))} 
+            </div> 
         );
     };
 
@@ -1762,21 +1702,6 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                         </button>
                     </div>
                     <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
-                    
-                    {/* DEBUG : Afficher les attachments */}
-                    {currentPost.attachments && currentPost.attachments.length > 0 && (
-                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
-                            <strong>🔍 DEBUG - Attachments trouvés ({currentPost.attachments.length}) :</strong>
-                            <pre className="mt-2 overflow-auto max-h-32">{JSON.stringify(currentPost.attachments, null, 2)}</pre>
-                        </div>
-                    )}
-                    
-                    {(!currentPost.attachments || currentPost.attachments.length === 0) && (
-                        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                            <strong>⚠️ DEBUG - Aucun attachment trouvé pour ce post</strong>
-                        </div>
-                    )}
-                    
                     <MastodonPostImages attachments={currentPost.attachments} />
                 </div>
             )}
