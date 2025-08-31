@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.23c App connection first avec 4 etat de connnections : checking, never-connected, connected, disconnected</title>
+    <title>🐘 Mémoire du Mékong V0.4.23e App connection first avec 4 etat de connnections : checking, never-connected, connected, disconnected</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -21,6 +21,11 @@
         .lucide { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+		.pulse-warning { animation: pulseWarning 2s infinite; }
+		@keyframes pulseWarning { 
+    		0%, 100% { background-color: rgb(254 242 242); border-color: rgb(252 165 165); }
+    		50% { background-color: rgb(239 68 68); border-color: rgb(185 28 28); color: white; }
+		}
     </style>
 </head>
 <body>
@@ -1555,13 +1560,13 @@ const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, goo
                     <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
                     <div className="space-y-3">
                         <button
-                            onClick={() => onUserChange('duo')}
-                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('duo').bg} hover:${getUserStyle('duo').border}`}
+                            onClick={() => onUserChange('tom')}
+                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border}`}
                         >
-                            <span className="text-3xl">🐘🐘</span>
+                            <span className="text-3xl">🐘</span>
                             <div>
-                                <div className={`font-medium text-lg ${getUserStyle('duo').text}`}>Duo Mekong Tandem</div>
-                                <div className="text-sm text-gray-600">Session père-fils</div>
+                                <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphanteau</div>
+                                <div className="text-sm text-gray-600">Le jeune aventurier</div>
                             </div>
                         </button>
                         <button
@@ -1583,7 +1588,7 @@ const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, goo
                                 <div className={`font-medium text-lg ${getUserStyle('duo').text}`}>Duo Mekong Tandem</div>
                                 <div className="text-sm text-gray-600">Session père-fils</div>
                             </div>
-                        </div>
+                        </button>
                     </div>
                 </div>
             ) : (
