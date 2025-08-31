@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.22 reprise de l'ancienne page memoire </title>
+    <title>🐘 Mémoire du Mékong V0.4.23 App connection first avec 4 etat de connnections : checking, never-connected, connected, disconnected</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -410,7 +410,7 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.19b'
+                version: '0.4.23'
             }, null, 2);
             
             console.log('🔄 Recherche fichier existant...');
@@ -944,23 +944,29 @@ const useSessionState = () => {
 };
 
 
-// ===== GOOGLE AUTH HOOK (CORRIGÉ) =====
+// ===== GOOGLE AUTH HOOK - CONNECTION-FIRST =====
 const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [userInfo, setUserInfo] = React.useState(null);
-    const [shouldForceConnection, setShouldForceConnection] = React.useState(false);
+    const [hasEverBeenConnected, setHasEverBeenConnected] = React.useState(false);
+    const [connectionMode, setConnectionMode] = React.useState('checking'); // checking, never-connected, connected, disconnected
 
     React.useEffect(() => {
         const initGoogle = async () => {
             setIsLoading(true);
+            setConnectionMode('checking');
+            
             try {
+                // Vérifier si l'utilisateur a déjà été connecté
+                const everConnected = Storage.get('ever_connected_to_drive', false);
+                setHasEverBeenConnected(everConnected);
+
                 await GoogleDriveAPI.init();
                 
                 const token = gapi.client.getToken();
                 if (token) {
                     try {
-                        // Tester avec un délai pour laisser le token s'initialiser
                         await new Promise(resolve => setTimeout(resolve, 100));
                         await gapi.client.drive.files.list({ pageSize: 1 });
                         
@@ -977,22 +983,31 @@ const useGoogleAuth = () => {
                             });
                             setIsConnected(true);
                             GoogleDriveAPI.isSignedIn = true;
+                            setConnectionMode('connected');
+                            
+                            // Marquer comme ayant été connecté
+                            if (!everConnected) {
+                                Storage.set('ever_connected_to_drive', true);
+                                setHasEverBeenConnected(true);
+                            }
+                            
                             console.log('✅ Reconnexion automatique réussie');
                         } else {
                             throw new Error('Token invalide');
                         }
                     } catch (error) {
-                        console.log('⚠️ Token expiré, reconnexion nécessaire');
-                        gapi.client.setToken(''); // Clear le token invalide
-                        setShouldForceConnection(true);
+                        console.log('⚠️ Token expiré ou invalide');
+                        gapi.client.setToken('');
+                        setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
                     }
                 } else {
-                    // Pas de token, forcer la connexion
-                    setShouldForceConnection(true);
+                    // Pas de token
+                    setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
                 }
             } catch (error) {
                 console.error('Erreur init Google:', error);
-                setShouldForceConnection(true);
+                const everConnected = Storage.get('ever_connected_to_drive', false);
+                setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
             } finally {
                 setIsLoading(false);
             }
@@ -1021,7 +1036,14 @@ const useGoogleAuth = () => {
                     picture: profile.picture
                 });
                 setIsConnected(true);
-                setShouldForceConnection(false);
+                setConnectionMode('connected');
+                
+                // Marquer comme ayant été connecté pour la première fois
+                if (!hasEverBeenConnected) {
+                    Storage.set('ever_connected_to_drive', true);
+                    setHasEverBeenConnected(true);
+                }
+                
                 console.log('Connexion réussie:', profile.name);
                 return true;
             } else {
@@ -1031,15 +1053,15 @@ const useGoogleAuth = () => {
             console.error('Erreur connexion:', error);
             setIsConnected(false);
             setUserInfo(null);
-            alert(`Erreur de connexion: ${error.message}`);
-            return false;
+            setConnectionMode(hasEverBeenConnected ? 'disconnected' : 'never-connected');
+            return { success: false, error: error.message };
         } finally {
             setIsLoading(false);
         }
     };
 
     const signOut = async () => {
-        setIsLoading(true); // Afficher le loading pendant la déconnexion
+        setIsLoading(true);
         
         try {
             const token = gapi.client.getToken();
@@ -1049,26 +1071,34 @@ const useGoogleAuth = () => {
             }
             await GoogleDriveAPI.signOut();
             
-            // Forcer la mise à jour des états
             setIsConnected(false);
             setUserInfo(null);
-            setShouldForceConnection(true);
+            setConnectionMode('disconnected'); // Reste 'disconnected' car a déjà été connecté
             
             console.log('✅ Déconnexion réussie');
         } catch (error) {
             console.error('Erreur déconnexion:', error);
         } finally {
-            setIsLoading(false); // Arrêter le loading
+            setIsLoading(false);
         }
     };
 
-    return { isConnected, isLoading, userInfo, shouldForceConnection, signIn, signOut };
+    return { 
+        isConnected, 
+        isLoading, 
+        userInfo, 
+        hasEverBeenConnected, 
+        connectionMode,  // 'checking', 'never-connected', 'connected', 'disconnected'
+        signIn, 
+        signOut 
+    };
 };
 
 
 
-// ===== NAVIGATION : COMPOSANT TOP BAR 1 ligne (Version 2.1 - Boutons agrandis) =====
-const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleStatus, onGoogleAction }) => {
+
+// ===== NAVIGATION : TOP BAR - CONNECTION-FIRST =====
+const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, connectionMode, googleAuth, onGoogleAction }) => {
     const PAGE_TITLES = {
         home: "Mémoire du Mékong",
         sessions: "Vos Sessions", 
@@ -1079,31 +1109,93 @@ const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleSt
         users: "Gestion des Utilisateurs"
     };
 
+    // Fonction pour obtenir le style du bouton de connexion selon l'état
+    const getConnectionButtonStyle = () => {
+        if (googleAuth.isLoading) {
+            return 'bg-blue-100 text-blue-700 cursor-wait border-2 border-blue-300';
+        }
+        
+        switch(connectionMode) {
+            case 'connected':
+                return 'bg-green-100 text-green-700 hover:bg-green-200 border-2 border-green-300';
+            case 'disconnected':
+                return 'bg-red-100 text-red-700 hover:bg-red-200 border-2 border-red-400 pulse-warning';
+            case 'never-connected':
+                return 'bg-orange-100 text-orange-700 hover:bg-orange-200 border-2 border-orange-300';
+            default:
+                return 'bg-gray-100 text-gray-700 border-2 border-gray-300';
+        }
+    };
+
+    // Fonction pour obtenir le texte du bouton de connexion
+    const getConnectionButtonText = () => {
+        if (googleAuth.isLoading) return 'Connexion...';
+        
+        switch(connectionMode) {
+            case 'connected':
+                return googleAuth.userInfo?.name?.split(' ')[0] || 'Connecté';
+            case 'disconnected':
+                return 'Reconnecter';
+            case 'never-connected':
+                return 'Se connecter';
+            default:
+                return 'Drive';
+        }
+    };
+
+    // Fonction pour obtenir l'icône du bouton de connexion
+    const getConnectionIcon = () => {
+        if (googleAuth.isLoading) {
+            return <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>;
+        }
+        
+        switch(connectionMode) {
+            case 'connected':
+                return <Cloud className="w-5 h-5" />;
+            case 'disconnected':
+                return <CloudOff className="w-5 h-5" />;
+            case 'never-connected':
+                return <Cloud className="w-5 h-5" />;
+            default:
+                return <Cloud className="w-5 h-5" />;
+        }
+    };
+
     return (
         <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b border-gray-200">
             <div className="flex justify-between items-center h-10">
+                {/* Titre de la page */}
                 <h1 className="text-xl font-bold text-amber-900 truncate">
                     {PAGE_TITLES[currentPage] || "Mémoire du Mékong"}
                 </h1>
+
+                {/* Section droite : Connexion + Utilisateur */}
                 <div className="flex items-center space-x-2">
+                    {/* Bouton de connexion Google Drive - Plus proéminent */}
                     <button
                         onClick={onGoogleAction}
-                        className={`flex items-center justify-center h-10 px-3 rounded-lg text-xs font-medium transition-colors ${
-                            googleStatus?.isLoading ? 'bg-blue-100 text-blue-700 cursor-wait'
-                            : googleStatus?.isConnected ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        }`}
-                        title={googleStatus?.isConnected ? `Connecté: ${googleStatus.userInfo?.email}` : 'Non connecté'}
-                    >
-                        {googleStatus?.isLoading
-                            ? <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                            : <Cloud className="w-5 h-5" />
+                        className={`flex items-center justify-center h-10 px-4 rounded-lg text-sm font-semibold transition-all ${getConnectionButtonStyle()}`}
+                        title={
+                            connectionMode === 'connected' 
+                                ? `Connecté: ${googleAuth.userInfo?.email}` 
+                                : connectionMode === 'disconnected'
+                                ? 'Connexion Google Drive perdue - Cliquer pour reconnecter'
+                                : 'Non connecté à Google Drive'
                         }
+                    >
+                        <div className="flex items-center space-x-2">
+                            {getConnectionIcon()}
+                            <span className="hidden sm:inline">{getConnectionButtonText()}</span>
+                        </div>
                     </button>
+
+                    {/* Bouton utilisateur */}
                     {currentUser && (
-                         <button
+                        <button
                             onClick={() => onPageChange('users')}
-                            className={`flex items-center justify-center w-10 h-10 rounded-full border ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border}`}
+                            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border} ${
+                                connectionMode === 'disconnected' ? 'opacity-75' : ''
+                            }`}
                             title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour gérer les utilisateurs.`}
                         >
                             <span className="text-xl">{USERS[currentUser]?.emoji}</span>
@@ -1111,6 +1203,25 @@ const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, googleSt
                     )}
                 </div>
             </div>
+
+            {/* Bannière d'alerte si déconnecté - Uniquement sur les pages autres que home */}
+            {connectionMode === 'disconnected' && currentPage !== 'home' && (
+                <div className="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-2 text-red-700">
+                            <CloudOff className="w-4 h-4" />
+                            <span><strong>Mode déconnecté :</strong> Sessions non synchronisées</span>
+                        </div>
+                        <button
+                            onClick={onGoogleAction}
+                            disabled={googleAuth.isLoading}
+                            className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded text-xs font-medium"
+                        >
+                            Reconnecter
+                        </button>
+                    </div>
+                </div>
+            )}
         </header>
     );
 };
@@ -1250,16 +1361,119 @@ const ForceGoogleConnection = ({ onSignIn }) => (
         // ===== MAIN PAGES =====
 
 
-        // ===== MAIN PAGES =====
-        const HomePage = ({ currentUser, onUserChange, onPageChange }) => (
-            <div className="space-y-6 fade-in">
+       
+        // ===== HOME PAGE - CONNECTION-FIRST =====
+const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, googleAuth }) => {
+    // Mode "Checking" - Vérification en cours
+    if (connectionMode === 'checking') {
+        return (
+            <div className="flex flex-col items-center justify-center py-16 fade-in">
+                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+                    <div className="animate-spin w-10 h-10 border-4 border-amber-600 border-t-transparent rounded-full"></div>
+                </div>
+                <h2 className="text-2xl font-bold text-amber-900 mb-4">Mémoire du Mékong</h2>
+                <p className="text-amber-700 text-center">Vérification de la connexion Google Drive...</p>
+            </div>
+        );
+    }
+
+    // Mode "Never Connected" - Onboarding obligatoire
+    if (connectionMode === 'never-connected') {
+        return (
+            <div className="space-y-8 fade-in">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-amber-900 mb-4">
-                        Bienvenue dans vos mémoires du Mékong
-                    </h2>
+                    <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <span className="text-4xl">🐘🐘</span>
+                    </div>
+                    <h1 className="text-3xl font-bold text-amber-900 mb-4">Bienvenue sur Mémoire du Mékong</h1>
+                    <p className="text-lg text-amber-700 mb-2">L'application de remémoration père-fils</p>
+                    <p className="text-amber-600">Revivez ensemble votre voyage à vélo de 4,5 mois en Asie du Sud-Est</p>
+                </div>
+
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                    <div className="flex items-start space-x-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Cloud className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-blue-900 mb-3">Connexion Google Drive requise</h3>
+                            <div className="text-blue-800 space-y-3">
+                                <div className="flex items-start space-x-2">
+                                    <span className="text-blue-500 mt-1">•</span>
+                                    <span>Vos sessions sont <strong>partagées automatiquement</strong> entre Tom et Lambert</span>
+                                </div>
+                                <div className="flex items-start space-x-2">
+                                    <span className="text-blue-500 mt-1">•</span>
+                                    <span>Synchronisation <strong>temps réel</strong> sur tous vos appareils</span>
+                                </div>
+                                <div className="flex items-start space-x-2">
+                                    <span className="text-blue-500 mt-1">•</span>
+                                    <span>Sauvegarde automatique dans le cloud</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-amber-800 text-sm text-center">
+                        <strong>Conseil :</strong> Utilisez le compte Google partagé 
+                        <strong> mekongmemoire@gmail.com</strong> pour une synchronisation parfaite
+                    </p>
+                </div>
+
+                <div className="text-center">
+                    <button
+                        onClick={googleAuth.signIn}
+                        disabled={googleAuth.isLoading}
+                        className="w-full max-w-md px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-xl font-semibold text-lg shadow-lg transition-all flex items-center justify-center space-x-3"
+                    >
+                        {googleAuth.isLoading ? (
+                            <div className="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full"></div>
+                        ) : (
+                            <Cloud className="w-6 h-6" />
+                        )}
+                        <span>{googleAuth.isLoading ? 'Connexion...' : 'Se connecter à Google Drive'}</span>
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Mode "Disconnected" - Critique, mais permet usage limité
+    if (connectionMode === 'disconnected') {
+        return (
+            <div className="space-y-6 fade-in">
+                {/* Alerte critique en haut */}
+                <div className="pulse-warning border-2 rounded-xl p-6 text-center">
+                    <div className="flex items-center justify-center space-x-3 mb-4">
+                        <CloudOff className="w-8 h-8 text-red-600" />
+                        <h2 className="text-2xl font-bold text-red-900">Connexion Google Drive perdue !</h2>
+                    </div>
+                    <p className="text-red-800 mb-4">
+                        Vous ne pouvez plus synchroniser avec Tom/Lambert. Vos nouvelles sessions resteront locales.
+                    </p>
+                    <button
+                        onClick={googleAuth.signIn}
+                        disabled={googleAuth.isLoading}
+                        className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center space-x-2 mx-auto"
+                    >
+                        {googleAuth.isLoading ? (
+                            <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                        ) : (
+                            <Cloud className="w-5 h-5" />
+                        )}
+                        <span>{googleAuth.isLoading ? 'Reconnexion...' : 'Reconnecter Google Drive'}</span>
+                    </button>
+                </div>
+
+                {/* Contenu normal mais avec avertissements */}
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-amber-900 mb-4">Mode déconnecté</h2>
                     {currentUser && (
                         <p className="text-amber-700 mb-6">
-                            Bonjour <strong>{USERS[currentUser]?.name}</strong> ! Que souhaitez-vous faire aujourd'hui ?
+                            Bonjour <strong>{USERS[currentUser]?.name}</strong> ! 
+                            <span className="text-red-600 font-semibold"> (Mode local uniquement)</span>
                         </p>
                     )}
                 </div>
@@ -1270,63 +1484,134 @@ const ForceGoogleConnection = ({ onSignIn }) => (
                         <div className="space-y-3">
                             <button
                                 onClick={() => onUserChange('tom')}
-                                className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border}`}
+                                className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border} opacity-75`}
                             >
                                 <span className="text-3xl">🐘</span>
                                 <div>
-                                    <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphantau</div>
-                                    <div className="text-sm text-gray-600">Le jeune aventurier</div>
+                                    <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphanteau</div>
+                                    <div className="text-sm text-gray-600">Le jeune aventurier (mode local)</div>
                                 </div>
                             </button>
                             <button
                                 onClick={() => onUserChange('lambert')}
-                                className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('lambert').bg} hover:${getUserStyle('lambert').border}`}
+                                className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('lambert').bg} hover:${getUserStyle('lambert').border} opacity-75`}
                             >
                                 <span className="text-3xl">🐘</span>
                                 <div>
                                     <div className={`font-medium text-lg ${getUserStyle('lambert').text}`}>Lambert, le vieux pachiderme</div>
-                                    <div className="text-sm text-gray-600">Le sage guide</div>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => onUserChange('duo')}
-                                className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('duo').bg} hover:${getUserStyle('duo').border}`}
-                            >
-                                <span className="text-3xl">🐘🐘</span>
-                                <div>
-                                    <div className={`font-medium text-lg ${getUserStyle('duo').text}`}>Duo Mekong Tandem</div>
-                                    <div className="text-sm text-gray-600">Session père-fils</div>
+                                    <div className="text-sm text-gray-600">Le sage guide (mode local)</div>
                                 </div>
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('sessions')}>
+                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75" onClick={() => onPageChange('sessions')}>
                             <div className="text-center">
                                 <Play className="w-12 h-12 text-blue-600 mx-auto mb-4" />
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Sessions</h3>
-                                <p className="text-gray-600 text-sm">Créer ou reprendre une session de remémoration</p>
+                                <p className="text-gray-600 text-sm">Créer ou reprendre (mode local)</p>
+                                <div className="text-xs text-red-600 mt-2">⚠️ Non synchronisé</div>
                             </div>
                         </div>
                         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}>
                             <div className="text-center">
                                 <Cloud className="w-12 h-12 text-green-600 mx-auto mb-4" />
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Mémoires</h3>
-                                <p className="text-gray-600 text-sm">Explorer le blog Mastodon et les photos</p>
+                                <p className="text-gray-600 text-sm">Explorer le blog et les photos</p>
                             </div>
                         </div>
                         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}>
                             <div className="text-center">
                                 <Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" />
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Réglages</h3>
-                                <p className="text-gray-600 text-sm">Configuration et préférences</p>
+                                <p className="text-gray-600 text-sm">Configuration et reconnexion</p>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
         );
+    }
+
+    // Mode "Connected" - Fonctionnement normal
+    return (
+        <div className="space-y-6 fade-in">
+            <div className="text-center">
+                <h2 className="text-2xl font-bold text-amber-900 mb-4">
+                    Bienvenue dans vos mémoires du Mékong
+                </h2>
+                {currentUser && (
+                    <p className="text-amber-700 mb-6">
+                        Bonjour <strong>{USERS[currentUser]?.name}</strong> ! Que souhaitez-vous faire aujourd'hui ?
+                    </p>
+                )}
+            </div>
+
+            {!currentUser ? (
+                <div className="max-w-md mx-auto space-y-4">
+                    <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => onUserChange('tom')}
+                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border}`}
+                        >
+                            <span className="text-3xl">🐘</span>
+                            <div>
+                                <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphanteau</div>
+                                <div className="text-sm text-gray-600">Le jeune aventurier</div>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => onUserChange('lambert')}
+                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('lambert').bg} hover:${getUserStyle('lambert').border}`}
+                        >
+                            <span className="text-3xl">🐘</span>
+                            <div>
+                                <div className={`font-medium text-lg ${getUserStyle('lambert').text}`}>Lambert, le vieux pachiderme</div>
+                                <div className="text-sm text-gray-600">Le sage guide</div>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => onUserChange('duo')}
+                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('duo').bg} hover:${getUserStyle('duo').border}`}
+                        >
+                            <span className="text-3xl">🐘🐘</span>
+                            <div>
+                                <div className={`font-medium text-lg ${getUserStyle('duo').text}`}>Duo Mekong Tandem</div>
+                                <div className="text-sm text-gray-600">Session père-fils</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('sessions')}>
+                        <div className="text-center">
+                            <Play className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Sessions</h3>
+                            <p className="text-gray-600 text-sm">Créer ou reprendre une session de remémoration</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}>
+                        <div className="text-center">
+                            <Cloud className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Mémoires</h3>
+                            <p className="text-gray-600 text-sm">Explorer le blog Mastodon et les photos</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}>
+                        <div className="text-center">
+                            <Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Réglages</h3>
+                            <p className="text-gray-600 text-sm">Configuration et préférences</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 		const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => (
     <div className="space-y-6 fade-in">
         <div className="flex justify-between items-center">
@@ -1887,7 +2172,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 
 		
 // Page Memoire (MODIFIÉE)
-// Page Memoire (repris de la version 0.4.13
+// Page Memoire (repris de la version 0.4.23
 const MemoriesPage = ({ currentUser, onCreateSession }) => {
     const [currentPost, setCurrentPost] = React.useState(null);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -2233,203 +2518,235 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
         };
 		
 // ===== MAIN APP =====
-// ===== MAIN APP (VERSION FINALE CORRIGÉE) =====
-        const MemoireMekong = () => {
-            const {
-                currentPage, setCurrentPage,
-                currentUser, setCurrentUser,
-                resetApp
-            } = useAppState();
+		// ===== MAIN APP - CONNECTION-FIRST =====
+const MemoireMekong = () => {
+    const {
+        currentPage, setCurrentPage,
+        currentUser, setCurrentUser,
+        resetApp
+    } = useAppState();
 
-            const { isConnected, isLoading, userInfo, signIn, signOut } = useGoogleAuth();
-            const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
+    const { isConnected, isLoading, userInfo, hasEverBeenConnected, connectionMode, signIn, signOut } = useGoogleAuth();
+    const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
 
-            const [currentChatSession, setCurrentChatSession] = React.useState(null);
-            const [toast, setToast] = React.useState({ message: '', type: '' });
+    const [currentChatSession, setCurrentChatSession] = React.useState(null);
+    const [toast, setToast] = React.useState({ message: '', type: '' });
 
-            // Synchronisation automatique au chargement et lors de la connexion
-            React.useEffect(() => {
-                let isMounted = true; // Éviter les appels après unmount
-                
-                const autoSync = async () => {
-                    if (isConnected && !isLoading) {
-                        try {
-                            console.log('🔄 Synchronisation automatique...');
-                            if (isMounted) {
-                                await syncSessions();
-                                console.log('✅ Synchronisation terminée');
-                            }
-                        } catch (error) {
-                            console.warn('⚠️ Sync auto échouée:', error.message);
-                            if (isMounted) {
-                                setToast({ message: "Synchronisation automatique échouée", type: 'error' });
-                            }
-                        }
-                    }
-                };
-
-                // Délai pour éviter les appels trop fréquents
-                const timeoutId = setTimeout(autoSync, 500);
-                
-                return () => {
-                    isMounted = false;
-                    clearTimeout(timeoutId);
-                };
-            }, [isConnected, isLoading]); // Retirer syncSessions des dépendances
-
-            // Gérer la création automatique de session depuis les jeux/mémoires
-            React.useEffect(() => {
-                const handlePendingSession = async () => {
-                    if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
-                        const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-                        if (newSession) {
-                            setCurrentChatSession(newSession);
-                        }
-                    }
-                };
-                
-                if (currentPage === 'chat') {
-                    handlePendingSession();
-                }
-            }, [currentUser, currentPage, createSession]);
-
-            const handleSessionSelect = (session) => {
-                setCurrentChatSession(session);
-                setCurrentPage('chat');
-            };
-
-            const handleBackToSessions = () => {
-                setCurrentChatSession(null);
-                setCurrentPage('sessions');
-            };
-
-            const handleUpdateSession = async (updatedSession) => {
+    // Synchronisation automatique au chargement et lors de la connexion
+    React.useEffect(() => {
+        let isMounted = true;
+        
+        const autoSync = async () => {
+            if (isConnected && !isLoading && connectionMode === 'connected') {
                 try {
-                    await updateSession(updatedSession);
-                    setCurrentChatSession(updatedSession);
-                } catch (error) {
-                    setToast({ message: error.message, type: 'error' });
-                    // Met à jour l'interface avec les données locales même si le cloud a échoué
-                    const localSessions = Storage.get('sessions', []);
-                    setSessions(localSessions); 
-                    setCurrentChatSession(updatedSession);
-                }
-            };
-
-            return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-        
-        {/* Barre du haut, toujours visible */}
-        <TopBar
-            currentPage={currentPage}
-            currentUser={currentUser}
-            onUserChange={setCurrentUser}
-            onPageChange={setCurrentPage}
-            googleStatus={{ isConnected, isLoading, userInfo }}
-            onGoogleAction={async () => {
-                if (!isConnected && !isLoading) {
-                    try {
-                        const success = await signIn();
-                        if (success) {
-                            setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
-                        }
-                    } catch (error) {
-                        setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
+                    console.log('🔄 Synchronisation automatique...');
+                    if (isMounted) {
+                        await syncSessions();
+                        console.log('✅ Synchronisation terminée');
                     }
-                } else {
-                    setCurrentPage('settings');
+                } catch (error) {
+                    console.warn('⚠️ Sync auto échouée:', error.message);
+                    if (isMounted) {
+                        setToast({ message: "Synchronisation automatique échouée", type: 'error' });
+                    }
                 }
-            }}
-        />
-
-        {/* Contenu principal de la page avec marges pour ne pas être caché par les barres */}
-        <main className="p-4 pb-24">
-            <div className="max-w-6xl mx-auto">
-                <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                    {currentPage === 'home' && (
-                        <HomePage 
-                            currentUser={currentUser}
-                            onUserChange={setCurrentUser}
-                            onPageChange={setCurrentPage}
-                        />
-                    )}
-                    {currentPage === 'games' && (
-                        <GamesPage 
-                            currentUser={currentUser}
-                            onPageChange={setCurrentPage}
-                            onGameSelect={(game) => {
-                                window.pendingGameSession = { game, user: currentUser };
-                                setCurrentPage('chat');
-                            }}
-                        />
-                    )}
-                    {currentPage === 'sessions' && (
-                        <SessionsPage 
-                            currentUser={currentUser} 
-                            onPageChange={setCurrentPage}
-                            onSessionSelect={handleSessionSelect}
-                        />
-                    )}
-                    {currentPage === 'chat' && (
-                        <ChatPage 
-                            currentUser={currentUser}
-                            currentSession={currentChatSession}
-                            onUpdateSession={handleUpdateSession}
-                            onBackToSessions={handleBackToSessions}
-                        />
-                    )}
-                    {currentPage === 'memories' && (
-                        <MemoriesPage 
-                            currentUser={currentUser}
-                            onCreateSession={(page) => {
-                                setCurrentPage(page);
-                            }}
-                        />
-                    )}
-                    {currentPage === 'settings' && (
-                        <SettingsPage 
-                            onReset={resetApp}
-                            googleAuth={{
-                                isConnected: isConnected,
-                                isLoading: isLoading,
-                                userInfo: userInfo,
-                                signIn: signIn,
-                                signOut: signOut
-                            }}
-                            onGoogleDisconnect={async () => {
-                                await signOut();
-                                setToast({ message: "Déconnexion réussie", type: 'success' });
-                            }}
-                        />
-                    )}
-                    {currentPage === 'users' && (
-                        <UsersPage 
-                            currentUser={currentUser}
-                            onUserChange={setCurrentUser}
-                            onPageChange={setCurrentPage}
-                        />
-                    )}
-                </div>
-            </div>
-        </main>
-        
-        {/* Barre de navigation du bas, toujours visible */}
-        <BottomNavBar
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            currentUser={currentUser}
-        />
-
-        {/* Le composant Toast pour les notifications */}
-        <Toast 
-            message={toast.message} 
-            type={toast.type} 
-            onDismiss={() => setToast({ message: '', type: '' })} 
-        />
-    </div>
-);
-                
+            }
         };
+
+        // Synchroniser seulement si vraiment connecté
+        const timeoutId = setTimeout(autoSync, 500);
+        
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
+        };
+    }, [isConnected, isLoading, connectionMode]);
+
+    // Gérer la création automatique de session depuis les jeux/mémoires
+    React.useEffect(() => {
+        const handlePendingSession = async () => {
+            if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
+                const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+                if (newSession) {
+                    setCurrentChatSession(newSession);
+                }
+            }
+        };
+        
+        if (currentPage === 'chat') {
+            handlePendingSession();
+        }
+    }, [currentUser, currentPage, createSession]);
+
+    const handleSessionSelect = (session) => {
+        setCurrentChatSession(session);
+        setCurrentPage('chat');
+    };
+
+    const handleBackToSessions = () => {
+        setCurrentChatSession(null);
+        setCurrentPage('sessions');
+    };
+
+    const handleUpdateSession = async (updatedSession) => {
+        try {
+            await updateSession(updatedSession);
+            setCurrentChatSession(updatedSession);
+        } catch (error) {
+            setToast({ message: error.message, type: 'error' });
+            // Met à jour l'interface avec les données locales même si le cloud a échoué
+            const localSessions = Storage.get('sessions', []);
+            setSessions(localSessions); 
+            setCurrentChatSession(updatedSession);
+        }
+    };
+
+    // Gestion des actions Google Drive
+    const handleGoogleAction = async () => {
+        if (connectionMode === 'never-connected' || connectionMode === 'disconnected') {
+            try {
+                const result = await signIn();
+                if (result === true) {
+                    setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
+                } else if (result && result.error) {
+                    setToast({ message: `Erreur de connexion: ${result.error}`, type: 'error' });
+                }
+            } catch (error) {
+                setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
+            }
+        } else if (connectionMode === 'connected') {
+            // Si connecté, aller vers les réglages pour gérer la connexion
+            setCurrentPage('settings');
+        }
+    };
+
+    // Fonction pour déterminer si une page nécessite une connexion
+    const pageRequiresConnection = (page) => {
+        return ['sessions', 'chat'].includes(page);
+    };
+
+    // Redirection intelligente si tentative d'accès à une page sensible en mode déconnecté
+    React.useEffect(() => {
+        if (connectionMode === 'disconnected' && pageRequiresConnection(currentPage)) {
+            setToast({ 
+                message: "Fonctionnalité limitée en mode déconnecté. Reconnectez-vous pour une synchronisation complète.", 
+                type: 'error' 
+            });
+        }
+    }, [connectionMode, currentPage]);
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+            
+            {/* Barre du haut, toujours visible avec statut de connexion proéminent */}
+            <TopBar
+                currentPage={currentPage}
+                currentUser={currentUser}
+                onUserChange={setCurrentUser}
+                onPageChange={setCurrentPage}
+                connectionMode={connectionMode}
+                googleAuth={{ isConnected, isLoading, userInfo, signIn, signOut }}
+                onGoogleAction={handleGoogleAction}
+            />
+
+            {/* Contenu principal de la page avec marges pour ne pas être caché par les barres */}
+            <main className="p-4 pb-24">
+                <div className="max-w-6xl mx-auto">
+                    <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                        {currentPage === 'home' && (
+                            <HomePage 
+                                currentUser={currentUser}
+                                onUserChange={setCurrentUser}
+                                onPageChange={setCurrentPage}
+                                connectionMode={connectionMode}
+                                googleAuth={{ isConnected, isLoading, userInfo, signIn, signOut }}
+                            />
+                        )}
+                        {currentPage === 'games' && (
+                            <GamesPage 
+                                currentUser={currentUser}
+                                onPageChange={setCurrentPage}
+                                onGameSelect={(game) => {
+                                    // Avertir si déconnecté
+                                    if (connectionMode === 'disconnected') {
+                                        setToast({ 
+                                            message: "Session créée en mode local - ne sera pas synchronisée", 
+                                            type: 'error' 
+                                        });
+                                    }
+                                    window.pendingGameSession = { game, user: currentUser };
+                                    setCurrentPage('chat');
+                                }}
+                            />
+                        )}
+                        {currentPage === 'sessions' && (
+                            <SessionsPage 
+                                currentUser={currentUser} 
+                                onPageChange={setCurrentPage}
+                                onSessionSelect={handleSessionSelect}
+                            />
+                        )}
+                        {currentPage === 'chat' && (
+                            <ChatPage 
+                                currentUser={currentUser}
+                                currentSession={currentChatSession}
+                                onUpdateSession={handleUpdateSession}
+                                onBackToSessions={handleBackToSessions}
+                            />
+                        )}
+                        {currentPage === 'memories' && (
+                            <MemoriesPage 
+                                currentUser={currentUser}
+                                onCreateSession={(page) => {
+                                    setCurrentPage(page);
+                                }}
+                            />
+                        )}
+                        {currentPage === 'settings' && (
+                            <SettingsPage 
+                                onReset={resetApp}
+                                googleAuth={{
+                                    isConnected: isConnected,
+                                    isLoading: isLoading,
+                                    userInfo: userInfo,
+                                    signIn: signIn,
+                                    signOut: signOut
+                                }}
+                                onGoogleDisconnect={async () => {
+                                    await signOut();
+                                    setToast({ message: "Déconnexion réussie", type: 'success' });
+                                }}
+                            />
+                        )}
+                        {currentPage === 'users' && (
+                            <UsersPage 
+                                currentUser={currentUser}
+                                onUserChange={setCurrentUser}
+                                onPageChange={setCurrentPage}
+                            />
+                        )}
+                    </div>
+                </div>
+            </main>
+            
+            {/* Barre de navigation du bas, toujours visible */}
+            <BottomNavBar
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                currentUser={currentUser}
+            />
+
+            {/* Le composant Toast pour les notifications */}
+            <Toast 
+                message={toast.message} 
+                type={toast.type} 
+                onDismiss={() => setToast({ message: '', type: '' })} 
+            />
+        </div>
+    );
+};
+
+		
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
