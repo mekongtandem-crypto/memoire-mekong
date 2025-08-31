@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.20 WO Affichage image de post-insertion de log debug </title>
+    <title>🐘 Mémoire du Mékong V0.5.20b WO Affichage image de post-insertion de log debug </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1599,9 +1599,23 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                 
                 try {
                     for (const [index, attachment] of attachments.entries()) {
-                        setDebugInfo(`Traitement ${index + 1}/${attachments.length}: ${attachment.type || 'Type inconnu'}`);
+                        setDebugInfo(`Traitement ${index + 1}/${attachments.length}: Type="${attachment.type}", MediaType="${attachment.mediaType}", URL="${attachment.url?.substring(0, 50)}..."`);
                         
-                        if (attachment.type === 'Image' && attachment.url) {
+                        // Test plus flexible pour détecter les images
+                        const isImage = (
+                            attachment.type === 'Image' || 
+                            attachment.type === 'image' ||
+                            attachment.mediaType?.startsWith('image/') ||
+                            (attachment.url && (
+                                attachment.url.includes('.jpg') || 
+                                attachment.url.includes('.jpeg') || 
+                                attachment.url.includes('.png') || 
+                                attachment.url.includes('.gif') ||
+                                attachment.url.includes('.webp')
+                            ))
+                        );
+                        
+                        if (isImage && attachment.url) {
                             const filename = attachment.url.split('/').pop();
                             const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
                             const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
