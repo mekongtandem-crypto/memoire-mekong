@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.15 top bar alerte offline </title>
+    <title>🐘 Mémoire du Mékong V0.5.16 AsyncInit pour avoir Connection scopes google + light </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -153,24 +153,6 @@ const GoogleDriveAPI = {
     _maxCacheSize: 50, // Maximum 50 jours en cache
 
     async init() {
-        if (this.isInitialized) return;
-        try {
-            await new Promise((resolve) => gapi.load('client', resolve));
-            await gapi.client.init({ 
-                apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', 
-                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] 
-            });
-            this.tokenClient = google.accounts.oauth2.initTokenClient({ 
-                client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', 
-                scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', 
-                callback: '' 
-            });
-            this.isInitialized = true;
-        } catch (error) { 
-            console.error('❌ Erreur init Google Drive API:', error); 
-            throw error; 
-        }
-    },
 
     async signIn() {
         if (!this.isInitialized) await this.init();
