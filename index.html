@@ -1345,7 +1345,15 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
             )}
 
             {isModalOpen && selectedPhoto && (
-                <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={closePhotoModal}>
+                <div 
+                    className="fixed inset-0 bg-black/90 z-50 flex flex-col" 
+                    onClick={(e) => {
+                        // Fermeture uniquement si on clique sur l'arrière-plan noir
+                        if (e.target === e.currentTarget) {
+                            closePhotoModal();
+                        }
+                    }}
+                >
                     {/* Zone image - occupe tout l'espace */}
                     <div 
                         className="flex-1 flex items-center justify-center p-4" 
@@ -1373,12 +1381,15 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
                     </div>
                     
                     {/* Barre d'outils en bas - plus accessible sur mobile */}
-                    <div className="flex-shrink-0 bg-black/60 backdrop-blur-sm p-4">
+                    <div 
+                        className="flex-shrink-0 bg-black/60 backdrop-blur-sm p-4"
+                        onClick={e => e.stopPropagation()}
+                    >
                         <div className="flex justify-between items-center max-w-md mx-auto">
-                            {/* Info photo */}
+                            {/* Info photo - afficher le nom du jour au lieu du nom de fichier */}
                             <div className="text-white text-sm flex-1 pr-4">
-                                <div className="font-medium truncate">{selectedPhoto.title}</div>
-                                <div className="text-gray-300">Jour {dayNumber}</div>
+                                <div className="font-medium">Jour {dayNumber}</div>
+                                <div className="text-gray-300">{currentDayTitle || `Photos du voyage`}</div>
                             </div>
                             
                             {/* Boutons d'action */}
