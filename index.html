@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.11 Rzstaure CLoudSync depuis la ve 0.4.10 </title>
+    <title>🐘 Mémoire du Mékong V0.5.11b Rzstaure CLoudSync depuis la ve 0.4.10 </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -544,6 +544,16 @@
             setCurrentSession(null);
         }
     };
+
+	const getGameIcon = (gameId) => {
+    const game = GAMES.find(g => g.id === gameId);
+    return game?.icon || BookOpen;
+};
+
+const renderGameIcon = (gameId, className = "w-6 h-6") => {
+    const IconComponent = getGameIcon(gameId);
+    return React.createElement(IconComponent, { className });
+};
     
     const syncSessions = React.useCallback(async () => {
         try {
