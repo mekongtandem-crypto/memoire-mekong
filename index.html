@@ -142,7 +142,6 @@
 };
 
 // ===== GOOGLE DRIVE API =====
-// ===== GOOGLE DRIVE API =====
 const GoogleDriveAPI = {
     isSignedIn: false, 
     isInitialized: false, 
@@ -525,7 +524,86 @@ const GoogleDriveAPI = {
         console.log('🧹 Cache photos vidé manuellement');
     }
 };
+// ===== USER CONFIG =====
+        const USERS = { 
+            tom: { name: 'Tom le jeune éléphantau', color: 'blue', emoji: '🐘' }, 
+            lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, 
+            duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } 
+        };
+        
+        const getUserStyle = (userKey) => { 
+            const user = USERS[userKey]; 
+            if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' }; 
+            const styles = { 
+                blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' }, 
+                green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' }, 
+                amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' } 
+            }; 
+            return styles[user.color] || styles.blue; 
+        };
 
+        const CloudSessionStorage = {
+            async getSessions() {
+                try {
+                    if (!GoogleDriveAPI.isSignedIn) {
+                        console.log('📱 Pas connecté au cloud, utilisation cache local');
+                        return Storage.get('sessions', []);
+                    }
+                    
+                    const cloudSessions = await GoogleDriveAPI.loadSessions();
+                    if (cloudSessions) {
+                        Storage.set('sessions', cloudSessions);
+                        console.log(`✅ ${cloudSessions.length} sessions chargées depuis Google Drive`);
+                        return cloudSessions;
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Erreur chargement cloud:', error.message);
+                }
+                return Storage.get('sessions', []);
+            },
+            
+            async saveSession(session) {
+                const sessions = Storage.get('sessions', []);
+                const existingIndex = sessions.findIndex(s => s.id === session.id);
+                if (existingIndex >= 0) {
+                    sessions[existingIndex] = session;
+                } else {
+                    sessions.unshift(session);
+                }
+                Storage.set('sessions', sessions);
+                
+                if (!GoogleDriveAPI.isSignedIn) {
+                    console.log('📱 Session sauvegardée localement (cloud déconnecté)');
+                    return;
+                }
+                
+                try {
+                    await GoogleDriveAPI.saveSessions(sessions);
+                    console.log('✅ Session sauvegardée localement + cloud');
+                } catch (error) {
+                    console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
+                    throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
+                }
+            },
+            
+            async deleteSession(sessionId) {
+                const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId);
+                Storage.set('sessions', sessions);
+                
+                if (!GoogleDriveAPI.isSignedIn) {
+                    console.log('🗑️ Session supprimée localement (cloud déconnecté)');
+                    return;
+                }
+                
+                try {
+                    await GoogleDriveAPI.saveSessions(sessions);
+                    console.log('✅ Session supprimée localement + cloud');
+                } catch (error) {
+                    console.warn('⚠️ Erreur suppression cloud:', error.message);
+                    throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
+                }
+            }
+        };
 // ===== SESSION MANAGEMENT & HOOKS =====
 const useSessionState = () => {
     const [currentSession, setCurrentSession] = React.useState(null);
