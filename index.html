@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.12 Debug CLoudSync </title>
+    <title>🐘 Mémoire du Mékong V0.5.13 Amélioration de la robustesse des photos (point 3) </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -141,59 +141,109 @@
     },
 };
 
-        // ===== GOOGLE DRIVE API =====
-        const GoogleDriveAPI = {
-        isSignedIn: false, isInitialized: false, tokenClient: null, _folderIdCache: new Map(), _fileIdCache: new Map(),
-            
-            // NOUVEAU: Cache pour les listes de photos par jour
-            _photosByDayCache: new Map(),
+// ===== GOOGLE DRIVE API =====
+// ===== GOOGLE DRIVE API =====
+const GoogleDriveAPI = {
+    isSignedIn: false, 
+    isInitialized: false, 
+    tokenClient: null, 
+    _folderIdCache: new Map(), 
+    _fileIdCache: new Map(),
+    _photosByDayCache: new Map(),
+    _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+    _maxCacheSize: 50, // Maximum 50 jours en cache
 
-            async init() {
-                if (this.isInitialized) return;
-                try {
-                    await new Promise((resolve) => gapi.load('client', resolve));
-                    await gapi.client.init({ apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-                    this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', callback: '' });
-                    this.isInitialized = true;
-                } catch (error) { console.error('❌ Erreur init Google Drive API:', error); throw error; }
-            },
-        async signIn() {
-            if (!this.isInitialized) await this.init();
-            return new Promise((resolve, reject) => {
-                if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
-                this.tokenClient.callback = async (response) => {
-                    if (response.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${response.error}`)); }
-                    try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } 
-                    catch (error) { this.isSignedIn = false; reject(new Error('Accès API Drive impossible')); }
-                };
-                const token = gapi.client.getToken();
-                if (token) { gapi.client.drive.files.list({ pageSize: 1 }).then(() => { this.isSignedIn = true; resolve(true); }).catch(() => { gapi.client.setToken(''); this.tokenClient.requestAccessToken({ prompt: 'consent' }); }); } 
-                else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); }
+    async init() {
+        if (this.isInitialized) return;
+        try {
+            await new Promise((resolve) => gapi.load('client', resolve));
+            await gapi.client.init({ 
+                apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', 
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] 
             });
-        },
-        async signOut() {
-			// On vide le cache des photos à la déconnexion
-                this._photosByDayCache.clear();
+            this.tokenClient = google.accounts.oauth2.initTokenClient({ 
+                client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', 
+                scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email', 
+                callback: '' 
+            });
+            this.isInitialized = true;
+        } catch (error) { 
+            console.error('❌ Erreur init Google Drive API:', error); 
+            throw error; 
+        }
+    },
+
+    async signIn() {
+        if (!this.isInitialized) await this.init();
+        return new Promise((resolve, reject) => {
+            if (!this.tokenClient) return reject(new Error('Token client non initialisé'));
+            this.tokenClient.callback = async (response) => {
+                if (response.error) { 
+                    this.isSignedIn = false; 
+                    return reject(new Error(`Erreur OAuth: ${response.error}`)); 
+                }
+                try { 
+                    await Promise.race([
+                        gapi.client.drive.files.list({ pageSize: 1 }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+                    ]);
+                    this.isSignedIn = true; 
+                    resolve(true); 
+                } catch (error) { 
+                    this.isSignedIn = false; 
+                    reject(new Error('Accès API Drive impossible')); 
+                }
+            };
             const token = gapi.client.getToken();
-            if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
-            this.isSignedIn = false;
-        },
-		async findMekongFile() {
+            if (token) { 
+                Promise.race([
+                    gapi.client.drive.files.list({ pageSize: 1 }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+                ]).then(() => { 
+                    this.isSignedIn = true; 
+                    resolve(true); 
+                }).catch(() => { 
+                    gapi.client.setToken(''); 
+                    this.tokenClient.requestAccessToken({ prompt: 'consent' }); 
+                }); 
+            } else { 
+                this.tokenClient.requestAccessToken({ prompt: 'consent' }); 
+            }
+        });
+    },
+
+    async signOut() {
+        // Vider tous les caches à la déconnexion
+        this._photosByDayCache.clear();
+        this._folderIdCache.clear();
+        this._fileIdCache.clear();
+        const token = gapi.client.getToken();
+        if (token) { 
+            google.accounts.oauth2.revoke(token.access_token); 
+            gapi.client.setToken(''); 
+        }
+        this.isSignedIn = false;
+    },
+
+    async findMekongFile() {
         if (!this.isSignedIn) return null;
         try {
-            const response = await gapi.client.drive.files.list({
-                q: "name='mekong_sessions.json' and trashed=false",
-                fields: 'files(id, name)'
-            });
+            const response = await Promise.race([
+                gapi.client.drive.files.list({
+                    q: "name='mekong_sessions.json' and trashed=false",
+                    fields: 'files(id, name)'
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+            ]);
             return response.result.files[0] || null;
         } catch (error) {
             console.error('❌ Erreur recherche fichier:', error);
             return null;
         }
     },
-    
+
     async saveSessions(sessions) {
-        console.log('🔄 Début saveSessions, isSignedIn:', this.isSignedIn);
+        console.log('📄 Début saveSessions, isSignedIn:', this.isSignedIn);
         
         if (!this.isSignedIn) {
             console.warn('⚠️ Pas connecté - sauvegarde locale uniquement');
@@ -201,33 +251,28 @@
         }
         
         try {
-            console.log('🔄 Préparation des données...');
             const data = JSON.stringify({ 
                 sessions, 
                 lastUpdated: new Date().toISOString(),
-                version: '0.4.10'
+                version: '0.5.11'
             }, null, 2);
             
-            console.log('🔄 Recherche fichier existant...');
             const existingFile = await this.findMekongFile();
-            console.log('📁 Fichier existant:', existingFile);
             
             if (existingFile) {
-                console.log('🔄 Mise à jour fichier existant...');
-                const response = await gapi.client.request({
-                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
-                    method: 'PATCH',
-                    params: { uploadType: 'media' },
-                    headers: { 'Content-Type': 'application/json' },
-                    body: data
-                });
+                const response = await Promise.race([
+                    gapi.client.request({
+                        path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
+                        method: 'PATCH',
+                        params: { uploadType: 'media' },
+                        headers: { 'Content-Type': 'application/json' },
+                        body: data
+                    }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout sauvegarde')), 30000))
+                ]);
                 console.log('✅ Sessions sauvegardées (MAJ)', response);
                 return true;
             } else {
-                console.log('🔄 Création nouveau fichier...');
-                
-                // L'ancien bloc 'try' interne a été retiré ici.
-                // Le 'catch' principal s'occupe déjà de la gestion des erreurs.
                 const boundary = '-------314159265358979323846';
                 const delimiter = "\r\n--" + boundary + "\r\n";
                 const close_delim = "\r\n--" + boundary + "--";
@@ -246,27 +291,27 @@
                     data +
                     close_delim;
 
-                const response = await gapi.client.request({
-                    'path': 'https://www.googleapis.com/upload/drive/v3/files',
-                    'method': 'POST',
-                    'params': {'uploadType': 'multipart'},
-                    'headers': {
-                        'Content-Type': 'multipart/related; boundary="' + boundary + '"'
-                    },
-                    'body': multipartRequestBody
-                });
-                console.log('✅ Sessions sauvegardées (NOUVEAU - multipart)', response);
+                const response = await Promise.race([
+                    gapi.client.request({
+                        'path': 'https://www.googleapis.com/upload/drive/v3/files',
+                        'method': 'POST',
+                        'params': {'uploadType': 'multipart'},
+                        'headers': {
+                            'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+                        },
+                        'body': multipartRequestBody
+                    }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout création')), 30000))
+                ]);
+                console.log('✅ Sessions sauvegardées (NOUVEAU)', response);
                 return true;
             }
         } catch (error) {
             console.error('❌ Erreur sauvegarde détaillée:', error);
-            console.error('❌ Status:', error.status);
-            console.error('❌ Body:', error.body);
-            console.error('❌ Details:', error.result);
             return false;
         }
     },
-    
+
     async loadSessions() {
         if (!this.isSignedIn) return null;
         
@@ -274,10 +319,13 @@
             const file = await this.findMekongFile();
             if (!file) return null;
             
-            const response = await gapi.client.drive.files.get({
-                fileId: file.id,
-                alt: 'media'
-            });
+            const response = await Promise.race([
+                gapi.client.drive.files.get({
+                    fileId: file.id,
+                    alt: 'media'
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout chargement')), 20000))
+            ]);
             
             const data = JSON.parse(response.body);
             console.log('✅ Sessions chargées depuis Google Drive');
@@ -287,188 +335,194 @@
             return null;
         }
     },
-			
-        async findFolderByPath(path) {
-            if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
-            const parts = path.split('/').filter(p => p);
-            let parentId = 'root';
+
+    _cleanCache() {
+        // Nettoyer le cache si trop volumineux
+        if (this._photosByDayCache.size > this._maxCacheSize) {
+            const entries = Array.from(this._photosByDayCache.entries());
+            // Garder les 30 plus récents
+            const toKeep = entries.slice(-30);
+            this._photosByDayCache.clear();
+            toKeep.forEach(([key, value]) => this._photosByDayCache.set(key, value));
+            console.log('🧹 Cache photos nettoyé');
+        }
+    },
+
+    async findFolderByPath(path) {
+        if (this._folderIdCache.has(path)) return this._folderIdCache.get(path);
+        const parts = path.split('/').filter(p => p);
+        let parentId = 'root';
+        
+        try {
             for (const part of parts) {
-                try {
-                    const response = await gapi.client.drive.files.list({ q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${part}' and trashed=false`, fields: 'files(id, name)' });
-                    const folder = response.result.files[0];
-                    if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
-                    parentId = folder.id;
-                } catch (error) { console.error(`Erreur recherche dossier ${part}:`, error); return null; }
+                const response = await Promise.race([
+                    gapi.client.drive.files.list({ 
+                        q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${part}' and trashed=false`, 
+                        fields: 'files(id, name)' 
+                    }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+                ]);
+                const folder = response.result.files[0];
+                if (!folder) throw new Error(`Dossier non trouvé: ${part}`);
+                parentId = folder.id;
             }
             this._folderIdCache.set(path, parentId);
             return parentId;
-        },
-        // AMÉLIORÉ: Gère la pagination et le cache
-            async getPhotosByDay(dayNumber) {
-                if (this._photosByDayCache.has(dayNumber)) {
-                    return this._photosByDayCache.get(dayNumber);
+        } catch (error) { 
+            console.error(`Erreur recherche dossier ${path}:`, error); 
+            return null; 
+        }
+    },
+
+    async getPhotosByDay(dayNumber) {
+        // Vérifier le cache avec timestamp
+        const cacheKey = dayNumber;
+        const cached = this._photosByDayCache.get(cacheKey);
+        if (cached && cached.timestamp && (Date.now() - cached.timestamp < this._cacheTimeout)) {
+            console.log(`📸 Cache hit pour jour ${dayNumber}`);
+            return { photos: cached.photos, folderName: cached.folderName };
+        }
+
+        const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
+        const parentFolderId = await this.findFolderByPath(photoFolderPath);
+        if (!parentFolderId) {
+            console.warn('❌ Dossier photos parent non trouvé');
+            return { photos: [], folderName: null };
+        }
+        
+        const dayString = String(dayNumber).padStart(3, '0');
+        try {
+            const folderResponse = await Promise.race([
+                gapi.client.drive.files.list({ 
+                    q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, 
+                    fields: 'files(id, name)' 
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout recherche dossier')), 15000))
+            ]);
+
+            const dayFolder = folderResponse.result.files[0];
+            if (!dayFolder) {
+                const emptyResult = { photos: [], folderName: null, timestamp: Date.now() };
+                this._photosByDayCache.set(cacheKey, emptyResult);
+                this._cleanCache();
+                return { photos: [], folderName: null };
+            }
+
+            let allPhotos = [];
+            let pageToken = null;
+            let requestCount = 0;
+            const maxRequests = 10; // Limite de sécurité
+
+            do {
+                if (requestCount >= maxRequests) {
+                    console.warn(`⚠️ Limite de requêtes atteinte pour jour ${dayNumber}`);
+                    break;
                 }
 
-                const photoFolderPath = Storage.get('photoFolderPath', '/Medias/Photos/');
-                const parentFolderId = await this.findFolderByPath(photoFolderPath);
-                if (!parentFolderId) return { photos: [], folderName: null };
+                const photosResponse = await Promise.race([
+                    gapi.client.drive.files.list({
+                        q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
+                        fields: 'files(id, name, thumbnailLink, mimeType), nextPageToken',
+                        pageSize: 100,
+                        pageToken: pageToken
+                    }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout photos')), 20000))
+                ]);
                 
-                const dayString = String(dayNumber).padStart(3, '0');
-                try {
-                    const folderResponse = await gapi.client.drive.files.list({ q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name starts with '${dayString}' and trashed=false`, fields: 'files(id, name)' });
-                    const dayFolder = folderResponse.result.files[0];
-                    if (!dayFolder) {
-                        this._photosByDayCache.set(dayNumber, { photos: [], folderName: null });
-                        return { photos: [], folderName: null };
-                    }
-
-                    let allPhotos = [];
-                    let pageToken = null;
-
-                    // Boucle pour récupérer toutes les pages de résultats
-                    do {
-                        const photosResponse = await gapi.client.drive.files.list({
-                            q: `'${dayFolder.id}' in parents and mimeType contains 'image/' and trashed=false`,
-                            fields: 'files(id, name, thumbnailLink, mimeType), nextPageToken',
-                            pageSize: 100, // On demande le maximum de photos par page
-                            pageToken: pageToken
-                        });
-                        
-                        if (photosResponse.result.files) {
-                            allPhotos = allPhotos.concat(photosResponse.result.files);
-                        }
-                        pageToken = photosResponse.result.nextPageToken;
-                    } while (pageToken);
-
-                    const result = {
-                        photos: allPhotos.map(file => ({ id: file.id, title: file.name, thumbnailUrl: file.thumbnailLink, mimeType: file.mimeType })),
-                        folderName: dayFolder.name
-                    };
-
-                    this._photosByDayCache.set(dayNumber, result); // Sauvegarde dans le cache
-                    return result;
-
-                } catch (error) { console.error(`Erreur chargement photos jour ${dayNumber}:`, error); return { photos: [], folderName: null }; }
-            },
-        async getPhotoAsBase64(fileId, mimeType) {
-            try {
-                const response = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
-                // Conversion robuste des données binaires en Base64
-                const raw = response.body;
-                const rawLength = raw.length;
-                const array = new Uint8Array(new ArrayBuffer(rawLength));
-                for (let i = 0; i < rawLength; i++) {
-                    array[i] = raw.charCodeAt(i);
+                if (photosResponse.result.files) {
+                    allPhotos = allPhotos.concat(photosResponse.result.files);
                 }
-                const blob = new Blob([array], { type: mimeType });
-                return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
-            } catch (error) { console.error(`Erreur chargement image ${fileId} en Base64:`, error); return null; }
-        },
-        async findFileByPartialPath(filename, rootPath) {
-            const cacheKey = `${rootPath}:${filename}`;
-            if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
-            const rootFolderId = await this.findFolderByPath(rootPath);
-            if (!rootFolderId) { console.warn(`Dossier racine pour la recherche de fichier non trouvé: ${rootPath}`); return null; }
-            try {
-                const response = await gapi.client.drive.files.list({ q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`, fields: 'files(id, webContentLink)', pageSize: 1 });
-                const file = response.result.files[0];
-                if (file) { this._fileIdCache.set(cacheKey, file); return file; }
-                return null;
-            } catch (error) { console.error(`Erreur recherche fichier ${filename}:`, error); return null; }
-        },
-    };
+                pageToken = photosResponse.result.nextPageToken;
+                requestCount++;
+            } while (pageToken);
 
-        // ===== USER CONFIG =====
-        const USERS = { tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' }, lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } };
-        const getUserStyle = (userKey) => { const user = USERS[userKey]; if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' }; const styles = { blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' }, green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' }, amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' } }; return styles[user.color] || styles.blue; };
+            const result = {
+                photos: allPhotos.map(file => ({ 
+                    id: file.id, 
+                    title: file.name, 
+                    thumbnailUrl: file.thumbnailLink, 
+                    mimeType: file.mimeType 
+                })),
+                folderName: dayFolder.name,
+                timestamp: Date.now()
+            };
 
-		const CloudSessionStorage = {
-    async getSessions() {
+            this._photosByDayCache.set(cacheKey, result);
+            this._cleanCache();
+            console.log(`📸 ${result.photos.length} photos chargées pour jour ${dayNumber}`);
+            return { photos: result.photos, folderName: result.folderName };
+
+        } catch (error) { 
+            console.error(`❌ Erreur chargement photos jour ${dayNumber}:`, error);
+            // Cache l'erreur pour éviter les re-tentatives immédiates
+            const errorResult = { photos: [], folderName: null, timestamp: Date.now(), error: true };
+            this._photosByDayCache.set(cacheKey, errorResult);
+            return { photos: [], folderName: null, error: error.message }; 
+        }
+    },
+
+    async getPhotoAsBase64(fileId, mimeType) {
         try {
-            if (!GoogleDriveAPI.isSignedIn) {
-                console.log('📱 Pas connecté au cloud, utilisation cache local');
-                return Storage.get('sessions', []);
-            }
+            const response = await Promise.race([
+                gapi.client.drive.files.get({ fileId: fileId, alt: 'media' }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout image')), 30000))
+            ]);
             
-            const cloudSessions = await GoogleDriveAPI.loadSessions();
-            if (cloudSessions) {
-                Storage.set('sessions', cloudSessions);
-                console.log(`✅ ${cloudSessions.length} sessions chargées depuis Google Drive`);
-                return cloudSessions;
+            const raw = response.body;
+            const rawLength = raw.length;
+            const array = new Uint8Array(new ArrayBuffer(rawLength));
+            for (let i = 0; i < rawLength; i++) {
+                array[i] = raw.charCodeAt(i);
             }
-        } catch (error) {
-            console.warn('⚠️ Erreur chargement cloud:', error.message);
-        }
-        return Storage.get('sessions', []);
-    },
-    
-    async saveSession(session) {
-        // Récupérer toutes les sessions
-        const sessions = Storage.get('sessions', []);
-        
-        // Mettre à jour ou ajouter la session
-        const existingIndex = sessions.findIndex(s => s.id === session.id);
-        if (existingIndex >= 0) {
-            sessions[existingIndex] = session;
-        } else {
-            sessions.unshift(session);
-        }
-        
-        // Sauvegarder localement
-        Storage.set('sessions', sessions);
-        
-        // Sauvegarder dans le cloud si connecté
-        if (!GoogleDriveAPI.isSignedIn) {
-            console.log('📱 Session sauvegardée localement (cloud déconnecté)');
-            return;
-        }
-        
-        try {
-            await GoogleDriveAPI.saveSessions(sessions);
-            console.log('✅ Session sauvegardée localement + cloud');
-        } catch (error) {
-            console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
-            throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
-        }
-    },
-    
-    async deleteSession(sessionId) {
-        const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId);
-        Storage.set('sessions', sessions);
-        
-        if (!GoogleDriveAPI.isSignedIn) {
-            console.log('🗑️ Session supprimée localement (cloud déconnecté)');
-            return;
-        }
-        
-        try {
-            await GoogleDriveAPI.saveSessions(sessions);
-            console.log('✅ Session supprimée localement + cloud');
-        } catch (error) {
-            console.warn('⚠️ Erreur suppression cloud:', error.message);
-            throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
+            const blob = new Blob([array], { type: mimeType });
+            return new Promise((resolve, reject) => { 
+                const reader = new FileReader(); 
+                reader.onloadend = () => resolve(reader.result); 
+                reader.onerror = reject; 
+                reader.readAsDataURL(blob); 
+            });
+        } catch (error) { 
+            console.error(`❌ Erreur chargement image ${fileId}:`, error); 
+            return null; 
         }
     },
 
-    async forceSyncFromCloud() {
-        if (!GoogleDriveAPI.isSignedIn) {
-            throw new Error('Non connecté à Google Drive');
+    async findFileByPartialPath(filename, rootPath) {
+        const cacheKey = `${rootPath}:${filename}`;
+        if (this._fileIdCache.has(cacheKey)) return this._fileIdCache.get(cacheKey);
+        
+        const rootFolderId = await this.findFolderByPath(rootPath);
+        if (!rootFolderId) { 
+            console.warn(`Dossier racine non trouvé: ${rootPath}`); 
+            return null; 
         }
         
         try {
-            const cloudSessions = await GoogleDriveAPI.loadSessions();
-            if (cloudSessions) {
-                Storage.set('sessions', cloudSessions);
-                console.log(`🔄 ${cloudSessions.length} sessions synchronisées depuis Google Drive`);
-                return cloudSessions;
-            } else {
-                console.log('📁 Aucune donnée cloud trouvée');
-                return Storage.get('sessions', []);
+            const response = await Promise.race([
+                gapi.client.drive.files.list({ 
+                    q: `'${rootFolderId}' in parents and name='${filename}' and trashed=false`, 
+                    fields: 'files(id, webContentLink)', 
+                    pageSize: 1 
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+            ]);
+            
+            const file = response.result.files[0];
+            if (file) { 
+                this._fileIdCache.set(cacheKey, file); 
+                return file; 
             }
-        } catch (error) {
-            console.error('❌ Erreur synchronisation:', error);
-            throw new Error(`Échec synchronisation: ${error.message}`);
+            return null;
+        } catch (error) { 
+            console.error(`Erreur recherche fichier ${filename}:`, error); 
+            return null; 
         }
+    },
+
+    // Méthode pour vider le cache manuellement
+    clearPhotoCache() {
+        this._photosByDayCache.clear();
+        console.log('🧹 Cache photos vidé manuellement');
     }
 };
 
@@ -914,18 +968,20 @@ const useSessionState = () => {
             );
         };
 //Page Memoires
-        const MemoriesPage = ({ currentUser, onCreateSession }) => {
+const MemoriesPage = ({ currentUser, onCreateSession }) => {
     const [activeView, setActiveView] = React.useState('blog');
     const [dayNumber, setDayNumber] = React.useState(1);
     const [currentPost, setCurrentPost] = React.useState(null);
     const [photos, setPhotos] = React.useState([]);
-    const [currentDayTitle, setCurrentDayTitle] = React.useState(''); // Nouvel état pour le titre du jour
+    const [currentDayTitle, setCurrentDayTitle] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState('');
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [selectedPhoto, setSelectedPhoto] = React.useState(null);
     const [modalImageSrc, setModalImageSrc] = React.useState('');
     const [isModalLoading, setIsModalLoading] = React.useState(false);
+    const [retryCount, setRetryCount] = React.useState(0);
+    
     const { isConnected } = useGoogleAuth();
     const isMastodonImported = MastodonData.isImported();
     const stats = MastodonData.getStats();
@@ -933,134 +989,307 @@ const useSessionState = () => {
 
     React.useEffect(() => {
         const loadDataForDay = async () => {
-            setIsLoading(true); setError(''); setCurrentDayTitle('');
+            setIsLoading(true); 
+            setError(''); 
+            setCurrentDayTitle('');
+            
             try {
                 if (activeView === 'blog' && isMastodonImported) {
                     const post = MastodonData.getPostByDay(dayNumber);
-                    setCurrentPost(post); setPhotos([]);
-                    if (!post) setError('Aucun post pour ce jour.');
+                    setCurrentPost(post); 
+                    setPhotos([]);
+                    if (!post) {
+                        setError('Aucun post pour ce jour.');
+                    }
                 } else if (activeView === 'photos' && isConnected) {
-                    const { photos: fetchedPhotos, folderName } = await GoogleDriveAPI.getPhotosByDay(dayNumber);
-                    setPhotos(fetchedPhotos); setCurrentPost(null); setCurrentDayTitle(folderName);
-                    if (fetchedPhotos.length === 0) setError('Aucune photo trouvée pour ce jour.');
+                    const result = await GoogleDriveAPI.getPhotosByDay(dayNumber);
+                    setPhotos(result.photos || []); 
+                    setCurrentPost(null); 
+                    setCurrentDayTitle(result.folderName || '');
+                    
+                    if (result.error) {
+                        setError(`Erreur Google Drive: ${result.error}`);
+                    } else if (result.photos.length === 0) {
+                        setError('Aucune photo trouvée pour ce jour.');
+                    }
+                } else if (activeView === 'photos' && !isConnected) {
+                    setError('Connexion Google Drive requise pour voir les photos.');
                 }
-            } catch (err) { setError('Erreur de chargement.'); console.error(err); } 
-            finally { setIsLoading(false); }
+            } catch (err) { 
+                console.error('Erreur loadDataForDay:', err);
+                setError(`Erreur de chargement: ${err.message}`); 
+            } finally { 
+                setIsLoading(false); 
+            }
         };
         loadDataForDay();
     }, [dayNumber, activeView, isConnected, isMastodonImported]);
 
-            const showRandomMemory = async () => {
-                const randomDay = Math.floor(Math.random() * maxDay) + 1;
-                const availableViews = [];
-                if (isMastodonImported) availableViews.push('blog');
-                if (isConnected) availableViews.push('photos');
-                if (availableViews.length === 0) return;
-                const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
-                setActiveView(randomView);
-                setDayNumber(randomDay);
-            };
+    const showRandomMemory = async () => {
+        const randomDay = Math.floor(Math.random() * maxDay) + 1;
+        const availableViews = [];
+        if (isMastodonImported) availableViews.push('blog');
+        if (isConnected) availableViews.push('photos');
+        if (availableViews.length === 0) {
+            setError('Aucune source de mémoires disponible');
+            return;
+        }
+        const randomView = availableViews[Math.floor(Math.random() * availableViews.length)];
+        setActiveView(randomView);
+        setDayNumber(randomDay);
+    };
 
-            const openPhotoModal = async (photo) => {
-                setSelectedPhoto(photo); setIsModalOpen(true); setIsModalLoading(true); setModalImageSrc('');
-                const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType);
-                if (base64Src) { setModalImageSrc(base64Src); }
-                setIsModalLoading(false);
-            };
-            const closePhotoModal = () => { setIsModalOpen(false); setSelectedPhoto(null); setModalImageSrc(''); };
+    const retryLoadPhotos = () => {
+        setRetryCount(prev => prev + 1);
+        setError('');
+        // Le useEffect se redéclenche automatiquement
+    };
 
-            const createSessionFromModal = () => {
+    const openPhotoModal = async (photo) => {
+        setSelectedPhoto(photo); 
+        setIsModalOpen(true); 
+        setIsModalLoading(true); 
+        setModalImageSrc('');
+        
+        try {
+            const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType);
+            if (base64Src) { 
+                setModalImageSrc(base64Src); 
+            } else {
+                setError('Impossible de charger l\'image en haute résolution');
+            }
+        } catch (error) {
+            console.error('Erreur chargement image modal:', error);
+            setError('Erreur de chargement de l\'image');
+        } finally {
+            setIsModalLoading(false);
+        }
+    };
+    
+    const closePhotoModal = () => { 
+        setIsModalOpen(false); 
+        setSelectedPhoto(null); 
+        setModalImageSrc(''); 
+    };
+
+    const createSessionFromModal = () => {
         if (!selectedPhoto) return;
         const game = getGameById(1);
         window.pendingGameSession = {
-            game: { ...game, title: `Souvenir du Jour ${dayNumber}` },
+            game: { ...game, title: `Photo du Jour ${dayNumber}` },
             user: currentUser, 
-            postChapo: currentDayTitle || `Photo du Jour ${dayNumber}`, // Utilise le nom du répertoire
+            postChapo: currentDayTitle || `Photo du Jour ${dayNumber}`,
             photoUrl: selectedPhoto.thumbnailUrl
         };
         onCreateSession('chat');
         closePhotoModal();
     };
             
-            const createSessionFromPost = (post) => {
-                const game = getGameById(7);
-                window.pendingGameSession = { game: { ...game, title: `Souvenir du Jour ${post.dayNumber}` }, user: currentUser, postChapo: `Souvenir du Jour ${post.dayNumber}:\n${post.content.slice(0, 150)}...` };
-                onCreateSession('chat');
-            };
+    const createSessionFromPost = (post) => {
+        const game = getGameById(7);
+        window.pendingGameSession = { 
+            game: { ...game, title: `${post.title}` }, 
+            user: currentUser, 
+            postChapo: `${post.title}\n\n${post.content.slice(0, 200)}...` 
+        };
+        onCreateSession('chat');
+    };
 
-            const MastodonPostImages = ({ attachments }) => {
-                const [imageUrls, setImageUrls] = React.useState([]);
-                const mastodonMediaPath = Storage.get('mastodonMediaPath', '/Medias/Mastodon/');
-                React.useEffect(() => {
-                    const fetchImageUrls = async () => {
-                        const urls = new Map();
-                        for (const attachment of attachments) {
-                            if (attachment.type === 'Image' && attachment.url) {
-                                const filename = attachment.url.split('/').pop();
-                                const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
-                                const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
+    const MastodonPostImages = ({ attachments }) => {
+        const [imageUrls, setImageUrls] = React.useState([]);
+        const [imageError, setImageError] = React.useState('');
+        const mastodonMediaPath = Storage.get('mastodonMediaPath', '/Medias/Mastodon/');
+        
+        React.useEffect(() => {
+            const fetchImageUrls = async () => {
+                if (!attachments || attachments.length === 0 || !isConnected) return;
+                
+                setImageError('');
+                const urls = [];
+                
+                try {
+                    for (const attachment of attachments) {
+                        if (attachment.type === 'Image' && attachment.url) {
+                            const filename = attachment.url.split('/').pop();
+                            const pathOnly = attachment.url.substring(0, attachment.url.lastIndexOf('/'));
+                            const fullPath = mastodonMediaPath + 'media_attachments/files/' + pathOnly;
+                            
+                            try {
                                 const file = await GoogleDriveAPI.findFileByPartialPath(filename, fullPath);
-                                if (file?.webContentLink) { urls.set(attachment.id, file.webContentLink); }
+                                if (file?.webContentLink) { 
+                                    urls.push(file.webContentLink); 
+                                }
+                            } catch (err) {
+                                console.warn(`Image Mastodon non trouvée: ${filename}`);
                             }
                         }
-                        setImageUrls(Array.from(urls.values()));
-                    };
-                    if (attachments && attachments.length > 0 && isConnected) { fetchImageUrls(); }
-                }, [attachments, isConnected]);
-                if (imageUrls.length === 0) return null;
-                return ( <div className="mt-4 grid grid-cols-2 gap-2"> {imageUrls.map((url, index) => (<a key={index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" /></a>))} </div> );
+                    }
+                    setImageUrls(urls);
+                } catch (error) {
+                    console.error('Erreur chargement images Mastodon:', error);
+                    setImageError('Erreur de chargement des images');
+                }
             };
+            fetchImageUrls();
+        }, [attachments, isConnected]);
+        
+        if (imageError) {
+            return <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{imageError}</div>;
+        }
+        
+        if (imageUrls.length === 0) return null;
+        
+        return ( 
+            <div className="mt-4 grid grid-cols-2 gap-2"> 
+                {imageUrls.map((url, index) => (
+                    <a key={index} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt={`Pièce jointe ${index + 1}`} className="rounded-lg border hover:opacity-80" />
+                    </a>
+                ))} 
+            </div> 
+        );
+    };
 
-            return (
-                <div className="space-y-6 fade-in">
-                    <div className="flex justify-center bg-gray-100 p-1 rounded-lg">
-                        <button onClick={() => setActiveView('blog')} disabled={!isMastodonImported} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'blog' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Blog</button>
-                        <button onClick={() => setActiveView('photos')} disabled={!isConnected} className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${activeView === 'photos' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>Photos</button>
+    return (
+        <div className="space-y-6 fade-in">
+            <div className="flex justify-center bg-gray-100 p-1 rounded-lg">
+                <button 
+                    onClick={() => setActiveView('blog')} 
+                    disabled={!isMastodonImported} 
+                    className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${
+                        activeView === 'blog' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                    Blog
+                </button>
+                <button 
+                    onClick={() => setActiveView('photos')} 
+                    disabled={!isConnected} 
+                    className={`w-full py-2 px-4 rounded-md font-semibold transition-colors ${
+                        activeView === 'photos' ? 'bg-white text-amber-600 shadow' : 'text-gray-600'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                    Photos {photos.length > 0 && `(${photos.length})`}
+                </button>
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
+                <div className="flex items-center space-x-4">
+                    <label className="font-medium text-gray-700">Jour</label>
+                    <input 
+                        type="range" 
+                        min="1" 
+                        max={maxDay} 
+                        value={dayNumber} 
+                        onChange={(e) => setDayNumber(parseInt(e.target.value))} 
+                        className="flex-1"
+                    />
+                    <span className="font-bold text-lg text-amber-800 w-12 text-center">{dayNumber}</span>
+                </div>
+                <div className="text-center">
+                    <button 
+                        onClick={showRandomMemory} 
+                        className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold flex items-center justify-center space-x-2 mx-auto"
+                    >
+                        <Shuffle className="w-5 h-5"/>
+                        <span>Souvenir au hasard</span>
+                    </button>
+                </div>
+            </div>
+            
+            {isLoading && <div className="text-center py-12">Chargement...</div>}
+            
+            {error && !isLoading && (
+                <div className="text-center py-12 text-gray-500">
+                    <p className="mb-4">{error}</p>
+                    {error.includes('Google Drive') && (
+                        <button 
+                            onClick={retryLoadPhotos}
+                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                        >
+                            Réessayer
+                        </button>
+                    )}
+                </div>
+            )}
+            
+            {!isLoading && !error && activeView === 'blog' && currentPost && (
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-2xl font-bold text-amber-900">{currentPost.title}</h3>
+                        <button 
+                            onClick={() => createSessionFromPost(currentPost)} 
+                            className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"
+                        >
+                            <Plus className="w-4 h-4" /> 
+                            <span>Session</span>
+                        </button>
                     </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
-                        <div className="flex items-center space-x-4">
-                            <label className="font-medium text-gray-700">Jour</label>
-                            <input type="range" min="1" max={maxDay} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value))} className="flex-1"/>
-                            <span className="font-bold text-lg text-amber-800 w-12 text-center">{dayNumber}</span>
-                        </div>
-                        <div className="text-center">
-                            <button onClick={showRandomMemory} className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-semibold flex items-center justify-center space-x-2 mx-auto">
-                                <Shuffle className="w-5 h-5"/><span>Souvenir au hasard</span>
-                            </button>
-                        </div>
-                    </div>
-                    {isLoading && <div className="text-center py-12">Chargement...</div>}
-                    {error && !isLoading && <div className="text-center py-12 text-gray-500">{error}</div>}
-                    {!isLoading && !error && activeView === 'blog' && currentPost && (
-                        <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-2xl font-bold text-amber-900">{currentPost.title}</h3>
-                                <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> <span>Session</span></button>
-                            </div>
-                            <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
-                            <MastodonPostImages attachments={currentPost.attachments} />
+                    <p className="text-gray-800 leading-relaxed whitespace-pre-line">{currentPost.content}</p>
+                    <MastodonPostImages attachments={currentPost.attachments} />
+                </div>
+            )}
+            
+            {!isLoading && !error && activeView === 'photos' && photos.length > 0 && (
+                <div>
+                    {currentDayTitle && (
+                        <div className="bg-amber-50 p-3 rounded-lg mb-4 text-center">
+                            <h3 className="font-semibold text-amber-900">{currentDayTitle}</h3>
+                            <p className="text-sm text-amber-700">{photos.length} photo(s)</p>
                         </div>
                     )}
-                    {!isLoading && !error && activeView === 'photos' && photos.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {photos.map(photo => (
-                                <div key={photo.id} className="group relative border rounded-lg overflow-hidden cursor-pointer" onClick={() => openPhotoModal(photo)}>
-                                    <img src={photo.thumbnailUrl} alt={photo.title} className="w-full h-full object-cover aspect-square"/>
-                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2"><p className="text-white text-xs text-center">{photo.title}</p></div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {photos.map(photo => (
+                            <div 
+                                key={photo.id} 
+                                className="group relative border rounded-lg overflow-hidden cursor-pointer" 
+                                onClick={() => openPhotoModal(photo)}
+                            >
+                                <img 
+                                    src={photo.thumbnailUrl} 
+                                    alt={photo.title} 
+                                    className="w-full h-full object-cover aspect-square"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                />
+                                <div className="hidden w-full aspect-square bg-gray-200 items-center justify-center text-gray-500 text-xs">
+                                    Image indisponible
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                                    <p className="text-white text-xs text-center">{photo.title}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {isModalOpen && selectedPhoto && (
                 <div className="fixed inset-0 bg-black/90 z-50 flex flex-col p-4" onClick={closePhotoModal}>
-                    <button onClick={closePhotoModal} className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black/30 rounded-full p-2"><X className="w-8 h-8"/></button>
+                    <button 
+                        onClick={closePhotoModal} 
+                        className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black/30 rounded-full p-2"
+                    >
+                        <X className="w-8 h-8"/>
+                    </button>
                     <div className="relative flex-1 flex items-center justify-center" onClick={e => e.stopPropagation()}>
                         {isModalLoading && <div className="text-white">Chargement de l'image...</div>}
-                        {!isModalLoading && modalImageSrc && (<img src={modalImageSrc} alt={selectedPhoto.title} className="object-contain max-w-full max-h-full rounded-lg"/>)}
+                        {!isModalLoading && !modalImageSrc && <div className="text-white">Erreur de chargement</div>}
+                        {!isModalLoading && modalImageSrc && (
+                            <img 
+                                src={modalImageSrc} 
+                                alt={selectedPhoto.title} 
+                                className="object-contain max-w-full max-h-full rounded-lg"
+                            />
+                        )}
                     </div>
                     <div className="flex-shrink-0 pt-4 flex justify-center">
-                        <button onClick={createSessionFromModal} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-full font-semibold flex items-center gap-2">
+                        <button 
+                            onClick={createSessionFromModal} 
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-full font-semibold flex items-center gap-2"
+                        >
                             <Plus className="w-5 h-5"/>
                             <span>Session</span>
                         </button>
