@@ -153,6 +153,26 @@ const GoogleDriveAPI = {
     _maxCacheSize: 50, // Maximum 50 jours en cache
 
     async init() {
+                if (this.isInitialized) return;
+                try {
+                    await new Promise((resolve) => gapi.load('client', resolve));
+                    await gapi.client.init({ 
+                        apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw', 
+                        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] 
+                    });
+                    this.tokenClient = google.accounts.oauth2.initTokenClient({ 
+                        client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com', 
+                        // SCOPE RÉDUIT : moins sensible pour Google
+                        scope: 'https://www.googleapis.com/auth/drive.file', 
+                        callback: '' 
+                    });
+                    this.isInitialized = true;
+                    console.log('✅ Google Drive API initialisé avec scopes réduits');
+                } catch (error) { 
+                    console.error('❌ Erreur init Google Drive API:', error); 
+                    throw error; 
+                }
+            },
 
     async signIn() {
         if (!this.isInitialized) await this.init();
