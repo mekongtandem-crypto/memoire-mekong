@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.27 : modifs CHat Pages</title>
+    <title>🐘 Mémoire du Mékong V0.4.28 : CHat Pages : ajout spinner envoi de message </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -2076,9 +2076,13 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         setTitleContent('');
     };
 
-    const sendMessage = async () => {
-        if (!newMessageContent.trim()) return;
+    const [isSending, setIsSending] = React.useState(false); // NOUVEAU
 
+const sendMessage = async () => {
+    if (!newMessageContent.trim() || isSending) return; // Bloquer si déjà en cours
+
+    setIsSending(true); // NOUVEAU
+    try {
         const newMessage = {
             id: Date.now(),
             content: newMessageContent.trim(),
@@ -2093,7 +2097,10 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 
         await onUpdateSession(updatedSession);
         setNewMessageContent('');
-    };
+    } finally {
+        setIsSending(false); // NOUVEAU
+    }
+};
 
     const startEditMessage = (message) => {
         setEditingMessage(message.id);
@@ -2351,13 +2358,17 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                             rows="3"
                         />
                         <button
-                            onClick={sendMessage}
-                            disabled={!newMessageContent.trim()}
-                            className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
-                            title="Envoyer"
-                        >
-                            <Send className="w-6 h-6" />
-                        </button>
+    						onClick={sendMessage}
+    						disabled={!newMessageContent.trim() || isSending}
+    						className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+    						title="Envoyer"
+						>
+    						{isSending ? (
+        						<div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+    						) : (
+        						<Send className="w-6 h-6" />
+    						)}
+						</button>
                     </div>
                 </div>
             </div>
