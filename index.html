@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.30c : Généralisation su spinner d'attente</title>
+    <title>🐘 Mémoire du Mékong V0.4.30d : Généralisation su spinner d'attente (main app et Games pages</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1781,10 +1781,9 @@ const ForceGoogleConnection = ({ onSignIn }) => (
 };
 		
 		// Page Games - AVEC VRAI SPINNER CENTRAL
-const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => {
-    const { isCreatingSession } = useSessionState();
+// Page Games - AVEC PROP EXTERNE
+const GamesPage = ({ currentUser, onPageChange, onGameSelect, isCreatingSession }) => {
 
-    // Si en cours de création, afficher le loading CENTRAL comme pour sessions
     if (isCreatingSession) {
         return (
             <div className="space-y-6 fade-in">
@@ -2782,6 +2781,7 @@ const createSessionFromPost = async (post) => {
 		
 
 // ===== MAIN APP - TIMING CREATION CORRIGE =====
+// ===== MAIN APP - AVEC ETAT CREATION LOCAL =====
 const MemoireMekong = () => {
     const {
         currentPage, setCurrentPage,
@@ -2794,10 +2794,11 @@ const MemoireMekong = () => {
         signIn, signOut, forceDisconnect, testConnection 
     } = useGoogleAuth();
     
-    const { sessions, setSessions, updateSession, createSession, syncSessions, isCreatingSession } = useSessionState();
+    const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
 
     const [currentChatSession, setCurrentChatSession] = React.useState(null);
     const [toast, setToast] = React.useState({ message: '', type: '' });
+    const [isCreatingSession, setIsCreatingSession] = React.useState(false);
 
     // Configurer le callback de détection de déconnexion
     React.useEffect(() => {
@@ -2858,8 +2859,6 @@ const MemoireMekong = () => {
         return () => clearInterval(intervalId);
     }, [connectionMode, testConnection]);
 
-    // SUPPRIME: L'ancien useEffect pour handlePendingSession car on fait tout dans handleGameSelect maintenant
-
     const handleSessionSelect = (session) => {
         setCurrentChatSession(null);
         setTimeout(() => {
@@ -2915,11 +2914,9 @@ const MemoireMekong = () => {
         }
     };
 
-    // NOUVEAU: Gestion complète de création de session
     const handleGameSelect = async (game) => {
         console.log('🎮 Sélection jeu:', game.title);
         
-        // Avertir si déconnecté
         if (connectionMode === 'disconnected') {
             setToast({ 
                 message: "⚠️ Session créée en mode local - ne sera pas synchronisée", 
@@ -2927,58 +2924,57 @@ const MemoireMekong = () => {
             });
         }
         
+        setIsCreatingSession(true);
+        
         try {
-            // NOUVEAU: Créer la session directement ici, sans window.pendingGameSession
-            const postContent = window.pendingGameSession?.postChapo;
-            
             console.log('🔄 Début création session...');
             const newSession = await createSession(game, currentUser);
             console.log('✅ Session créée:', newSession?.id);
             
             if (newSession) {
-                // Nettoyer si nécessaire
                 if (window.pendingGameSession) {
                     delete window.pendingGameSession;
                 }
                 
-                // Maintenant naviguer vers chat avec la nouvelle session
                 setCurrentChatSession(newSession);
                 setCurrentPage('chat');
             }
         } catch (error) {
             console.error('❌ Erreur création session:', error);
             setToast({ message: "Erreur lors de la création de session", type: 'error' });
+        } finally {
+            setIsCreatingSession(false);
         }
     };
 
-    // NOUVEAU: Gestion spéciale pour les sessions depuis Mémoires
     const handleCreateSessionFromMemory = async (sessionData) => {
-    if (sessionData.type === 'game') {
-        // NOUVEAU : Traiter comme une création de jeu normale
-        try {
-            // Préparer le contenu du post si présent
-            if (sessionData.postContent) {
-                window.pendingGameSession = { 
-                    game: sessionData.game, 
-                    user: currentUser, 
-                    postChapo: sessionData.postContent 
-                };
-            }
+        if (sessionData.type === 'game') {
+            setIsCreatingSession(true);
             
-            const newSession = await createSession(sessionData.game, currentUser);
-            
-            if (newSession) {
-                setCurrentChatSession(newSession);
-                setCurrentPage('chat');
+            try {
+                if (sessionData.postContent) {
+                    window.pendingGameSession = { 
+                        game: sessionData.game, 
+                        user: currentUser, 
+                        postChapo: sessionData.postContent 
+                    };
+                }
+                
+                const newSession = await createSession(sessionData.game, currentUser);
+                
+                if (newSession) {
+                    setCurrentChatSession(newSession);
+                    setCurrentPage('chat');
+                }
+            } catch (error) {
+                setToast({ message: "Erreur lors de la création de session", type: 'error' });
+            } finally {
+                setIsCreatingSession(false);
             }
-        } catch (error) {
-            setToast({ message: "Erreur lors de la création de session", type: 'error' });
+        } else {
+            setCurrentPage(sessionData);
         }
-    } else {
-        // Ancienne logique pour les autres cas
-        setCurrentPage(sessionData);
-    }
-};
+    };
 
     const pageRequiresConnection = (page) => {
         return ['sessions', 'chat'].includes(page);
@@ -3031,7 +3027,8 @@ const MemoireMekong = () => {
                             <GamesPage 
                                 currentUser={currentUser}
                                 onPageChange={setCurrentPage}
-                                onGameSelect={handleGameSelect} // NOUVEAU: Fonction qui crée ET navigue
+                                onGameSelect={handleGameSelect}
+                                isCreatingSession={isCreatingSession}
                             />
                         )}
                         {currentPage === 'sessions' && (
@@ -3052,7 +3049,7 @@ const MemoireMekong = () => {
                         {currentPage === 'memories' && (
                             <MemoriesPage 
                                 currentUser={currentUser}
-                                onCreateSession={handleCreateSessionFromMemory} // NOUVEAU: Fonction spécialisée
+                                onCreateSession={handleCreateSessionFromMemory}
                             />
                         )}
                         {currentPage === 'settings' && (
