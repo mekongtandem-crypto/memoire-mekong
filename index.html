@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.26 : fmodif session page</title>
+    <title>🐘 Mémoire du Mékong V0.4.26b : modifs Sessions Pages</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -61,7 +61,7 @@
 
 
 		// ===== COMPOSANT TOAST - POSITION ET DISMISSABLE FIXES =====
-const Toast = ({ message, type, onDismiss }) => {
+	const Toast = ({ message, type, onDismiss }) => {
     if (!message) return null;
 
     const styles = {
@@ -95,7 +95,7 @@ const Toast = ({ message, type, onDismiss }) => {
 };
 
 		// ===== COMPOSANT LOADING =====
-const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
+	const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
     const sizeClasses = {
         small: "w-4 h-4 border-2",
         normal: "w-8 h-8 border-3", 
@@ -111,7 +111,7 @@ const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
 };
 		
         // ===== CORE STORAGE =====
-const Storage = {
+	const Storage = {
     get: (key, defaultValue = null) => {
         try {
             const item = localStorage.getItem(`mekong_${key}`);
@@ -133,7 +133,7 @@ const Storage = {
 };
 		
 // ===== MASTODON DATA MANAGEMENT - IMPORT TOUS LES POSTS =====
-const MastodonData = {
+	const MastodonData = {
     // Décoder les entités HTML
     decodeHtmlEntities: (text) => {
         const textArea = document.createElement('textarea');
@@ -313,13 +313,12 @@ const allPosts = orderedItems
 
 
 // ===== GOOGLE DRIVE API - AVEC DETECTION ERREURS =====
-const GOOGLE_CONFIG = {
+		const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
     SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
-        
-const GoogleDriveAPI = {
+		const GoogleDriveAPI = {
     isSignedIn: false,
     isInitialized: false,
     tokenClient: null,
@@ -528,14 +527,13 @@ const GoogleDriveAPI = {
     }
 };
 
-		
 // ===== USER CONFIG =====
         const USERS = {
             tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' },
             lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' },
             duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' }
         };
-
+        
         const getUserStyle = (userKey) => {
             const user = USERS[userKey];
             if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' };
@@ -547,7 +545,6 @@ const GoogleDriveAPI = {
             };
             return styles[user.color] || styles.blue;
         };
-
 
         // ===== CORE STATES =====
         const useAppState = () => {
@@ -571,7 +568,6 @@ const GoogleDriveAPI = {
                 resetApp
             };
         };
-
         
         // ===== PAGE USERS =====
         const UsersPage = ({ currentUser, onUserChange, onPageChange }) => {
@@ -707,7 +703,7 @@ const GoogleDriveAPI = {
         ];
 
 // ===== CLOUD SESSION STORAGE - AVEC DETECTION DECONNEXION =====
-const CloudSessionStorage = {
+		const CloudSessionStorage = {
     // Fonction pour notifier la déconnexion détectée
     onConnectionLost: null, // Sera défini par l'app principale
 
@@ -948,7 +944,7 @@ const CloudSessionStorage = {
         };
 
 // ===== SESSION HOOKS - createSession MODIFIÉE =====
-const useSessionState = () => {
+		const useSessionState = () => {
     const [currentSession, setCurrentSession] = React.useState(null);
     const [sessions, setSessions] = React.useState([]);
 
@@ -1057,10 +1053,8 @@ const useSessionState = () => {
     };
 };
 
-
-// ===== GOOGLE AUTH HOOK - CONNECTION-FIRST =====
-// ===== GOOGLE AUTH HOOK - AVEC DETECTION DECONNEXION =====
-const useGoogleAuth = () => {
+// ===== GOOGLE AUTH HOOK - CONNECTION-FIRST - AVEC DETECTION DECONNEXION =====
+		const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [userInfo, setUserInfo] = React.useState(null);
@@ -1255,9 +1249,8 @@ const useGoogleAuth = () => {
     };
 };
 
-
 // ===== NAVIGATION : TOP BAR - CONNECTION-FIRST =====
-const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, connectionMode, googleAuth, onGoogleAction }) => {
+		const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, connectionMode, googleAuth, onGoogleAction }) => {
     const PAGE_TITLES = {
         home: "Mémoire du Mékong",
         sessions: "Vos Sessions", 
@@ -1385,8 +1378,8 @@ const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, connecti
     );
 };
 
-// ===== NOUVEAU COMPOSANT : BOTTOM NAV BAR (Version à 4 icônes) =====
-const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
+// ===== NAVIGATION : BOTTOM NAV BAR (Version à 4 icônes) =====
+		const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
     const navItems = [
         { id: 'home', icon: Home, label: 'Accueil' },
         { id: 'sessions', icon: BookOpen, label: 'Sessions' },
@@ -1423,9 +1416,7 @@ const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
     );
 };
 
-// ==================== FIN DE LA SECTION NAVIGATION À AJOUTER ====================
      
-
 // ===== GOOGLE CONNECTION COMPONENT =====
 const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => {
     if (isLoading) {
@@ -1517,12 +1508,10 @@ const ForceGoogleConnection = ({ onSignIn }) => (
     </div>
 );
 
-        // ===== MAIN PAGES =====
-
-
+// =========== MAIN PAGES =====
        
         // ===== HOME PAGE - CONNECTION-FIRST =====
-const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, googleAuth }) => {
+	const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, googleAuth }) => {
     // Mode "Checking" - Vérification en cours
     if (connectionMode === 'checking') {
         return (
@@ -1771,7 +1760,9 @@ const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, goo
         </div>
     );
 };
-		const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => (
+		
+		// Page Jeux
+	const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => (
     <div className="space-y-6 fade-in">
         <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2>
@@ -1835,12 +1826,160 @@ const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, goo
     </div>
 );
 		
+    // Page Session (MODIFIÉE - Dernière modification + Loading) 
+const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
+    const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
+    const [isSyncing, setIsSyncing] = React.useState(true);
+    const [syncComplete, setSyncComplete] = React.useState(false);
+
+    // Synchronisation automatique au montage
+    React.useEffect(() => {
+        const performInitialSync = async () => {
+            try {
+                setIsSyncing(true);
+                await syncSessions();
+                setSyncComplete(true);
+            } catch (error) {
+                console.error('Erreur synchronisation initiale:', error);
+                setSyncComplete(true);
+            } finally {
+                setIsSyncing(false);
+            }
+        };
+        performInitialSync();
+    }, []);
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('fr-FR', { 
+            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+    };
+
+    // NOUVEAU : Fonction pour déterminer qui a modifié en dernier
+    const getLastModifier = (session) => {
+        if (!session.notes || session.notes.length === 0) {
+            // Pas de messages, utilisateur créateur
+            return session.user;
+        }
         
-SessionsPage
+        // Dernier message = dernier modificateur
+        const lastNote = session.notes[session.notes.length - 1];
+        return lastNote.author || session.user;
+    };
+
+    // NOUVEAU : Fonction pour obtenir la vraie date de dernière modification
+    const getLastModificationDate = (session) => {
+        if (!session.notes || session.notes.length === 0) {
+            // Pas de messages, date de création
+            return session.createdAt;
+        }
+        
+        // Date du dernier message OU date de mise à jour de la session
+        const lastNote = session.notes[session.notes.length - 1];
+        const lastNoteDate = new Date(lastNote.timestamp);
+        const sessionUpdateDate = new Date(session.updatedAt);
+        
+        // Prendre la plus récente
+        return lastNoteDate > sessionUpdateDate ? lastNote.timestamp : session.updatedAt;
+    };
+    
+    // Objet pour mapper les statuts à des icônes
+    const statusIcons = {
+        active: { icon: Play, color: 'text-green-500', title: 'Active' },
+        paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' },
+        pending: { icon: Clock, color: 'text-blue-500', title: 'En attente' },
+        completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' }
+    };
+
+    return (
+        <div className="space-y-4 fade-in">
+            <div className="flex justify-between items-center">
+                <button
+                    onClick={() => onPageChange('games')}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"
+                >
+                    <Plus className="w-5 h-5" />
+                    <span>Nouveau Jeu de Mémoire</span>
+                </button>
+            </div>
+
+            {isSyncing && !syncComplete ? (
+                <LoadingSpinner message="Synchronisation des sessions..." />
+            ) : sessions.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3>
+                    <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p>
+                    <button
+                        onClick={() => onPageChange('games')}
+                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
+                    >
+                        Commencer un jeu
+                    </button>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {sessions.map((session) => {
+                        const StatusIcon = statusIcons[session.status]?.icon || FileText;
+                        const statusColor = statusIcons[session.status]?.color || 'text-gray-500';
+                        const statusTitle = statusIcons[session.status]?.title || 'Archivée';
+                        
+                        // NOUVEAU : Utiliser les vraies informations de dernière modification
+                        const lastModifier = getLastModifier(session);
+                        const lastModificationDate = getLastModificationDate(session);
+                        const userStyle = getUserStyle(lastModifier);
+
+                        return (
+                            <div
+                                key={session.id}
+                                onClick={() => onSessionSelect(session)}
+                                className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"
+                            >
+                                {/* Icône utilisateur colorée avec vraies infos */}
+                                <div 
+                                    className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                                    title={`Dernière modification par ${USERS[lastModifier]?.name} le ${formatDate(lastModificationDate)}`}
+                                >
+                                    <span className="text-xl">{USERS[lastModifier]?.emoji || '🐘'}</span>
+                                </div>
+
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="font-bold text-gray-800 pr-2">{session.gameTitle}</h3>
+                                        <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-1">
+                                        {/* NOUVEAU : Vraie date de dernière modification */}
+                                        <span className="text-xs text-gray-500">{formatDate(lastModificationDate)}</span>
+                                        <div className="flex items-center space-x-2">
+                                            <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} />
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) {
+                                                        deleteSession(session.id);
+                                                    }
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};    
+	
 
 
-// Page Chat (MODIFIÉE - Édition du titre)
-const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
+		// Page Chat (MODIFIÉE - Édition du titre)
+	const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
     const [editContent, setEditContent] = React.useState('');
@@ -2209,9 +2348,8 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 		
-// Page Memoire (MODIFIÉE)
-// Page Memoire (repris de la version 0.4.23
-const MemoriesPage = ({ currentUser, onCreateSession }) => {
+		// Page Memoire (repris de la version 0.4.23
+	const MemoriesPage = ({ currentUser, onCreateSession }) => {
     const [currentPost, setCurrentPost] = React.useState(null);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [searchResults, setSearchResults] = React.useState([]);
@@ -2556,9 +2694,9 @@ const MemoriesPage = ({ currentUser, onCreateSession }) => {
         };
 		
 
-// ===== MAIN APP - CONNECTION-FIRST =====
-// ===== MAIN APP - AVEC DETECTION DECONNEXION =====
-const MemoireMekong = () => {
+// ===== MAIN APP - CONNECTION-FIRST-AVEC DETECTION DECONNEXION =====
+
+		const MemoireMekong = () => {
     const {
         currentPage, setCurrentPage,
         currentUser, setCurrentUser,
@@ -2849,7 +2987,6 @@ const MemoireMekong = () => {
         </div>
     );
 };
-
 		
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
