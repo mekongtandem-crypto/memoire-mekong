@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.28 : CHat Pages : ajout spinner envoi de message </title>
+    <title>🐘 Mémoire du Mékong V0.4.28b : CHat Pages : ajout spinner envoi de message </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1976,26 +1976,24 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
     );
 };    
 	
-
-
-	// Page Chat (MODIFIÉE - Loading state et pas de flash)
+// Page Chat (MODIFIÉE - HOOKS DANS LE BON ORDRE)
 const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
     const [editContent, setEditContent] = React.useState('');
     const [editingTitle, setEditingTitle] = React.useState(false);
     const [titleContent, setTitleContent] = React.useState('');
-    const [isSessionReady, setIsSessionReady] = React.useState(false); // NOUVEAU
+    const [isSessionReady, setIsSessionReady] = React.useState(false);
+    const [isSending, setIsSending] = React.useState(false); // NOUVEAU - BON ENDROIT !
     const messagesEndRef = React.useRef(null);
     const { renderGameIcon } = useSessionState();
 
     // NOUVEAU : Gérer le loading de la session
     React.useEffect(() => {
         if (currentSession) {
-            // Petit délai pour éviter le flash si la session change rapidement
             const timer = setTimeout(() => {
                 setIsSessionReady(true);
-            }, 100); // 100ms devrait suffire
+            }, 100);
             
             return () => {
                 clearTimeout(timer);
@@ -2004,7 +2002,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         } else {
             setIsSessionReady(false);
         }
-    }, [currentSession?.id]); // Dépend de l'ID de session, pas de l'objet complet
+    }, [currentSession?.id]);
 
     // Auto-scroll vers le bas des messages
     React.useEffect(() => {
@@ -2076,31 +2074,29 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         setTitleContent('');
     };
 
-    const [isSending, setIsSending] = React.useState(false); // NOUVEAU
+    const sendMessage = async () => {
+        if (!newMessageContent.trim() || isSending) return;
 
-const sendMessage = async () => {
-    if (!newMessageContent.trim() || isSending) return; // Bloquer si déjà en cours
+        setIsSending(true);
+        try {
+            const newMessage = {
+                id: Date.now(),
+                content: newMessageContent.trim(),
+                author: currentUser,
+                timestamp: new Date().toISOString()
+            };
 
-    setIsSending(true); // NOUVEAU
-    try {
-        const newMessage = {
-            id: Date.now(),
-            content: newMessageContent.trim(),
-            author: currentUser,
-            timestamp: new Date().toISOString()
-        };
+            const updatedSession = {
+                ...currentSession,
+                notes: [...(currentSession.notes || []), newMessage]
+            };
 
-        const updatedSession = {
-            ...currentSession,
-            notes: [...(currentSession.notes || []), newMessage]
-        };
-
-        await onUpdateSession(updatedSession);
-        setNewMessageContent('');
-    } finally {
-        setIsSending(false); // NOUVEAU
-    }
-};
+            await onUpdateSession(updatedSession);
+            setNewMessageContent('');
+        } finally {
+            setIsSending(false);
+        }
+    };
 
     const startEditMessage = (message) => {
         setEditingMessage(message.id);
@@ -2346,7 +2342,7 @@ const sendMessage = async () => {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input - Inchangé */}
+            {/* Message Input avec spinner */}
             <div className="mt-4 flex-shrink-0">
                 <div className="bg-white border-2 border-gray-200 focus-within:border-amber-500 rounded-xl p-2 transition-colors">
                     <div className="flex items-start space-x-2">
@@ -2356,25 +2352,28 @@ const sendMessage = async () => {
                             placeholder="Écrivez vos souvenirs..."
                             className="flex-1 resize-none border-none focus:outline-none bg-transparent text-gray-800 p-2"
                             rows="3"
+                            disabled={isSending}
                         />
                         <button
-    						onClick={sendMessage}
-    						disabled={!newMessageContent.trim() || isSending}
-    						className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
-    						title="Envoyer"
-						>
-    						{isSending ? (
-        						<div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-    						) : (
-        						<Send className="w-6 h-6" />
-    						)}
-						</button>
+                            onClick={sendMessage}
+                            disabled={!newMessageContent.trim() || isSending}
+                            className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                            title="Envoyer"
+                        >
+                            {isSending ? (
+                                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                            ) : (
+                                <Send className="w-6 h-6" />
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     );
 };
+
+	
 
 		
 		// Page Memoire (repris de la version 0.4.23
