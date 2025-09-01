@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.28b : CHat Pages : ajout spinner envoi de message </title>
+    <title>🐘 Mémoire du Mékong V0.4.29 : Main App : reset sesion lors de creation </title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -2823,10 +2823,14 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         }
     }, [currentUser, currentPage, createSession]);
 
-    const handleSessionSelect = (session) => {
+    // Dans handleSessionSelect et lors de création de nouvelle session
+const handleSessionSelect = (session) => {
+    setCurrentChatSession(null); // NOUVEAU - Reset d'abord
+    setTimeout(() => {
         setCurrentChatSession(session);
         setCurrentPage('chat');
-    };
+    }, 50); // Petit délai pour éviter le flash
+};
 
     const handleBackToSessions = () => {
         setCurrentChatSession(null);
