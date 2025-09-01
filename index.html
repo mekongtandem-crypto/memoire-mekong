@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.29 : Main App : reset sesion lors de creation </title>
+    <title>🐘 Mémoire du Mékong V0.4.30 : Généralisation su spinner d'attente</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -943,10 +943,12 @@ const allPosts = orderedItems
             return GAMES.find(g => g.id === gameId);
         };
 
-// ===== SESSION HOOKS - createSession MODIFIÉE =====
-		const useSessionState = () => {
+// ===== SESSION HOOKS - AVEC LOADING STATES =====
+const useSessionState = () => {
     const [currentSession, setCurrentSession] = React.useState(null);
     const [sessions, setSessions] = React.useState([]);
+    const [isCreatingSession, setIsCreatingSession] = React.useState(false); // NOUVEAU
+    const [isDeletingSession, setIsDeletingSession] = React.useState(null); // NOUVEAU - ID de la session en cours de suppression
 
     React.useEffect(() => {
         const loadSessions = async () => {
@@ -961,52 +963,59 @@ const allPosts = orderedItems
 
         if (!game || !game.id) {
             console.error('createSession: jeu invalide', game);
-            return;
+            return null;
         }
 
-        // NOUVEAU : Préparer le premier message si on a un contenu de post
-        const postContent = window.pendingGameSession?.postChapo;
-        const initialNotes = [];
-        
-        if (postContent && postContent.trim()) {
-            // Ajouter le contenu du post comme premier message du "duo"
-            initialNotes.push({
-                id: Date.now() - 1, // ID légèrement antérieur pour être sûr qu'il soit en premier
-                content: postContent.trim(),
-                author: 'duo',
-                timestamp: new Date().toISOString()
-            });
-            console.log('Premier message ajouté depuis post:', postContent.slice(0, 100) + '...');
+        setIsCreatingSession(true); // NOUVEAU
+        try {
+            // Préparer le premier message si on a un contenu de post
+            const postContent = window.pendingGameSession?.postChapo;
+            const initialNotes = [];
+            
+            if (postContent && postContent.trim()) {
+                initialNotes.push({
+                    id: Date.now() - 1,
+                    content: postContent.trim(),
+                    author: 'duo',
+                    timestamp: new Date().toISOString()
+                });
+                console.log('Premier message ajouté depuis post:', postContent.slice(0, 100) + '...');
+            }
+
+            const newSession = {
+                id: Date.now(),
+                gameId: Number(game.id),
+                gameTitle: game.title || 'Titre inconnu',
+                gameDescription: game.description || 'Description inconnue',
+                gameDuration: game.duration || 'Durée inconnue',
+                postChapo: postContent || null,
+                user: user,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                status: 'active',
+                notes: initialNotes,
+                participants: [user]
+            };
+
+            console.log('Nouvelle session créée:', newSession);
+
+            await CloudSessionStorage.saveSession(newSession);
+            const sessions = await CloudSessionStorage.getSessions();
+            setSessions(sessions);
+            setCurrentSession(newSession);
+            
+            // Nettoyer la session en attente
+            if (window.pendingGameSession) {
+                delete window.pendingGameSession;
+            }
+            
+            return newSession;
+        } catch (error) {
+            console.error('Erreur création session:', error);
+            throw error;
+        } finally {
+            setIsCreatingSession(false); // NOUVEAU
         }
-
-        const newSession = {
-            id: Date.now(),
-            gameId: Number(game.id),
-            gameTitle: game.title || 'Titre inconnu',
-            gameDescription: game.description || 'Description inconnue',
-            gameDuration: game.duration || 'Durée inconnue',
-            postChapo: postContent || null,
-            user: user,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            status: 'active',
-            notes: initialNotes, // MODIFIÉ : Contient le message du post si présent
-            participants: [user]
-        };
-
-        console.log('Nouvelle session créée:', newSession);
-
-        await CloudSessionStorage.saveSession(newSession);
-        const sessions = await CloudSessionStorage.getSessions();
-        setSessions(sessions);
-        setCurrentSession(newSession);
-        
-        // Nettoyer la session en attente
-        if (window.pendingGameSession) {
-            delete window.pendingGameSession;
-        }
-        
-        return newSession;
     };
 
     const updateSession = async (updatedSession) => {
@@ -1022,11 +1031,19 @@ const allPosts = orderedItems
     };
 
     const deleteSession = async (sessionId) => {
-        await CloudSessionStorage.deleteSession(sessionId);
-        const sessions = await CloudSessionStorage.getSessions();
-        setSessions(sessions);
-        if (currentSession?.id === sessionId) {
-            setCurrentSession(null);
+        setIsDeletingSession(sessionId); // NOUVEAU
+        try {
+            await CloudSessionStorage.deleteSession(sessionId);
+            const sessions = await CloudSessionStorage.getSessions();
+            setSessions(sessions);
+            if (currentSession?.id === sessionId) {
+                setCurrentSession(null);
+            }
+        } catch (error) {
+            console.error('Erreur suppression session:', error);
+            throw error;
+        } finally {
+            setIsDeletingSession(null); // NOUVEAU
         }
     };
     
@@ -1044,6 +1061,8 @@ const allPosts = orderedItems
     return {
         currentSession, setCurrentSession,
         sessions, setSessions,
+        isCreatingSession, // NOUVEAU
+        isDeletingSession, // NOUVEAU
         createSession,
         updateSession,
         deleteSession,
@@ -1761,74 +1780,89 @@ const ForceGoogleConnection = ({ onSignIn }) => (
     );
 };
 		
-		// Page Jeux
-	const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => (
-    <div className="space-y-6 fade-in">
-        <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2>
-            <button
-                onClick={() => {
-                    const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
-                    onGameSelect(randomGame);
-                }}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
-            >
-                <Shuffle className="w-4 h-4" />
-                <span>Jeu au hasard</span>
-            </button>
-        </div>
+		// Page Games - AVEC LOADING CREATION
+const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => {
+    const { isCreatingSession } = useSessionState(); // NOUVEAU
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {GAMES.map(game => {
-                const IconComponent = game.icon;
-                return (
-                    <button
-                        key={game.id}
-                        onClick={() => onGameSelect(game)}
-                        className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"
-                    >
-                        <div className="flex items-start space-x-4">
-                            <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" />
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">
-                                        {game.title}
-                                    </h3>
-                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                                        {game.duration}
-                                    </span>
-                                </div>
-                                <p className="text-gray-600 text-sm leading-relaxed mb-2">
-                                    {game.description}
-                                </p>
-                                <div className="flex justify-between items-center">
-                                    <div className="text-xs text-amber-600 font-medium">
-                                        {game.type}
+    // Si en cours de création, afficher le loading
+    if (isCreatingSession) {
+        return (
+            <div className="space-y-6 fade-in">
+                <div className="flex items-center justify-center py-16">
+                    <LoadingSpinner message="Création de votre session de mémoire..." size="large" />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6 fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2>
+                <button
+                    onClick={() => {
+                        const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
+                        onGameSelect(randomGame);
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
+                >
+                    <Shuffle className="w-4 h-4" />
+                    <span>Jeu au hasard</span>
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {GAMES.map(game => {
+                    const IconComponent = game.icon;
+                    return (
+                        <button
+                            key={game.id}
+                            onClick={() => onGameSelect(game)}
+                            className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"
+                        >
+                            <div className="flex items-start space-x-4">
+                                <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">
+                                            {game.title}
+                                        </h3>
+                                        <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
+                                            {game.duration}
+                                        </span>
                                     </div>
-                                    <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                        ▶️ Créer session
+                                    <p className="text-gray-600 text-sm leading-relaxed mb-2">
+                                        {game.description}
+                                    </p>
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-xs text-amber-600 font-medium">
+                                            {game.type}
+                                        </div>
+                                        <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                            ▶️ Créer session
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </button>
-                );
-            })}
-        </div>
+                        </button>
+                    );
+                })}
+            </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <h3 className="font-semibold text-amber-900 mb-2">💡 Comment ça marche ?</h3>
-            <p className="text-amber-700 text-sm">
-                Choisissez un jeu pour créer une nouvelle session de remémoration. 
-                Vous pourrez ensuite échanger vos souvenirs dans un format de chat convivial.
-            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h3 className="font-semibold text-amber-900 mb-2">💡 Comment ça marche ?</h3>
+                <p className="text-amber-700 text-sm">
+                    Choisissez un jeu pour créer une nouvelle session de remémoration. 
+                    Vous pourrez ensuite échanger vos souvenirs dans un format de chat convivial.
+                </p>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 		
-    // Page Session (MODIFIÉE - Dernière modification + Loading) 
+    // Page Session (MODIFIÉE - Loading suppression + Dernière modification)
 const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
-    const { sessions, deleteSession, renderGameIcon, syncSessions } = useSessionState();
+    const { sessions, deleteSession, renderGameIcon, syncSessions, isDeletingSession } = useSessionState(); // NOUVEAU: isDeletingSession
     const [isSyncing, setIsSyncing] = React.useState(true);
     const [syncComplete, setSyncComplete] = React.useState(false);
 
@@ -1855,35 +1889,35 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         });
     };
 
-    // NOUVEAU : Fonction pour déterminer qui a modifié en dernier
     const getLastModifier = (session) => {
         if (!session.notes || session.notes.length === 0) {
-            // Pas de messages, utilisateur créateur
             return session.user;
         }
-        
-        // Dernier message = dernier modificateur
         const lastNote = session.notes[session.notes.length - 1];
         return lastNote.author || session.user;
     };
 
-    // NOUVEAU : Fonction pour obtenir la vraie date de dernière modification
     const getLastModificationDate = (session) => {
         if (!session.notes || session.notes.length === 0) {
-            // Pas de messages, date de création
             return session.createdAt;
         }
-        
-        // Date du dernier message OU date de mise à jour de la session
         const lastNote = session.notes[session.notes.length - 1];
         const lastNoteDate = new Date(lastNote.timestamp);
         const sessionUpdateDate = new Date(session.updatedAt);
-        
-        // Prendre la plus récente
         return lastNoteDate > sessionUpdateDate ? lastNote.timestamp : session.updatedAt;
     };
+
+    // NOUVEAU: Fonction de suppression avec confirmation
+    const handleDeleteSession = async (sessionId, sessionTitle) => {
+        if (!confirm(`Supprimer la session "${sessionTitle}" ?`)) return;
+        
+        try {
+            await deleteSession(sessionId);
+        } catch (error) {
+            alert('Erreur lors de la suppression: ' + error.message);
+        }
+    };
     
-    // Objet pour mapper les statuts à des icônes
     const statusIcons = {
         active: { icon: Play, color: 'text-green-500', title: 'Active' },
         paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' },
@@ -1923,21 +1957,27 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
                         const StatusIcon = statusIcons[session.status]?.icon || FileText;
                         const statusColor = statusIcons[session.status]?.color || 'text-gray-500';
                         const statusTitle = statusIcons[session.status]?.title || 'Archivée';
-                        
-                        // NOUVEAU : Utiliser les vraies informations de dernière modification
                         const lastModifier = getLastModifier(session);
                         const lastModificationDate = getLastModificationDate(session);
                         const userStyle = getUserStyle(lastModifier);
+                        
+                        // NOUVEAU: Vérifier si cette session est en cours de suppression
+                        const isBeingDeleted = isDeletingSession === session.id;
 
                         return (
                             <div
                                 key={session.id}
-                                onClick={() => onSessionSelect(session)}
-                                className="bg-white p-3 rounded-lg border border-gray-200 hover:border-amber-400 transition-colors cursor-pointer flex items-center space-x-3"
+                                className={`bg-white p-3 rounded-lg border border-gray-200 transition-all flex items-center space-x-3 ${
+                                    isBeingDeleted 
+                                        ? 'opacity-50 cursor-wait' 
+                                        : 'hover:border-amber-400 cursor-pointer'
+                                }`}
+                                onClick={() => !isBeingDeleted && onSessionSelect(session)}
                             >
-                                {/* Icône utilisateur colorée avec vraies infos */}
                                 <div 
-                                    className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                                    className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm ${
+                                        isBeingDeleted ? 'opacity-50' : ''
+                                    }`}
                                     title={`Dernière modification par ${USERS[lastModifier]?.name} le ${formatDate(lastModificationDate)}`}
                                 >
                                     <span className="text-xl">{USERS[lastModifier]?.emoji || '🐘'}</span>
@@ -1945,24 +1985,36 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
 
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-gray-800 pr-2">{session.gameTitle}</h3>
-                                        <span className="text-xs text-gray-400 whitespace-nowrap">{(session.notes || []).length} notes</span>
+                                        <h3 className={`font-bold pr-2 ${isBeingDeleted ? 'text-gray-500' : 'text-gray-800'}`}>
+                                            {session.gameTitle}
+                                        </h3>
+                                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                                            {(session.notes || []).length} notes
+                                        </span>
                                     </div>
                                     <div className="flex items-center justify-between mt-1">
-                                        {/* NOUVEAU : Vraie date de dernière modification */}
-                                        <span className="text-xs text-gray-500">{formatDate(lastModificationDate)}</span>
+                                        <span className={`text-xs ${isBeingDeleted ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            {formatDate(lastModificationDate)}
+                                        </span>
                                         <div className="flex items-center space-x-2">
-                                            <StatusIcon className={`w-5 h-5 ${statusColor}`} title={statusTitle} />
+                                            <StatusIcon className={`w-5 h-5 ${statusColor} ${isBeingDeleted ? 'opacity-50' : ''}`} title={statusTitle} />
+                                            
+                                            {/* NOUVEAU: Bouton de suppression avec spinner */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (confirm(`Supprimer la session "${session.gameTitle}" ?`)) {
-                                                        deleteSession(session.id);
+                                                    if (!isBeingDeleted) {
+                                                        handleDeleteSession(session.id, session.gameTitle);
                                                     }
                                                 }}
-                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                                disabled={isBeingDeleted}
+                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full disabled:cursor-wait"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                {isBeingDeleted ? (
+                                                    <div className="animate-spin w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"></div>
+                                                ) : (
+                                                    <Trash2 className="w-4 h-4" />
+                                                )}
                                             </button>
                                         </div>
                                     </div>
@@ -1974,7 +2026,7 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
             )}
         </div>
     );
-};    
+}; 
 	
 // Page Chat (MODIFIÉE - HOOKS DANS LE BON ORDRE)
 const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
@@ -2722,9 +2774,8 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         };
 		
 
-// ===== MAIN APP - CONNECTION-FIRST-AVEC DETECTION DECONNEXION =====
-
-		const MemoireMekong = () => {
+// ===== MAIN APP - GESTION TIMING CREATION SESSION =====
+const MemoireMekong = () => {
     const {
         currentPage, setCurrentPage,
         currentUser, setCurrentUser,
@@ -2736,27 +2787,22 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         signIn, signOut, forceDisconnect, testConnection 
     } = useGoogleAuth();
     
-    const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
+    const { sessions, setSessions, updateSession, createSession, syncSessions, isCreatingSession } = useSessionState(); // NOUVEAU: isCreatingSession
 
     const [currentChatSession, setCurrentChatSession] = React.useState(null);
     const [toast, setToast] = React.useState({ message: '', type: '' });
 
-    // NOUVEAU : Configurer le callback de détection de déconnexion
+    // Configurer le callback de détection de déconnexion
     React.useEffect(() => {
         CloudSessionStorage.onConnectionLost = (reason) => {
             console.log('🔴 CloudSessionStorage détecte une déconnexion:', reason);
-            
-            // Forcer la déconnexion dans le hook d'auth
             forceDisconnect(reason);
-            
-            // Afficher un toast critique
             setToast({ 
                 message: `🔴 ${reason}`, 
                 type: 'error' 
             });
         };
 
-        // Nettoyer le callback au démontage
         return () => {
             CloudSessionStorage.onConnectionLost = null;
         };
@@ -2777,7 +2823,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                 } catch (error) {
                     console.warn('⚠️ Sync auto échouée:', error.message);
                     if (isMounted) {
-                        // NOUVEAU : Ne pas afficher d'erreur si la déconnexion a déjà été gérée
                         if (connectionMode === 'connected') {
                             setToast({ message: "Synchronisation automatique échouée", type: 'error' });
                         }
@@ -2786,7 +2831,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             }
         };
 
-        // Synchroniser seulement si vraiment connecté
         const timeoutId = setTimeout(autoSync, 500);
         
         return () => {
@@ -2795,25 +2839,39 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         };
     }, [isConnected, isLoading, connectionMode, syncSessions]);
 
-    // NOUVEAU : Test périodique de connexion (toutes les 5 minutes si connecté)
+    // Test périodique de connexion
     React.useEffect(() => {
         if (connectionMode !== 'connected') return;
 
         const intervalId = setInterval(async () => {
             console.log('🔍 Test périodique de connexion...');
             await testConnection();
-        }, 5 * 60 * 1000); // 5 minutes
+        }, 5 * 60 * 1000);
 
         return () => clearInterval(intervalId);
     }, [connectionMode, testConnection]);
 
-    // Gérer la création automatique de session depuis les jeux/mémoires
+    // NOUVEAU: Gérer la création automatique de session avec meilleur timing
     React.useEffect(() => {
         const handlePendingSession = async () => {
-            if (window.pendingGameSession && window.pendingGameSession.user === currentUser && currentPage === 'chat') {
-                const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
-                if (newSession) {
-                    setCurrentChatSession(newSession);
+            if (window.pendingGameSession && 
+                window.pendingGameSession.user === currentUser && 
+                currentPage === 'chat' && 
+                !isCreatingSession) { // Attendre la fin de création
+                
+                try {
+                    const newSession = await createSession(window.pendingGameSession.game, window.pendingGameSession.user);
+                    if (newSession) {
+                        // Réinitialiser d'abord pour éviter le flash
+                        setCurrentChatSession(null);
+                        // Puis définir la nouvelle session après un petit délai
+                        setTimeout(() => {
+                            setCurrentChatSession(newSession);
+                        }, 50);
+                    }
+                } catch (error) {
+                    setToast({ message: "Erreur lors de la création de session", type: 'error' });
+                    setCurrentPage('games'); // Retour aux jeux en cas d'erreur
                 }
             }
         };
@@ -2821,16 +2879,16 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         if (currentPage === 'chat') {
             handlePendingSession();
         }
-    }, [currentUser, currentPage, createSession]);
+    }, [currentUser, currentPage, createSession, isCreatingSession]); // NOUVEAU: dépendance isCreatingSession
 
-    // Dans handleSessionSelect et lors de création de nouvelle session
-const handleSessionSelect = (session) => {
-    setCurrentChatSession(null); // NOUVEAU - Reset d'abord
-    setTimeout(() => {
-        setCurrentChatSession(session);
-        setCurrentPage('chat');
-    }, 50); // Petit délai pour éviter le flash
-};
+    const handleSessionSelect = (session) => {
+        // NOUVEAU: Reset puis set pour éviter le flash
+        setCurrentChatSession(null);
+        setTimeout(() => {
+            setCurrentChatSession(session);
+            setCurrentPage('chat');
+        }, 50);
+    };
 
     const handleBackToSessions = () => {
         setCurrentChatSession(null);
@@ -2842,15 +2900,12 @@ const handleSessionSelect = (session) => {
             await updateSession(updatedSession);
             setCurrentChatSession(updatedSession);
         } catch (error) {
-            // NOUVEAU : Distinguer les erreurs de connexion des autres erreurs
             if (error.message.includes('Connexion Google Drive perdue')) {
-                // L'erreur de connexion a déjà été gérée par CloudSessionStorage
                 console.log('💾 Session mise à jour localement suite à déconnexion');
             } else {
                 setToast({ message: error.message, type: 'error' });
             }
             
-            // Toujours mettre à jour l'interface avec les données locales
             const localSessions = Storage.get('sessions', []);
             setSessions(localSessions); 
             setCurrentChatSession(updatedSession);
@@ -2865,7 +2920,6 @@ const handleSessionSelect = (session) => {
                 if (result === true) {
                     setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
                     
-                    // NOUVEAU : Test de synchronisation immédiate après reconnexion
                     try {
                         await syncSessions();
                         setToast({ message: "Reconnexion et synchronisation réussies !", type: 'success' });
@@ -2879,17 +2933,32 @@ const handleSessionSelect = (session) => {
                 setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
             }
         } else if (connectionMode === 'connected') {
-            // Si connecté, aller vers les réglages pour gérer la connexion
             setCurrentPage('settings');
         }
     };
 
-    // Fonction pour déterminer si une page nécessite une connexion
+    // NOUVEAU: Gestion des sélections de jeux avec état de création
+    const handleGameSelect = async (game) => {
+        // Avertir si déconnecté
+        if (connectionMode === 'disconnected') {
+            setToast({ 
+                message: "⚠️ Session créée en mode local - ne sera pas synchronisée", 
+                type: 'error' 
+            });
+        }
+        
+        window.pendingGameSession = { game, user: currentUser };
+        
+        // NOUVEAU: Ne basculer sur chat que si on n'est pas déjà en train de créer
+        if (!isCreatingSession) {
+            setCurrentPage('chat');
+        }
+    };
+
     const pageRequiresConnection = (page) => {
         return ['sessions', 'chat'].includes(page);
     };
 
-    // Redirection intelligente si tentative d'accès à une page sensible en mode déconnecté
     React.useEffect(() => {
         if (connectionMode === 'disconnected' && pageRequiresConnection(currentPage)) {
             setToast({ 
@@ -2899,7 +2968,6 @@ const handleSessionSelect = (session) => {
         }
     }, [connectionMode, currentPage]);
 
-    // NOUVEAU : Afficher le dernier message d'erreur de connexion s'il existe
     React.useEffect(() => {
         if (lastConnectionError && connectionMode === 'disconnected') {
             setToast({ 
@@ -2912,7 +2980,6 @@ const handleSessionSelect = (session) => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
             
-            {/* Barre du haut, toujours visible avec statut de connexion proéminent */}
             <TopBar
                 currentPage={currentPage}
                 currentUser={currentUser}
@@ -2923,7 +2990,6 @@ const handleSessionSelect = (session) => {
                 onGoogleAction={handleGoogleAction}
             />
 
-            {/* Contenu principal de la page avec marges pour ne pas être caché par les barres */}
             <main className="p-4 pb-24">
                 <div className="max-w-6xl mx-auto">
                     <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
@@ -2940,17 +3006,7 @@ const handleSessionSelect = (session) => {
                             <GamesPage 
                                 currentUser={currentUser}
                                 onPageChange={setCurrentPage}
-                                onGameSelect={(game) => {
-                                    // Avertir si déconnecté
-                                    if (connectionMode === 'disconnected') {
-                                        setToast({ 
-                                            message: "⚠️ Session créée en mode local - ne sera pas synchronisée", 
-                                            type: 'error' 
-                                        });
-                                    }
-                                    window.pendingGameSession = { game, user: currentUser };
-                                    setCurrentPage('chat');
-                                }}
+                                onGameSelect={handleGameSelect} // NOUVEAU: Fonction modifiée
                             />
                         )}
                         {currentPage === 'sessions' && (
@@ -3003,14 +3059,12 @@ const handleSessionSelect = (session) => {
                 </div>
             </main>
             
-            {/* Barre de navigation du bas, toujours visible */}
             <BottomNavBar
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
                 currentUser={currentUser}
             />
 
-            {/* Le composant Toast pour les notifications */}
             <Toast 
                 message={toast.message} 
                 type={toast.type} 
