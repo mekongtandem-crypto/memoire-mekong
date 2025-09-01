@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.30b :MainApp : Généralisation su spinner d'attente</title>
+    <title>🐘 Mémoire du Mékong V0.4.30c : Généralisation su spinner d'attente</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -1780,17 +1780,15 @@ const ForceGoogleConnection = ({ onSignIn }) => (
     );
 };
 		
-		// Page Games - AVEC LOADING CREATION
+		// Page Games - AVEC VRAI SPINNER CENTRAL
 const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => {
-    const { isCreatingSession } = useSessionState(); // NOUVEAU
+    const { isCreatingSession } = useSessionState();
 
-    // Si en cours de création, afficher le loading
+    // Si en cours de création, afficher le loading CENTRAL comme pour sessions
     if (isCreatingSession) {
         return (
             <div className="space-y-6 fade-in">
-                <div className="flex items-center justify-center py-16">
-                    <LoadingSpinner message="Création de votre session de mémoire..." size="large" />
-                </div>
+                <LoadingSpinner message="Création de votre session de mémoire..." size="normal" />
             </div>
         );
     }
@@ -1805,6 +1803,7 @@ const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => {
                         onGameSelect(randomGame);
                     }}
                     className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
+                    disabled={isCreatingSession}
                 >
                     <Shuffle className="w-4 h-4" />
                     <span>Jeu au hasard</span>
@@ -1818,7 +1817,8 @@ const GamesPage = ({ currentUser, onPageChange, onGameSelect }) => {
                         <button
                             key={game.id}
                             onClick={() => onGameSelect(game)}
-                            className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"
+                            disabled={isCreatingSession}
+                            className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group disabled:opacity-50 disabled:cursor-wait"
                         >
                             <div className="flex items-start space-x-4">
                                 <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" />
@@ -2493,21 +2493,28 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         }
     };
 
-    const createSessionFromPost = (post) => {
-        const game = {
-            id: 7,
-            title: `Jour ${post.dayNumber} - Souvenir`,
-            description: `Discussion autour du post du jour ${post.dayNumber}`,
-            duration: "libre",
-            type: "mémoire",
-            icon: BookOpen
-        };
-        const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
-        window.pendingGameSession = { game, user: currentUser, postChapo: postPreview };
-        if (onCreateSession) {
-            onCreateSession('chat'); // Navigue directement au chat après la création
-        }
+    // Fonction createSessionFromPost corrigée
+const createSessionFromPost = async (post) => {
+    // NOUVEAU : Créer directement la session au lieu d'utiliser window.pendingGameSession
+    const game = {
+        id: 7,
+        title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}`, // NOUVEAU : Utiliser le titre du post
+        description: `Discussion autour du post du jour ${post.dayNumber}`,
+        duration: "libre",
+        type: "mémoire",
+        icon: BookOpen
     };
+    
+    const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
+    
+    // NOUVEAU : Sauvegarder temporairement le contenu du post
+    window.pendingPostContent = postPreview;
+    
+    if (onCreateSession) {
+        // NOUVEAU : Passer le jeu directement pour traitement immédiat  
+        onCreateSession({ type: 'game', game, postContent: postPreview });
+    }
+};
 
     if (!isImported) {
         return (
@@ -2945,17 +2952,33 @@ const MemoireMekong = () => {
     };
 
     // NOUVEAU: Gestion spéciale pour les sessions depuis Mémoires
-    const handleCreateSessionFromMemory = (page) => {
-        // Pour les sessions créées depuis les mémoires, on utilise l'ancien système
-        // car la page Mémoire prépare déjà window.pendingGameSession
-        setCurrentPage(page);
-        
-        // Traiter immédiatement si on va vers chat
-        if (page === 'chat' && window.pendingGameSession) {
-            const gameFromMemory = window.pendingGameSession.game;
-            handleGameSelect(gameFromMemory);
+    const handleCreateSessionFromMemory = async (sessionData) => {
+    if (sessionData.type === 'game') {
+        // NOUVEAU : Traiter comme une création de jeu normale
+        try {
+            // Préparer le contenu du post si présent
+            if (sessionData.postContent) {
+                window.pendingGameSession = { 
+                    game: sessionData.game, 
+                    user: currentUser, 
+                    postChapo: sessionData.postContent 
+                };
+            }
+            
+            const newSession = await createSession(sessionData.game, currentUser);
+            
+            if (newSession) {
+                setCurrentChatSession(newSession);
+                setCurrentPage('chat');
+            }
+        } catch (error) {
+            setToast({ message: "Erreur lors de la création de session", type: 'error' });
         }
-    };
+    } else {
+        // Ancienne logique pour les autres cas
+        setCurrentPage(sessionData);
+    }
+};
 
     const pageRequiresConnection = (page) => {
         return ['sessions', 'chat'].includes(page);
