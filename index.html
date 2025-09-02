@@ -241,25 +241,58 @@ const GoogleDriveAPI = {
     // ===== NOUVELLES MÉTHODES PHOTOS V0.5.0 =====
     
     /**
-     * Trouve le dossier racine Medias dans Google Drive
+     * EXPLORATEUR GOOGLE DRIVE - Pour découvrir la structure réelle
      */
-    async findMediasFolder() {
+    async exploreDriveStructure(maxDepth = 2) {
         try {
-            const response = await gapi.client.drive.files.list({
-                q: "name='Medias' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-                fields: 'files(id, name, parents)'
+            console.log('🔍 Exploration structure Google Drive...');
+            
+            // Lister la racine
+            const rootResponse = await gapi.client.drive.files.list({
+                q: "mimeType='application/vnd.google-apps.folder' and trashed=false and 'root' in parents",
+                fields: 'files(id, name, createdTime)',
+                orderBy: 'name'
             });
             
-            const folders = response.result.files;
-            if (folders.length === 0) {
-                throw new Error('Dossier "Medias" non trouvé dans Google Drive');
+            const structure = [];
+            
+            for (const folder of rootResponse.result.files) {
+                const folderInfo = {
+                    id: folder.id,
+                    name: folder.name,
+                    type: 'folder',
+                    path: `/${folder.name}`,
+                    children: []
+                };
+                
+                // Explorer un niveau plus profond si maxDepth > 1
+                if (maxDepth > 1) {
+                    try {
+                        const subResponse = await gapi.client.drive.files.list({
+                            q: `'${folder.id}' in parents and trashed=false`,
+                            fields: 'files(id, name, mimeType)',
+                            pageSize: 20
+                        });
+                        
+                        folderInfo.children = subResponse.result.files.map(item => ({
+                            id: item.id,
+                            name: item.name,
+                            type: item.mimeType === 'application/vnd.google-apps.folder' ? 'folder' : 'file',
+                            mimeType: item.mimeType
+                        }));
+                    } catch (subError) {
+                        console.warn(`Erreur exploration ${folder.name}:`, subError);
+                    }
+                }
+                
+                structure.push(folderInfo);
             }
             
-            console.log(`📁 Dossier Medias trouvé: ${folders[0].id}`);
-            return folders[0];
+            console.log('✅ Structure Drive explorée:', structure);
+            return structure;
         } catch (error) {
-            console.error('❌ Erreur recherche dossier Medias:', error);
-            throw new Error('Impossible de localiser le dossier Medias');
+            console.error('❌ Erreur exploration Drive:', error);
+            throw new Error('Impossible d\'explorer Google Drive');
         }
     },
     
@@ -686,14 +719,13 @@ const LoadingSpinner = ({ size = 'md', color = 'orange' }) => {
     );
 };
 
-// ===== NOUVEAU COMPOSANT : PHOTO CONTENT INDEX =====
-const PhotoContentIndex = () => {
-    const [contentIndex, setContentIndex] = React.useState(null);
+// ===== NOUVEAU COMPOSANT : EXPLORATEUR GOOGLE DRIVE =====
+const DriveExplorer = () => {
+    const [structure, setStructure] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState(null);
     
-    // Charger l'index de contenu
-    const loadContentIndex = async () => {
+    const exploreStructure = async () => {
         if (!GoogleDriveAPI.isSignedIn) {
             setError('Connexion Google Drive requise');
             return;
@@ -703,12 +735,12 @@ const PhotoContentIndex = () => {
         setError(null);
         
         try {
-            const index = await GoogleDriveAPI.buildContentIndex();
-            setContentIndex(index);
-            console.log('✅ Index contenu chargé:', index);
+            const driveStructure = await GoogleDriveAPI.exploreDriveStructure();
+            setStructure(driveStructure);
+            console.log('✅ Structure Drive explorée:', driveStructure);
         } catch (err) {
             setError(err.message);
-            console.error('❌ Erreur chargement index:', err);
+            console.error('❌ Erreur exploration:', err);
         } finally {
             setLoading(false);
         }
@@ -716,7 +748,7 @@ const PhotoContentIndex = () => {
     
     React.useEffect(() => {
         if (GoogleDriveAPI.isSignedIn) {
-            loadContentIndex();
+            exploreStructure();
         }
     }, [GoogleDriveAPI.isSignedIn]);
     
@@ -724,7 +756,7 @@ const PhotoContentIndex = () => {
         return (
             <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-r">
                 <div className="flex items-center">
-                    <span className="text-yellow-600">⚠️ Connexion Google Drive requise pour les photos</span>
+                    <span className="text-yellow-600">⚠️ Connexion Google Drive requise pour explorer</span>
                 </div>
             </div>
         );
@@ -734,7 +766,7 @@ const PhotoContentIndex = () => {
         return (
             <div className="flex items-center justify-center p-8">
                 <LoadingSpinner size="lg" />
-                <span className="ml-3 text-gray-600">Construction de l'index des photos...</span>
+                <span className="ml-3 text-gray-600">Exploration de Google Drive...</span>
             </div>
         );
     }
@@ -745,7 +777,7 @@ const PhotoContentIndex = () => {
                 <div className="flex items-center justify-between">
                     <span className="text-red-700">❌ {error}</span>
                     <button 
-                        onClick={loadContentIndex}
+                        onClick={exploreStructure}
                         className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
                     >
                         Réessayer
@@ -755,111 +787,71 @@ const PhotoContentIndex = () => {
         );
     }
     
-    if (!contentIndex) return null;
-    
-    // Calculer statistiques
-    const days = Object.keys(contentIndex).filter(key => key.startsWith('day-'));
-    const stats = {
-        totalDays: days.length,
-        fullDays: days.filter(day => contentIndex[day].completeness === 'full').length,
-        partialDays: days.filter(day => contentIndex[day].completeness === 'partial').length,
-        emptyDays: days.filter(day => contentIndex[day].completeness === 'empty').length,
-        orphans: contentIndex.orphans
-    };
+    if (!structure) return null;
     
     return (
         <div className="space-y-4">
-            {/* Header avec stats */}
+            {/* Header */}
             <div className="bg-white rounded-lg p-4 border border-orange-200">
-                <h3 className="text-lg font-semibold text-orange-800 mb-3">📸 Index Photos & Contenu</h3>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="text-center p-2 bg-green-50 rounded">
-                        <div className="text-2xl font-bold text-green-600">{stats.fullDays}</div>
-                        <div className="text-green-700">Jours complets</div>
-                        <div className="text-xs text-green-600">(posts + photos)</div>
-                    </div>
-                    
-                    <div className="text-center p-2 bg-yellow-50 rounded">
-                        <div className="text-2xl font-bold text-yellow-600">{stats.partialDays}</div>
-                        <div className="text-yellow-700">Jours partiels</div>
-                        <div className="text-xs text-yellow-600">(posts ou photos)</div>
-                    </div>
-                    
-                    <div className="text-center p-2 bg-gray-50 rounded">
-                        <div className="text-2xl font-bold text-gray-600">{stats.emptyDays}</div>
-                        <div className="text-gray-700">Jours vides</div>
-                        <div className="text-xs text-gray-600">(ni posts ni photos)</div>
-                    </div>
-                    
-                    <div className="text-center p-2 bg-purple-50 rounded">
-                        <div className="text-2xl font-bold text-purple-600">
-                            {(stats.orphans.posts.length + stats.orphans.photos.mastodon.length + stats.orphans.folders.length)}
-                        </div>
-                        <div className="text-purple-700">Orphelins</div>
-                        <div className="text-xs text-purple-600">(sans jour)</div>
-                    </div>
-                </div>
+                <h3 className="text-lg font-semibold text-orange-800 mb-3">🔍 Explorateur Google Drive</h3>
+                <p className="text-gray-600 text-sm mb-3">
+                    Exploration de la structure pour localiser les photos du voyage Mékong
+                </p>
                 
                 <button 
-                    onClick={() => GoogleDriveAPI.refreshPhotoCache().then(setContentIndex)}
-                    className="mt-3 px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
+                    onClick={exploreStructure}
+                    className="px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
                 >
-                    🔄 Actualiser
+                    🔄 Re-scanner
                 </button>
             </div>
             
-            {/* Liste détaillée */}
+            {/* Structure trouvée */}
             <div className="bg-white rounded-lg border border-orange-200">
                 <div className="p-4 border-b border-orange-200">
-                    <h4 className="font-semibold text-orange-800">Détail par jour</h4>
+                    <h4 className="font-semibold text-orange-800">Structure trouvée ({structure.length} dossiers racine)</h4>
                 </div>
                 
                 <div className="max-h-96 overflow-y-auto">
-                    {days.sort().map(dayKey => {
-                        const dayData = contentIndex[dayKey];
-                        const statusIcon = {
-                            'full': '🟢',
-                            'partial': '🟡', 
-                            'empty': '🔴'
-                        }[dayData.completeness];
-                        
-                        return (
-                            <div key={dayKey} className="p-3 border-b border-gray-100 hover:bg-orange-50">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <span className="text-lg">{statusIcon}</span>
-                                        <div>
-                                            <div className="font-medium">Jour {dayData.dayNumber}</div>
-                                            {dayData.location && (
-                                                <div className="text-sm text-gray-600">{dayData.location}</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                        <span>📝 {dayData.posts.length}</span>
-                                        <span>📸 {dayData.photos.main.length}</span>
-                                        <span>🖼️ {dayData.photos.mastodon.length}</span>
-                                    </div>
-                                </div>
+                    {structure.map(folder => (
+                        <div key={folder.id} className="p-3 border-b border-gray-100">
+                            <div className="font-medium text-gray-800 flex items-center">
+                                📁 {folder.name}
+                                <span className="ml-2 text-xs text-gray-500">({folder.children.length} éléments)</span>
                             </div>
-                        );
-                    })}
+                            
+                            {folder.children.length > 0 && (
+                                <div className="mt-2 ml-4 space-y-1">
+                                    {folder.children.slice(0, 10).map(child => (
+                                        <div key={child.id} className="text-sm text-gray-600 flex items-center">
+                                            <span className="mr-2">
+                                                {child.type === 'folder' ? '📁' : 
+                                                 child.mimeType?.includes('image') ? '🖼️' : '📄'}
+                                            </span>
+                                            {child.name}
+                                        </div>
+                                    ))}
+                                    {folder.children.length > 10 && (
+                                        <div className="text-xs text-gray-500 italic">
+                                            ... et {folder.children.length - 10} autres éléments
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ))}
                 </div>
             </div>
             
-            {/* Orphelins */}
-            {(stats.orphans.posts.length > 0 || stats.orphans.folders.length > 0 || stats.orphans.photos.mastodon.length > 0) && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-purple-800 mb-2">🔍 Contenu orphelin</h4>
-                    <div className="text-sm text-purple-700">
-                        <div>📝 {stats.orphans.posts.length} posts sans numéro de jour</div>
-                        <div>📁 {stats.orphans.folders.length} dossiers sans jour associé</div>
-                        <div>🖼️ {stats.orphans.photos.mastodon.length} photos Mastodon</div>
-                    </div>
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-800 mb-2">📋 Prochaines étapes</h4>
+                <div className="text-sm text-blue-700 space-y-1">
+                    <div>1. Vérifiez si un dossier "Medias" ou similaire existe</div>
+                    <div>2. Ou indiquez-moi où se trouvent vos photos dans la structure ci-dessus</div>
+                    <div>3. Je pourrai alors adapter l'API pour la bonne localisation</div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
@@ -901,8 +893,8 @@ const TestApp = () => {
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <h1 className="text-2xl font-bold text-orange-800">📸 Mémoire du Mékong V0.5.0</h1>
-                    <p className="text-gray-600 mt-1">Test API Photos Google Drive</p>
+                    <h1 className="text-2xl font-bold text-orange-800">🔍 Mémoire du Mékong V0.5.1</h1>
+                    <p className="text-gray-600 mt-1">Diagnostic Google Drive - Localisation dossier Medias</p>
                     
                     <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -932,15 +924,16 @@ const TestApp = () => {
                     </div>
                 </div>
                 
-                {/* Test Photos API */}
-                <PhotoContentIndex />
+                {/* Explorateur Google Drive */}
+                <DriveExplorer />
             </div>
         </div>
     );
 };
 
 // ===== RENDU =====
-ReactDOM.render(<TestApp />, document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<TestApp />);
 
 </script>
 </body>
