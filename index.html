@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>🐘 Mémoire du Mékong V0.5.5.0 : Phase 5 - Stabilisation API</title>	<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
+	<title>🐘 Mémoire du Mékong V0.5.5.1 : Phase 5 - Correctif Final API</title>    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> 
     <script src="https://apis.google.com/js/api.js"></script>
 	<script src="https://accounts.google.com/gsi/client"></script>
 	<script>
@@ -544,11 +542,11 @@ const PhotoData = {
     }
 };       
 
-// ===== GOOGLE DRIVE API - VERSION STABLE ET COMPLÈTE =====
+// ===== GOOGLE DRIVE API - VERSION STABLE ET CORRIGÉE =====
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email' // On remet le scope drive.file pour la sauvegarde
+    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
 
 const GoogleDriveAPI = {
@@ -561,7 +559,6 @@ const GoogleDriveAPI = {
     async signIn() { if (!this.isInitialized) await this.init(); return new Promise((resolve, reject) => { if (!this.tokenClient) return reject(new Error('Token client non initialisé')); this.tokenClient.callback = async (res) => { if (res.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${res.error}`)); } try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } catch (e) { this.isSignedIn = false; reject(new Error('Accès API impossible')); } }; const token = gapi.client.getToken(); if (token) { gapi.client.drive.files.list({ pageSize: 1 }).then(() => { this.isSignedIn = true; resolve(true); }).catch(() => { gapi.client.setToken(''); this.tokenClient.requestAccessToken({ prompt: 'consent' }); }); } else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); } }); },
     async signOut() { const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } this.isSignedIn = false; this._folderCache.clear(); console.log('✅ Déconnecté'); },
     
-    // --- Fonctions utilitaires ---
     async _findFile(name, parentId = 'root', mimeType = null) {
         const cacheKey = `${parentId}-${name}-${mimeType || 'any'}`;
         if (this._folderCache.has(cacheKey)) return this._folderCache.get(cacheKey);
@@ -575,10 +572,7 @@ const GoogleDriveAPI = {
         } catch (e) { console.error(`❌ Erreur recherche '${name}':`, e); throw e; }
     },
 
-    // --- Fonctions pour les SESSIONS (Lecture et Ecriture) ---
-    async findMekongFile() {
-        return this._findFile("mekong_sessions.json", "root");
-    },
+    async findMekongFile() { return this._findFile("mekong_sessions.json", "root"); },
     
     async loadSessions() {
         if (!this.isSignedIn) throw new Error('Pas connecté');
@@ -596,33 +590,21 @@ const GoogleDriveAPI = {
             const data = JSON.stringify({ sessions, lastUpdated: new Date().toISOString() }, null, 2);
             const existingFile = await this.findMekongFile();
             if (existingFile) {
-                await gapi.client.request({
-                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
-                    method: 'PATCH',
-                    params: { uploadType: 'media' },
-                    headers: { 'Content-Type': 'application/json' },
-                    body: data
-                });
+                await gapi.client.request({ path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`, method: 'PATCH', params: { uploadType: 'media' }, headers: { 'Content-Type': 'application/json' }, body: data });
             } else {
                 const boundary = '-------314159265358979323846';
                 const metadata = { 'name': 'mekong_sessions.json', 'mimeType': 'application/json' };
                 const multipartRequestBody = `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${data}\r\n--${boundary}--`;
-                await gapi.client.request({
-                    'path': 'https://www.googleapis.com/upload/drive/v3/files',
-                    'method': 'POST',
-                    'params': {'uploadType': 'multipart'},
-                    'headers': { 'Content-Type': `multipart/related; boundary="${boundary}"` },
-                    'body': multipartRequestBody
-                });
+                await gapi.client.request({ 'path': 'https://www.googleapis.com/upload/drive/v3/files', 'method': 'POST', 'params': {'uploadType': 'multipart'}, 'headers': { 'Content-Type': `multipart/related; boundary="${boundary}"` }, 'body': multipartRequestBody });
             }
             return true;
         } catch (e) { console.error('❌ Erreur sauvegarde sessions:', e); throw e; }
     },
 
-    // --- Fonctions pour les PHOTOS et AUTRES JSON (Lecture seule) ---
     async loadJsonFile(fileName) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
         try {
+            // CORRIGÉ : Utilise la fonction _findFile qui existe bien
             const file = await this._findFile(fileName, "root");
             if (!file) return null;
             const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
@@ -2459,7 +2441,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V4 - LOGIQUE DE CHARGEMENT ROBUSTE)
+// Page Memoire (V4.1 - CORRECTION APPELS API)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
@@ -2491,7 +2473,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                     setDayPhotos([]);
                 }
             }
-            if (!hasContent) setDayPhotos([]); // Nettoyage si aucun contenu
+            if (!hasContent) setDayPhotos([]);
         };
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
@@ -2511,7 +2493,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             return;
         }
 
-        // 1. Regrouper les photos par nom de dossier pour minimiser les appels API
         const foldersToQuery = photoIndexEntries.reduce((acc, photo) => {
             if (!acc[photo.folderName]) acc[photo.folderName] = [];
             acc[photo.folderName].push(photo.filename);
@@ -2519,17 +2500,20 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         }, {});
 
         let allFoundPhotos = [];
-        const mediasFolder = await GoogleDriveAPI._findFolderByName('Medias');
-        const photosRootFolder = await GoogleDriveAPI._findFolderByName('Photos', mediasFolder.id);
+        const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+
+        // CORRIGÉ : Utilisation de _findFile au lieu de _findFolderByName
+        const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
+        if (!mediasFolder) { setIsLoadingPhotos(false); return; }
+        const photosRootFolder = await GoogleDriveAPI._findFile('Photos', mediasFolder.id, FOLDER_MIME_TYPE);
+        if (!photosRootFolder) { setIsLoadingPhotos(false); return; }
 
         for (const folderName in foldersToQuery) {
-            const dayFolder = await GoogleDriveAPI._findFolderByName(folderName, photosRootFolder.id);
+            const dayFolder = await GoogleDriveAPI._findFile(folderName, photosRootFolder.id, FOLDER_MIME_TYPE);
             if (dayFolder) {
-                // 2. Lister TOUS les fichiers images du dossier une seule fois
                 const filesInDrive = await GoogleDriveAPI.listPhotoFiles(dayFolder.id);
                 const driveFilesMap = new Map(filesInDrive.map(file => [file.name, file]));
                 
-                // 3. Comparer avec notre index
                 const photosInThisFolder = foldersToQuery[folderName];
                 for (const filename of photosInThisFolder) {
                     if (driveFilesMap.has(filename)) {
@@ -2548,8 +2532,8 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     };
 
     const handleDaySelect = (day) => setCurrentDay(day);
-    const createSessionFromPost = (post) => { /* ... (inchangé) ... */ };
-    const createSessionFromPhoto = (photo) => { /* ... (inchangé) ... */ };
+    const createSessionFromPost = (post) => { const game = getGameById(7); const postPreview = post.content.slice(0, 200) + '...'; onCreateSession({ type: 'game', game: { ...game, title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}` }, postContent: postPreview }); };
+    const createSessionFromPhoto = (photo) => { const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` }; const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`; onCreateSession({ type: 'game', game: game, postContent: initialNoteContent }); };
     const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
     const handlePhotoNavigate = (direction) => { if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedIndex - 1); else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedIndex + 1); };
 
