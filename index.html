@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>🐘 Mémoire du Mékong V0.5.6.0 : Phase 6 - Finalisation Photos</title>    
+	<title>🐘 Mémoire du Mékong V0.5.6.1 (url nettoyé grande photo : Phase 6 - Finalisation Photos</title>    
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
@@ -2423,7 +2423,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V4.2 - NOMMAGE CONSISTANT)
+// Page Memoire (V4.3 - CORRECTION FINALE LIEN IMAGE)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
@@ -2455,10 +2455,10 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
-    // Renommage pour la clarté
     const cleanDriveImageLink = (url) => {
         if (!url) return null;
-        return url.split('=')[0];
+        // La correction magique : supprime les paramètres après le '?' et le '=sXXX' final
+        return url.split('?')[0].split('=')[0];
     };
 
     const loadPhotosForDay = async (day) => {
@@ -2491,9 +2491,11 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                     if (driveFilesMap.has(filename)) {
                         const fileData = driveFilesMap.get(filename);
                         allFoundPhotos.push({
-                            ...fileData, // Contient déjà webContentLink et le thumbnailLink original
+                            ...fileData,
                             filename: filename,
-                            thumbnailLink: cleanDriveImageLink(fileData.thumbnailLink) // On stocke la version nettoyée
+                            // On nettoie les deux liens dès le chargement
+                            thumbnailLink: cleanDriveImageLink(fileData.thumbnailLink),
+                            webContentLink: cleanDriveImageLink(fileData.webContentLink)
                         });
                     }
                 }
@@ -2505,7 +2507,14 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
     const handleDaySelect = (day) => setCurrentDay(day);
     const createSessionFromPost = (post) => { const game = getGameById(7); const postPreview = post.content.slice(0, 200) + '...'; onCreateSession({ type: 'game', game: { ...game, title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}` }, postContent: postPreview }); };
-    const createSessionFromPhoto = (photo) => { const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` }; const initialNoteContent = `[IMAGE]${cleanDriveImageLink(photo.webContentLink)}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`; onCreateSession({ type: 'game', game: game, postContent: initialNoteContent }); };
+    
+    // CORRIGÉ : On s'assure que le lien utilisé pour la session est déjà nettoyé
+    const createSessionFromPhoto = (photo) => { 
+        const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` }; 
+        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`; 
+        onCreateSession({ type: 'game', game: game, postContent: initialNoteContent }); 
+    };
+
     const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
     const handlePhotoNavigate = (direction) => { if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedIndex - 1); else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedIndex + 1); };
 
@@ -2522,13 +2531,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 {activeTab === 'photos' ? (
                     isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
                 ) : (
-                    currentPost ? ( <div> <div className="flex justify-between items-start mb-4"> <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3> <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><Plus className="w-4 h-4"/><span>Session</span></button> </div> <div className="prose max-w-none"><p>{currentPost.content}</p></div> </div> ) : ( <div className="text-center py-12 text-gray-500"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Aucun post de blog pour ce jour.</p></div> )
-                )}
-            </div>
-            {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={handlePhotoNavigate} onCreateSession={createSessionFromPhoto} />}
-        </div>
-    );
-};
+                    currentPost ? ( <div> <div className="flex justify-between items-start mb-4"> <h3 className="text-2xl font-bold text-amber-
 		
 		
 // ====Pages Config réglages Settings  =====		
