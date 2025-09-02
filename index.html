@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mémoire du Mékong - V0.5.1</title>
+    <title>Mémoire du Mékong - V0.5.2</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -1283,7 +1283,7 @@
             );
         };
 
-        // ===== NOUVELLE PAGE MÉMOIRES AVEC VRAIES IMAGES =====
+        // ===== NOUVELLE PAGE MÉMOIRES CORRIGÉE =====
         const MemoriesPage = ({ currentUser, onCreateSession, googleAuth }) => {
             const [activeTab, setActiveTab] = useState('blog'); // 'blog' ou 'photos'
             const [currentDay, setCurrentDay] = useState(1);
@@ -1682,6 +1682,7 @@
                             <MemoriesPage 
                                 currentUser={currentUser}
                                 onCreateSession={handleCreateSession}
+                                googleAuth={googleAuth}
                             />
                         );
                     case 'sessions':
@@ -1738,8 +1739,9 @@
             );
         };
 
-        // ===== RENDU =====
-        ReactDOM.render(<App />, document.getElementById('root'));
+        // ===== RENDU REACT 18 =====
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
