@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mémoire du Mékong V0.5.4</title>
+    <title>Mémoire du Mékong V0.5.5</title>
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -389,13 +389,13 @@ const GoogleDriveAPI = {
             
             const attachmentsFolder = attachmentsResponse.result.files[0];
             
-            // Lister toutes les images avec pagination
+            // Lister toutes les images avec pagination - REQUÊTE SIMPLIFIÉE
             let allPhotos = [];
             let nextPageToken = null;
             
             do {
                 const photosResponse = await gapi.client.drive.files.list({
-                    q: `'${attachmentsFolder.id}' in parents and trashed=false and (mimeType contains 'image' or name contains '.jpg' or name contains '.png' or name contains '.jpeg' or name contains '.gif' or name contains '.heic' or name contains '.webp')`,
+                    q: `'${attachmentsFolder.id}' in parents and trashed=false and mimeType contains 'image/'`,
                     fields: 'files(id, name, createdTime, size, mimeType, webViewLink), nextPageToken',
                     pageSize: 1000,
                     pageToken: nextPageToken
@@ -428,28 +428,42 @@ const GoogleDriveAPI = {
     },
     
     /**
-     * Récupère TOUTES les photos d'un dossier jour spécifique - AVEC PAGINATION
+     * Récupère TOUTES les photos d'un dossier jour spécifique - AVEC DEBUG DÉTAILLÉ
      */
     async getPhotosFromDayFolder(folderId) {
         try {
             let allPhotos = [];
             let nextPageToken = null;
+            let pageCount = 0;
             
             do {
+                pageCount++;
                 const response = await gapi.client.drive.files.list({
-                    q: `'${folderId}' in parents and trashed=false and (mimeType contains 'image' or name contains '.jpg' or name contains '.png' or name contains '.jpeg' or name contains '.gif' or name contains '.heic' or name contains '.webp')`,
+                    q: `'${folderId}' in parents and trashed=false and (mimeType contains 'image/')`,
                     fields: 'files(id, name, createdTime, size, mimeType, webViewLink), nextPageToken',
                     orderBy: 'name',
                     pageSize: 1000,
                     pageToken: nextPageToken
                 });
                 
-                allPhotos.push(...response.result.files);
+                const pagePhotos = response.result.files;
+                allPhotos.push(...pagePhotos);
                 nextPageToken = response.result.nextPageToken;
+                
+                // Debug pour dossiers suspects
+                if (pageCount > 1 || pagePhotos.length > 50) {
+                    console.log(`🔍 Dossier ${folderId} - Page ${pageCount}: ${pagePhotos.length} photos (total: ${allPhotos.length})`);
+                }
                 
             } while (nextPageToken);
             
-            console.log(`📸 ${allPhotos.length} photos trouvées dans dossier ${folderId}`);
+            // Log spécial pour debug
+            if (allPhotos.length === 0) {
+                console.log(`⚠️ AUCUNE photo trouvée dans dossier ${folderId} - vérifier contenu`);
+            } else if (allPhotos.length < 5) {
+                console.log(`🔍 PEU de photos (${allPhotos.length}) dans dossier ${folderId} - Types MIME:`, 
+                    [...new Set(allPhotos.map(p => p.mimeType))]);
+            }
             
             return allPhotos.map(photo => ({
                 id: photo.id,
@@ -467,7 +481,7 @@ const GoogleDriveAPI = {
     },
     
     /**
-     * Crée l'index unifié : jours → contenu consolidé
+     * Crée l'index unifié : jours → contenu consolidé - APPELS SÉQUENTIELS
      */
     async buildContentIndex() {
         if (this._photoCache.contentIndex && this._isCacheValid()) {
@@ -482,6 +496,8 @@ const GoogleDriveAPI = {
             const posts = Storage.get('mastodonPosts', []);
             const folders = await this.scanPhotoFolders();
             const mastodonPhotos = await this.scanMastodonPhotos();
+            
+            console.log(`📊 Données de base: ${posts.length} posts, ${folders.length} dossiers, ${mastodonPhotos.length} photos Mastodon`);
             
             // Créer l'index par jour
             const index = {};
@@ -502,7 +518,10 @@ const GoogleDriveAPI = {
                 }
             });
             
-            // 2. Indexer les dossiers photos par jour
+            // 2. Indexer les dossiers photos par jour - SÉQUENTIELLEMENT
+            console.log('🔄 Récupération photos par dossier (séquentiel)...');
+            let processedFolders = 0;
+            
             for (const folder of folders) {
                 if (folder.dayNumber) {
                     const key = `day-${folder.dayNumber.toString().padStart(3, '0')}`;
@@ -515,12 +534,33 @@ const GoogleDriveAPI = {
                         };
                     }
                     
-                    // Récupérer les photos de ce dossier
-                    const dayPhotos = await this.getPhotosFromDayFolder(folder.id);
-                    index[key].photos.main = dayPhotos;
-                    index[key].location = folder.location;
+                    // Récupérer les photos de ce dossier - AVEC DÉLAI
+                    try {
+                        const dayPhotos = await this.getPhotosFromDayFolder(folder.id);
+                        index[key].photos.main = dayPhotos;
+                        index[key].location = folder.location;
+                        
+                        processedFolders++;
+                        
+                        // Debug détaillé pour Kampot-Kep et autres cas problématiques
+                        if (folder.name.includes('Kampot') || folder.name.includes('114') || dayPhotos.length < 10) {
+                            console.log(`🔍 DETAIL ${folder.name}: ${dayPhotos.length} photos trouvées`);
+                        }
+                        
+                        // Petit délai pour éviter le throttling (tous les 10 dossiers)
+                        if (processedFolders % 10 === 0) {
+                            console.log(`⏳ Pause anti-throttle (${processedFolders}/${folders.length})`);
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                        
+                    } catch (error) {
+                        console.error(`❌ Erreur dossier ${folder.name}:`, error);
+                        index[key].photos.main = [];
+                    }
                 }
             }
+            
+            console.log(`✅ ${processedFolders} dossiers traités`);
             
             // 3. Associer photos Mastodon aux jours (via metadata posts si possible)
             // Pour l'instant, on les met dans orphans, l'association sera affinée plus tard
@@ -593,18 +633,52 @@ const GoogleDriveAPI = {
     },
     
     /**
-     * Force le rafraîchissement du cache photos
+     * Debug : Explorer le contenu détaillé d'un dossier spécifique
      */
-    async refreshPhotoCache() {
-        console.log('🔄 Rafraîchissement cache photos...');
-        this._photoCache = {
-            folders: null,
-            mastodonPhotos: null,
-            contentIndex: null,
-            lastRefresh: null
-        };
-        return this.buildContentIndex();
-    }
+    async debugFolderContent(folderId, folderName = 'Unknown') {
+        try {
+            console.log(`🔍 DEBUG dossier "${folderName}" (${folderId})`);
+            
+            // Lister TOUT le contenu du dossier
+            const allContentResponse = await gapi.client.drive.files.list({
+                q: `'${folderId}' in parents and trashed=false`,
+                fields: 'files(id, name, mimeType, size, createdTime)',
+                pageSize: 1000
+            });
+            
+            const allFiles = allContentResponse.result.files;
+            console.log(`📁 Contenu total dossier "${folderName}": ${allFiles.length} éléments`);
+            
+            // Analyser par type
+            const byType = {};
+            allFiles.forEach(file => {
+                const type = file.mimeType || 'unknown';
+                if (!byType[type]) byType[type] = [];
+                byType[type].push(file.name);
+            });
+            
+            console.log(`📊 Types MIME dans "${folderName}":`, byType);
+            
+            // Compter les images avec différents critères
+            const imagesByMime = allFiles.filter(f => f.mimeType && f.mimeType.includes('image'));
+            const imagesByExt = allFiles.filter(f => 
+                f.name.match(/\.(jpg|jpeg|png|gif|heic|webp|bmp|tiff)$/i)
+            );
+            
+            console.log(`🖼️ Images "${folderName}": ${imagesByMime.length} par MIME, ${imagesByExt.length} par extension`);
+            
+            return {
+                totalFiles: allFiles.length,
+                imagesByMime: imagesByMime.length,
+                imagesByExt: imagesByExt.length,
+                mimeTypes: Object.keys(byType)
+            };
+            
+        } catch (error) {
+            console.error(`❌ Debug dossier ${folderName} échoué:`, error);
+            return null;
+        }
+    },
 };
 
 // ===== MASTODON DATA =====
@@ -786,8 +860,10 @@ const PhotoContentIndex = () => {
                 <LoadingSpinner size="lg" />
                 <div className="text-center">
                     <div className="text-gray-600 font-medium">Construction de l'index des photos...</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                        Scan avec pagination - cela peut prendre 30 secondes
+                    <div className="text-sm text-gray-500 mt-1 space-y-1">
+                        <div>⏳ Scan séquentiel pour éviter throttling Google Drive</div>
+                        <div>🔍 Debug détaillé activé (voir console)</div>
+                        <div>⚡ Durée estimée : 1-2 minutes</div>
                     </div>
                 </div>
             </div>
@@ -858,9 +934,26 @@ const PhotoContentIndex = () => {
                 
                 <button 
                     onClick={() => GoogleDriveAPI.refreshPhotoCache().then(setContentIndex)}
-                    className="mt-3 px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
+                    className="mt-3 px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm mr-2"
                 >
                     🔄 Actualiser
+                </button>
+                
+                <button 
+                    onClick={async () => {
+                        // Test spécial Kampot-Kep
+                        const folders = await GoogleDriveAPI.scanPhotoFolders();
+                        const kampotFolder = folders.find(f => f.name.includes('Kampot') || f.name.includes('114'));
+                        if (kampotFolder) {
+                            console.log('🔍 TEST KAMPOT-KEP:');
+                            await GoogleDriveAPI.debugFolderContent(kampotFolder.id, kampotFolder.name);
+                        } else {
+                            console.log('❌ Dossier Kampot-Kep non trouvé');
+                        }
+                    }}
+                    className="mt-3 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                >
+                    🔍 Debug Kampot-Kep
                 </button>
             </div>
             
@@ -950,6 +1043,9 @@ const PhotoContentIndex = () => {
                     🔄 Recharger posts Mastodon
                 </button>
             </div>
+            
+            {/* Debug dossier spécifique */}
+            <FolderDebugger contentIndex={contentIndex} />
         </div>
     );
 };
@@ -991,8 +1087,8 @@ const TestApp = () => {
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <h1 className="text-2xl font-bold text-orange-800">📸 Mémoire du Mékong V0.5.4</h1>
-                    <p className="text-gray-600 mt-1">Pagination complète + formats étendus (.heic, .webp)</p>
+                    <h1 className="text-2xl font-bold text-orange-800">🔧 Mémoire du Mékong V0.5.5</h1>
+                    <p className="text-gray-600 mt-1">Debug photos : appels séquentiels + analyse MIME</p>
                     
                     <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
