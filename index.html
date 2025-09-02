@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.1.0 : Phase 1 - Couche de données Photos</title>    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+	<title>🐘 Mémoire du Mékong V0.5.1.1 : Correctif Phase 1 - Couche de données Photos</title>    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
 	<script src="https://accounts.google.com/gsi/client"></script>
 	<script>
@@ -325,7 +324,6 @@ const PhotoData = {
                     const dayStr = key.trim();
                     
                     if (dayStr && entry.photos && entry.photos.length > 0) {
-                        // Gérer les clés simples (ex: "001") et les clés multiples (ex: "020-022")
                         const dayRanges = dayStr.split('-').map(d => parseInt(d, 10));
                         const startDay = dayRanges[0];
                         const endDay = dayRanges.length > 1 ? dayRanges[1] : startDay;
@@ -348,14 +346,13 @@ const PhotoData = {
                 }
             }
             
-            // Trier les photos par jour
             allPhotos.sort((a, b) => a.day - b.day);
 
-            console.log(`✅ ${allPhotos.length} photos indexées sur ${Object.keys(photosByDay).length} jours.`);
+            console.log(`INFO: ${allPhotos.length} photos indexées sur ${Object.keys(photosByDay).length} jours.`);
             
             return { allPhotos, photosByDay };
         } catch (error) {
-            console.error('❌ Erreur parsing de l'index des photos:', error);
+            console.error("Erreur lors du parsing de l'index des photos:", error);
             throw error;
         }
     },
@@ -394,7 +391,7 @@ const PhotoData = {
             importedAt
         };
     }
-};        
+};       
 
 // ===== GOOGLE DRIVE API - AVEC CACHE ET GESTION PHOTOS =====
 const GOOGLE_CONFIG = {
