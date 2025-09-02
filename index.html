@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.0.1 : Debug Import photo index</title>
+    <title>🐘 Mémoire du Mékong V0.6.0 : réecriture de 0</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -47,7 +47,7 @@
         const Play = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>;
         const Camera = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
         const Cloud = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
-        const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25.17-.5.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14-.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25.17-.5.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
         const ChevronLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>;
         const ChevronRight = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>;
         const BookOpen = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
@@ -61,18 +61,33 @@
 
 		// ===== COMPOSANT TOAST =====
 		const Toast = ({ message, type, onDismiss }) => {
-			if (!message) return null;
-			const styles = { error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' }, success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' } };
-			const style = styles[type] || styles.error;
-			React.useEffect(() => { const timer = setTimeout(() => onDismiss(), 5000); return () => clearTimeout(timer); }, [message, onDismiss]);
-			return ( <div className={`fixed bottom-20 right-4 left-4 sm:left-auto sm:max-w-sm p-4 border-2 rounded-lg shadow-lg fade-in z-50 ${style.bg} ${style.text} ${style.border}`}> <div className="flex justify-between items-start"> <span className="flex-1 pr-2 text-sm">{message}</span> <button onClick={onDismiss} className="ml-2 text-xl font-bold hover:opacity-70">&times;</button> </div> </div> );
-		};
+            if (!message) return null;
+            const styles = { error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' }, success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' } };
+            const style = styles[type] || styles.error;
+            React.useEffect(() => {
+                const timer = setTimeout(() => onDismiss(), 5000);
+                return () => clearTimeout(timer);
+            }, [message, onDismiss]);
+            return (
+                <div className={`fixed bottom-20 right-4 left-4 sm:left-auto sm:max-w-sm p-4 border-2 rounded-lg shadow-lg fade-in z-50 ${style.bg} ${style.text} ${style.border}`}>
+                    <div className="flex justify-between items-start">
+                        <span className="flex-1 pr-2 text-sm">{message}</span>
+                        <button onClick={onDismiss} className="ml-2 text-xl font-bold hover:opacity-70">&times;</button>
+                    </div>
+                </div>
+            );
+        };
 
 		// ===== COMPOSANT LOADING SPINNER =====
 		const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
-			const sizeClasses = { small: "w-4 h-4 border-2", normal: "w-8 h-8 border-2", large: "w-12 h-12 border-4" };
-			return ( <div className="flex flex-col items-center justify-center py-12 fade-in"> <div className={`animate-spin border-amber-600 border-t-transparent rounded-full mb-4 ${sizeClasses[size]}`}></div> <p className="text-amber-700 text-center">{message}</p> </div> );
-		};
+            const sizeClasses = { small: "w-4 h-4 border-2", normal: "w-8 h-8 border-2", large: "w-12 h-12 border-4" };
+            return (
+                <div className="flex flex-col items-center justify-center py-12 fade-in">
+                    <div className={`animate-spin border-amber-600 border-t-transparent rounded-full mb-4 ${sizeClasses[size]}`}></div>
+                    <p className="text-amber-700 text-center">{message}</p>
+                </div>
+            );
+        };
         
         // ===== COMPOSANT TIMELINE (FRISE CHRONOLOGIQUE) =====
         const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
@@ -119,11 +134,14 @@
         const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSession }) => {
             if (selectedIndex === null) return null;
             React.useEffect(() => { const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowLeft') onNavigate('prev'); if (e.key === 'ArrowRight') onNavigate('next'); }; window.addEventListener('keydown', handleKeyDown); return () => window.removeEventListener('keydown', handleKeyDown); }, [onClose, onNavigate]);
+            
             const cleanDriveImageLink = (url) => { if (!url) return null; return url.split('=')[0]; };
+            
             const currentPhoto = photos[selectedIndex];
             const canGoPrev = selectedIndex > 0;
             const canGoNext = selectedIndex < photos.length - 1;
             const largeImageUrl = cleanDriveImageLink(currentPhoto.webContentLink);
+
             return ( <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 fade-in p-4"> <button onClick={onClose} className="absolute top-4 right-4 text-white text-3xl hover:opacity-75 z-50">&times;</button> <div className="relative w-full h-full flex items-center justify-center"> <div className="relative flex items-center justify-center max-w-full max-h-full"> <img src={largeImageUrl} alt={currentPhoto.filename} className="max-h-[85vh] max-w-[90vw] object-contain"/> </div> <button onClick={() => onNavigate('prev')} disabled={!canGoPrev} className="absolute left-4 text-white text-4xl hover:opacity-75 disabled:opacity-30"><ChevronLeft className="w-10 h-10" /></button> <button onClick={() => onNavigate('next')} disabled={!canGoNext} className="absolute right-4 text-white text-4xl hover:opacity-75 disabled:opacity-30"><ChevronRight className="w-10 h-10" /></button> </div> <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-white bg-black/30 p-3 rounded-lg"> <p className="text-sm truncate pr-4">{currentPhoto.filename}</p> <button onClick={() => onCreateSession(currentPhoto)} className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4"/><span>Session</span></button> </div> </div> );
         };
 
@@ -136,77 +154,79 @@
 		};
 		
         // ===== MASTODON DATA MANAGEMENT =====
-        const MastodonData = {
-            decodeHtmlEntities: (text) => { const ta = document.createElement('textarea'); ta.innerHTML = text; return ta.value; },
-            parseOutbox: (jsonData) => {
-                try {
-                    const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-                    let orderedItems = data.orderedItems || (data.data && data.data.orderedItems) || [];
-                    if (!Array.isArray(orderedItems)) throw new Error('orderedItems is not an array');
-                    
-                    const allPosts = orderedItems.filter(item => item.type === 'Create' && item.object?.type === 'Note').map((item, index) => {
-                        const note = item.object;
-                        const content = note.content || '';
-                        const cleanContent = content.replace(/<[^>]*>/g, '');
-                        const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
-                        const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
-                        const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-                        let title = (dayNumber !== null ? decodedContent.replace(/^J\d{1,3}[\s:]+/, '') : decodedContent).split('\n')[0].slice(0, 60).trim();
-                        if (title.length === 60) title += '...';
-                        title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
-                        return { id: note.id || `post-${index}`, dayNumber, hasJourNumber: dayNumber !== null, title: title || 'Post sans titre', content: decodedContent, published: note.published || item.published, attachments: note.attachment || [], url: note.url };
-                    });
-
-                    const postsWithDay = allPosts.filter(p => p.hasJourNumber);
-                    const postsWithoutDay = allPosts.filter(p => !p.hasJourNumber);
-                    postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
-                    const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
-                    postsWithoutDay.forEach((post, index) => { post.dayNumber = maxDayNumber + index + 1; post.isExtraPost = true; });
-                    const finalPosts = [...postsWithDay, ...postsWithoutDay];
-                    finalPosts.forEach(p => { delete p.hasJourNumber; });
-                    return finalPosts;
-                } catch (error) { console.error('Erreur parsing outbox:', error); throw error; }
-            },
-            savePosts: (posts) => { Storage.set('mastodon_posts', posts); Storage.set('mastodon_imported_at', new Date().toISOString()); },
-            getPosts: () => Storage.get('mastodon_posts', []),
-            searchPosts: (query) => { const posts = MastodonData.getPosts(); if (!query.trim()) return posts; const terms = query.toLowerCase().trim().split(/\s+/); return posts.filter(p => terms.every(t => p.content.toLowerCase().includes(t))); },
-            getPostByDay: (day) => MastodonData.getPosts().find(p => p.dayNumber === day),
-            getRandomPost: () => { const p = MastodonData.getPosts(); return p.length ? p[Math.floor(Math.random() * p.length)] : null; },
-            isImported: () => MastodonData.getPosts().length > 0,
-            getStats: () => {
-                const posts = MastodonData.getPosts(); const extra = posts.filter(p => p.isExtraPost).length;
-                return { totalPosts: posts.length, regularPosts: posts.length - extra, extraPosts: extra, dayRange: posts.length > 0 ? { min: Math.min(...posts.map(p => p.dayNumber)), max: Math.max(...posts.map(p => p.dayNumber)) } : null, importedAt: Storage.get('mastodon_imported_at') };
-            }
-        };
+		const MastodonData = {
+			decodeHtmlEntities: (text) => {
+				const textArea = document.createElement('textarea');
+				textArea.innerHTML = text;
+				return textArea.value;
+			},
+			parseOutbox: (jsonData) => {
+				try {
+					const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+					let orderedItems = data.orderedItems || (data.data && data.data.orderedItems);
+					if (!Array.isArray(orderedItems)) throw new Error('orderedItems is not an array');
+					const allPosts = orderedItems.filter(item => item.type === 'Create' && item.object?.type === 'Note').map((item, index) => {
+						const note = item.object;
+						const content = note.content || '';
+						const cleanContent = content.replace(/<[^>]*>/g, '');
+						const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+						const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+						const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+						let title = (dayNumber !== null ? decodedContent.replace(/^J\d{1,3}[\s:]+/, '') : decodedContent).split('\n')[0].slice(0, 60).trim();
+						if (title.length === 60) title += '...';
+						title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
+						return { id: note.id || `post-${index}`, dayNumber, hasJourNumber: dayNumber !== null, title: title || 'Post sans titre', content: decodedContent, published: note.published || item.published, attachments: note.attachment || [], url: note.url };
+					});
+					const postsWithDay = allPosts.filter(p => p.hasJourNumber);
+					const postsWithoutDay = allPosts.filter(p => !p.hasJourNumber);
+					postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
+					const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
+					postsWithoutDay.forEach((post, index) => { post.dayNumber = maxDayNumber + index + 1; post.isExtraPost = true; });
+					const finalPosts = [...postsWithDay, ...postsWithoutDay];
+					finalPosts.forEach(p => delete p.hasJourNumber);
+					return finalPosts;
+				} catch (error) { console.error('Erreur parsing outbox:', error); throw error; }
+			},
+			savePosts: (posts) => { Storage.set('mastodon_posts', posts); Storage.set('mastodon_imported_at', new Date().toISOString()); },
+			getPosts: () => Storage.get('mastodon_posts', []),
+			getPostByDay: (dayNumber) => MastodonData.getPosts().find(post => post.dayNumber === dayNumber),
+			isImported: () => MastodonData.getPosts().length > 0,
+			getStats: () => {
+				const posts = MastodonData.getPosts();
+				const extraPosts = posts.filter(p => p.isExtraPost);
+				return { totalPosts: posts.length, dayRange: posts.length > 0 ? { min: Math.min(...posts.map(p => p.dayNumber)), max: Math.max(...posts.map(p => p.dayNumber)) } : null, importedAt: Storage.get('mastodon_imported_at') };
+			}
+		};
 
         // ===== PHOTO DATA MANAGEMENT =====
-        const PhotoData = {
-            parsePhotoIndex: (jsonData) => {
-                try {
-                    const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-                    let allPhotos = []; const photosByDay = {};
-                    for (const key in data) {
-                        if (data.hasOwnProperty(key)) {
-                            const entry = data[key];
-                            const day = entry.day;
-                            if (day && entry.photos && entry.photos.length > 0) {
-                                if (!photosByDay[day]) photosByDay[day] = [];
-                                const photoEntries = entry.photos.map(filename => ({ day, folderName: entry.folderName, filename }));
-                                photosByDay[day].push(...photoEntries);
-                                allPhotos.push(...photoEntries);
-                            }
-                        }
-                    }
-                    allPhotos.sort((a, b) => a.day - b.day);
-                    return { allPhotos, photosByDay };
-                } catch (e) { console.error("Erreur parsing index photos:", e); throw e; }
-            },
-            saveIndex: (indexData) => { Storage.set('photo_index', indexData); Storage.set('photo_index_imported_at', new Date().toISOString()); },
-            getIndex: () => Storage.get('photo_index', null),
-            getPhotosByDay: (day) => PhotoData.getIndex()?.photosByDay?.[day] || [],
-            isImported: () => !!PhotoData.getIndex(),
-            getStats: () => { const index = PhotoData.getIndex(); if (!index) return { totalPhotos: 0 }; return { totalPhotos: index.allPhotos.length, totalDays: Object.keys(index.photosByDay).length, importedAt: Storage.get('photo_index_imported_at') }; }
-        };
+		const PhotoData = {
+			parsePhotoIndex: (jsonData) => {
+				try {
+					const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+					let allPhotos = [];
+					const photosByDay = {};
+					for (const key in data) {
+						if (data.hasOwnProperty(key)) {
+							const entry = data[key];
+							const day = entry.day;
+							if (day && entry.photos && entry.photos.length > 0) {
+								if (!photosByDay[day]) { photosByDay[day] = []; }
+								const photoEntries = entry.photos.map(filename => ({ day: day, folderName: entry.folderName, filename: filename }));
+								photosByDay[day].push(...photoEntries);
+								allPhotos.push(...photoEntries);
+							}
+						}
+					}
+					allPhotos.sort((a, b) => a.day - b.day);
+					return { allPhotos, photosByDay };
+				} catch (error) { console.error("Erreur parsing index photos:", error); throw error; }
+			},
+			saveIndex: (indexData) => { Storage.set('photo_index', indexData); Storage.set('photo_index_imported_at', new Date().toISOString()); },
+			getIndex: () => Storage.get('photo_index', null),
+			getPhotosByDay: (dayNumber) => { const index = PhotoData.getIndex(); return index?.photosByDay?.[dayNumber] || []; },
+			isImported: () => !!PhotoData.getIndex(),
+			getStats: () => { const index = PhotoData.getIndex(); if (!index) return { totalPhotos: 0 }; return { totalPhotos: index.allPhotos.length, totalDays: Object.keys(index.photosByDay).length, importedAt: Storage.get('photo_index_imported_at') }; }
+		};
 
         // ===== GOOGLE DRIVE API =====
         const GOOGLE_CONFIG = {
@@ -219,75 +239,76 @@
             async init() { if (this.isInitialized) return; try { await new Promise(r => gapi.load('client', r)); await gapi.client.init({ apiKey: GOOGLE_CONFIG.API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CONFIG.CLIENT_ID, scope: GOOGLE_CONFIG.SCOPES, callback: '' }); this.isInitialized = true; } catch (e) { console.error('Erreur init API:', e); throw e; } },
             async signIn() { if (!this.isInitialized) await this.init(); return new Promise((resolve, reject) => { if (!this.tokenClient) return reject(new Error('Token client non initialisé')); this.tokenClient.callback = async (res) => { if (res.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${res.error}`)); } try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } catch (e) { this.isSignedIn = false; reject(new Error('Accès API impossible')); } }; const token = gapi.client.getToken(); if (token) { gapi.client.drive.files.list({ pageSize: 1 }).then(() => { this.isSignedIn = true; resolve(true); }).catch(() => { gapi.client.setToken(''); this.tokenClient.requestAccessToken({ prompt: 'consent' }); }); } else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); } }); },
             async signOut() { const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } this.isSignedIn = false; this._folderCache.clear(); },
-            async _findFile(name, parentId = 'root', mimeType = null) { const cacheKey = `${parentId}-${name}-${mimeType||'any'}`; if (this._folderCache.has(cacheKey)) return this._folderCache.get(cacheKey); try { let q = `'${parentId}' in parents and name='${name}' and trashed=false`; if (mimeType) q += ` and mimeType='${mimeType}'`; const res = await gapi.client.drive.files.list({ q, fields: 'files(id, name)', pageSize: 1 }); const file = res.result.files[0] || null; if (file) this._folderCache.set(cacheKey, file); return file; } catch (e) { console.error(`Erreur recherche '${name}':`, e); throw e; } },
+            async _findFile(name, parentId = 'root', mimeType = null) { const cacheKey = `${parentId}-${name}-${mimeType || 'any'}`; if (this._folderCache.has(cacheKey)) return this._folderCache.get(cacheKey); try { let query = `'${parentId}' in parents and name='${name}' and trashed=false`; if (mimeType) query += ` and mimeType='${mimeType}'`; const response = await gapi.client.drive.files.list({ q: query, fields: 'files(id, name)', pageSize: 1 }); const file = response.result.files[0] || null; if (file) this._folderCache.set(cacheKey, file); return file; } catch (e) { console.error(`Erreur recherche '${name}':`, e); throw e; } },
             async findMekongFile() { return this._findFile("mekong_sessions.json", "root"); },
-            async loadSessions() { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const file = await this.findMekongFile(); if (!file) return null; const res = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' }); return JSON.parse(res.body).sessions || []; } catch (e) { console.error('Erreur chargement sessions:', e); throw e; } },
-            async saveSessions(sessions) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const data = JSON.stringify({ sessions, lastUpdated: new Date().toISOString() }, null, 2); const file = await this.findMekongFile(); if (file) { await gapi.client.request({ path: `https://www.googleapis.com/upload/drive/v3/files/${file.id}`, method: 'PATCH', params: { uploadType: 'media' }, headers: { 'Content-Type': 'application/json' }, body: data }); } else { const boundary = '---314159'; const metadata = { name: 'mekong_sessions.json', mimeType: 'application/json' }; const body = `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${data}\r\n--${boundary}--`; await gapi.client.request({ path: '/upload/drive/v3/files', method: 'POST', params: { uploadType: 'multipart' }, headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` }, body }); } return true; } catch (e) { console.error('Erreur sauvegarde sessions:', e); throw e; } },
-            async loadJsonFile(fileName) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const file = await this._findFile(fileName, "root"); if (!file) return null; const res = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' }); return JSON.parse(res.body); } catch (e) { console.error(`Erreur chargement JSON '${fileName}':`, e); throw e; } },
-            async listPhotoFiles(folderId) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const res = await gapi.client.drive.files.list({ q: `'${folderId}' in parents and mimeType contains 'image/' and trashed=false`, fields: 'files(name, webContentLink, thumbnailLink)', pageSize: 500 }); return res.result.files || []; } catch (e) { console.error(`Erreur listing photos du dossier ${folderId}:`, e); return []; } }
+            async loadSessions() { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const file = await this.findMekongFile(); if (!file) return null; const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' }); return JSON.parse(response.body).sessions || []; } catch (error) { console.error('Erreur chargement sessions:', error); throw error; } },
+            async saveSessions(sessions) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const data = JSON.stringify({ sessions, lastUpdated: new Date().toISOString() }, null, 2); const existingFile = await this.findMekongFile(); if (existingFile) { await gapi.client.request({ path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`, method: 'PATCH', params: { uploadType: 'media' }, headers: { 'Content-Type': 'application/json' }, body: data }); } else { const boundary = '-------314159'; const metadata = { 'name': 'mekong_sessions.json', 'mimeType': 'application/json' }; const multipartRequestBody = `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${data}\r\n--${boundary}--`; await gapi.client.request({ 'path': 'https://www.googleapis.com/upload/drive/v3/files', 'method': 'POST', 'params': { 'uploadType': 'multipart' }, 'headers': { 'Content-Type': `multipart/related; boundary="${boundary}"` }, 'body': multipartRequestBody }); } return true; } catch (e) { console.error('Erreur sauvegarde sessions:', e); throw e; } },
+            async loadJsonFile(fileName) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const file = await this._findFile(fileName, "root"); if (!file) return null; const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' }); return JSON.parse(response.body); } catch (e) { console.error(`Erreur chargement JSON '${fileName}':`, e); throw e; } },
+            async listPhotoFiles(folderId) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const response = await gapi.client.drive.files.list({ q: `'${folderId}' in parents and mimeType contains 'image/' and trashed=false`, fields: 'files(name, webContentLink, thumbnailLink)', pageSize: 500 }); return response.result.files || []; } catch (e) { console.error(`Erreur listing photos du dossier ${folderId}:`, e); return []; } }
         };
 
         // ===== USER CONFIG & HELPERS =====
-        const USERS = { tom: { name: 'Tom', emoji: '🐘' }, lambert: { name: 'Lambert', emoji: '🐘' }, duo: { name: 'Duo', emoji: '🐘🐘' } };
+        const USERS = { tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' }, lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' }, duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' } };
+        const getUserStyle = (userKey) => { const user = USERS[userKey]; if (!user) return {}; const styles = { blue: { bg: 'bg-blue-100', border: 'border-blue-300' }, green: { bg: 'bg-green-100', border: 'border-green-300' }, amber: { bg: 'bg-amber-100', border: 'border-amber-300' } }; return styles[user.color] || {}; };
+        const GAMES = [ { id: 1, title: "Photo roulette" }, { id: 7, title: "Souvenir du jour" } ];
         const getGameById = (id) => GAMES.find(g => g.id === id);
 
-        // ===== APP STATE & SESSION MANAGEMENT =====
-        const useAppState = () => { const [page, setPage] = React.useState('home'); const [user, setUser] = React.useState(Storage.get('currentUser', '')); React.useEffect(() => { Storage.set('currentUser', user); }, [user]); const resetApp = () => { setPage('home'); setUser(''); Storage.clear(); }; return { currentPage: page, setCurrentPage: setPage, currentUser: user, setCurrentUser: setUser, resetApp }; };
-        const useSessionState = () => { const [sessions, setSessions] = React.useState(Storage.get('sessions', [])); const saveSessionsToStorage = (s) => { Storage.set('sessions', s); setSessions(s); }; const createSession = (game, user, initialContent = null) => { const newSession = { id: Date.now(), gameId: game.id, gameTitle: game.title, user, createdAt: new Date().toISOString(), notes: initialContent ? [{id: Date.now(), content: initialContent, author: 'duo', timestamp: new Date().toISOString()}] : [] }; const newSessions = [newSession, ...sessions]; saveSessionsToStorage(newSessions); return newSession; }; const updateSession = (updated) => { const newSessions = sessions.map(s => s.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : s); saveSessionsToStorage(newSessions); }; const deleteSession = (id) => { if (confirm('Supprimer cette session ?')) { const newSessions = sessions.filter(s => s.id !== id); saveSessionsToStorage(newSessions); } }; return { sessions, createSession, updateSession, deleteSession }; };
+        // ===== APP STATE MANAGEMENT (HOOKS) =====
+        const useAppState = () => { const [currentPage, setCurrentPage] = React.useState('home'); const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', '')); React.useEffect(() => { Storage.set('currentUser', currentUser); }, [currentUser]); const resetApp = () => { setCurrentPage('home'); setCurrentUser(''); Storage.clear(); window.location.reload(); }; return { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp }; };
         
-        // ===== GOOGLE AUTH & SYNC =====
-        const useGoogleAuthAndSync = (sessions, setSessions) => {
-            const [isConnected, setIsConnected] = React.useState(false);
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [toast, setToast] = React.useState({ msg: '', type: '' });
+        const useSessionManager = () => {
+            const [sessions, setSessions] = React.useState(() => Storage.get('sessions', []));
+            const [isSyncing, setIsSyncing] = React.useState(false);
+            const [toast, setToast] = React.useState({ message: '', type: '' });
 
-            const sync = async () => {
+            const syncWithCloud = React.useCallback(async () => {
                 if (!GoogleDriveAPI.isSignedIn) return;
+                setIsSyncing(true);
                 try {
                     const cloudSessions = await GoogleDriveAPI.loadSessions();
-                    if (cloudSessions) {
-                        const localSessions = Storage.get('sessions', []);
-                        // Simple merge: cloud data is king, but keep local new sessions
-                        const cloudIds = new Set(cloudSessions.map(s => s.id));
-                        const newLocal = localSessions.filter(s => !cloudIds.has(s.id));
-                        const merged = [...cloudSessions, ...newLocal].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                        Storage.set('sessions', merged);
-                        setSessions(merged);
-                        setToast({ msg: 'Synchronisation réussie', type: 'success' });
+                    if(cloudSessions) {
+                        Storage.set('sessions', cloudSessions);
+                        setSessions(cloudSessions);
+                        setToast({ message: 'Synchronisation réussie', type: 'success' });
                     }
-                } catch (e) { setToast({ msg: `Échec de la synchronisation: ${e.message}`, type: 'error' }); }
-            };
-
-            const signIn = async () => {
-                try {
-                    await GoogleDriveAPI.signIn();
-                    setIsConnected(true);
-                    await sync();
-                } catch (e) { setToast({ msg: `Erreur de connexion: ${e.message}`, type: 'error' }); }
+                } catch (e) {
+                    setToast({ message: `Échec de la synchronisation : ${e.message}`, type: 'error' });
+                } finally {
+                    setIsSyncing(false);
+                }
+            }, []);
+            
+            const updateAndSaveSession = async (updatedSession) => {
+                const newSessions = sessions.map(s => s.id === updatedSession.id ? updatedSession : s);
+                setSessions(newSessions);
+                Storage.set('sessions', newSessions);
+                if (GoogleDriveAPI.isSignedIn) {
+                    try {
+                        await GoogleDriveAPI.saveSessions(newSessions);
+                    } catch (e) {
+                        setToast({ message: `La session est sauvegardée localement, mais la synchro a échoué.`, type: 'error' });
+                    }
+                }
             };
             
-            React.useEffect(() => {
-                const init = async () => {
-                    setIsLoading(true);
-                    await GoogleDriveAPI.init();
-                    // Auto-signin attempt
-                    if (gapi.client.getToken()) {
-                        GoogleDriveAPI.isSignedIn = true;
-                        setIsConnected(true);
-                        await sync();
-                    }
-                    setIsLoading(false);
-                };
-                init();
-            }, []);
+            const createAndSaveSession = async (game, user, initialContent = null) => {
+                const newSession = { id: Date.now(), gameId: game.id, gameTitle: game.title, user, createdAt: new Date().toISOString(), notes: initialContent ? [{id: Date.now(), content: initialContent, author: 'duo', timestamp: new Date().toISOString()}] : [] };
+                const newSessions = [newSession, ...sessions];
+                setSessions(newSessions);
+                Storage.set('sessions', newSessions);
+                if (GoogleDriveAPI.isSignedIn) {
+                    try { await GoogleDriveAPI.saveSessions(newSessions); } catch(e) { setToast({ message: 'Session créée localement, mais la synchro a échoué.', type: 'error' }); }
+                }
+                return newSession;
+            };
 
-            return { isConnected, isLoading, signIn, toast, setToast };
+            return { sessions, syncWithCloud, updateAndSaveSession, createAndSaveSession, toast, setToast };
         };
 
-        // ===== MAIN PAGES =====
-
+        // ===== MAIN PAGE COMPONENTS =====
+        
         const HomePage = ({ onPageChange }) => (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                 <button onClick={() => onPageChange('sessions')} className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"> <Play className="w-12 h-12 text-blue-600 mx-auto mb-4" /> <h3 className="text-lg font-semibold">Sessions</h3> <p className="text-sm text-gray-600">Créer ou reprendre une session</p> </button>
                 <button onClick={() => onPageChange('memories')} className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"> <Cloud className="w-12 h-12 text-green-600 mx-auto mb-4" /> <h3 className="text-lg font-semibold">Mémoires</h3> <p className="text-sm text-gray-600">Explorer le blog et les photos</p> </button>
                 <button onClick={() => onPageChange('settings')} className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"> <Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" /> <h3 className="text-lg font-semibold">Réglages</h3> <p className="text-sm text-gray-600">Configuration et import</p> </button>
@@ -312,10 +333,10 @@
             const renderMessageContent = (content) => {
                 const match = content.match(/\[IMAGE\](.*?)\[\/IMAGE\]/);
                 if (match && match[1]) {
-                    const text = content.replace(match[0], '').trim();
-                    return (<> <img src={match[1]} className="rounded-lg max-w-xs my-2" /> {text && <p className="mt-2">{text}</p>} </>);
+                    const textAfterImage = content.replace(match[0], '').trim();
+                    return (<> <img src={match[1]} className="rounded-lg max-w-xs my-2 border-2 border-gray-200" alt="Souvenir partagé" /> {textAfterImage && <p className="mt-2">{textAfterImage}</p>} </>);
                 }
-                return <p>{content}</p>;
+                return <p className="whitespace-pre-wrap">{content}</p>;
             };
             return (
                 <div className="flex flex-col h-[70vh]">
@@ -325,14 +346,14 @@
                             <div key={note.id} className={`flex ${note.author === currentUser ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${note.author === currentUser ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
                                     {renderMessageContent(note.content)}
-                                    <div className="text-xs opacity-70 mt-1">{note.author} - {new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                    <div className={`text-xs opacity-70 mt-1 ${note.author === currentUser ? 'text-blue-100' : 'text-gray-600'}`}>{USERS[note.author]?.name || note.author} - {new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                                 </div>
                             </div>
                         ))}
                     </div>
                     <div className="mt-4 flex space-x-2">
-                        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Votre souvenir..." className="flex-1 resize-none border rounded-lg p-2" rows="3"></textarea>
-                        <button onClick={addNote} className="w-12 h-12 self-end bg-blue-500 text-white rounded-lg flex items-center justify-center"><Send className="w-6 h-6"/></button>
+                        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Votre souvenir..." className="flex-1 resize-none border-2 border-gray-200 focus:border-amber-500 rounded-lg p-2 focus:outline-none" rows="3"></textarea>
+                        <button onClick={addNote} className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center flex-shrink-0"><Send className="w-6 h-6"/></button>
                     </div>
                 </div>
             );
@@ -378,7 +399,7 @@
                         for (const filename of foldersToQuery[folderName]) {
                             if (driveFilesMap.has(filename)) {
                                 const fileData = driveFilesMap.get(filename);
-                                allFoundPhotos.push({ ...fileData, filename, thumbnailLink: cleanDriveImageLink(fileData.thumbnailLink), webContentLink: cleanDriveImageLink(fileData.webContentLink) });
+                                allFoundPhotos.push({ ...fileData, filename, thumbnailLink: cleanDriveImageLink(fileData.thumbnailLink), webContentLink: fileData.webContentLink });
                             }
                         }
                     }
@@ -386,44 +407,45 @@
                 setDayPhotos(allFoundPhotos); setIsLoadingPhotos(false);
             };
 
-            const createSessionFromPhoto = (photo) => { const game = getGameById(1); const content = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`; onCreateSession(game, content); };
+            const createSessionFromPhoto = (photo) => { const game = getGameById(1); const content = `[IMAGE]${cleanDriveImageLink(photo.webContentLink)}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`; onCreateSession(game, content); };
+            const createSessionFromPost = (post) => { const game = getGameById(7); const content = post.content.slice(0, 300) + '...'; onCreateSession(game, content); };
 
             return (
                 <div className="space-y-6">
                     <Timeline currentDay={currentDay} maxDay={mastodonStats?.dayRange?.max || 275} onDaySelect={setCurrentDay} />
                     <div className="flex justify-center border-b">
-                        <button onClick={() => setActiveTab('blog')} className={`px-6 py-3 font-semibold ${activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`}><BookOpen className="w-5 h-5 inline mr-2"/>Blog</button>
+                        <button onClick={() => setActiveTab('blog')} className={`px-6 py-3 font-semibold ${activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!MastodonData.isImported()}><BookOpen className="w-5 h-5 inline mr-2"/>Blog</button>
                         <button onClick={() => setActiveTab('photos')} className={`px-6 py-3 font-semibold ${activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isPhotoIndexImported}><Camera className="w-5 h-5 inline mr-2"/>Photos</button>
                     </div>
                     <div className="bg-white p-4 rounded-lg border min-h-[300px]">
                         {activeTab === 'photos' ? (isLoadingPhotos ? <LoadingSpinner message="Chargement..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={setSelectedPhotoIndex} />)
-                        : (currentPost ? <div><h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3><div className="prose max-w-none mt-4"><p>{currentPost.content}</p></div></div> : <p className="text-center py-12">Aucun post.</p>)}
+                        : (currentPost ? ( <div> <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3> <button onClick={()=>createSessionFromPost(currentPost)} className="float-right -mt-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm flex items-center gap-2"><Plus className="w-4 h-4"/>Session</button> <div className="prose max-w-none mt-4"><p className="whitespace-pre-wrap">{currentPost.content}</p></div></div> ) : <p className="text-center py-12">Aucun post.</p>)}
                     </div>
-                    {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={(dir) => setSelectedPhotoIndex(i => dir === 'next' ? i+1 : i-1)} onCreateSession={createSessionFromPhoto} />}
+                    {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={(dir) => setSelectedPhotoIndex(i => dir === 'next' && i < dayPhotos.length - 1 ? i+1 : dir === 'prev' && i > 0 ? i-1 : i)} onCreateSession={createSessionFromPhoto} />}
                 </div>
             );
         };
         
-        const SettingsPage = ({ googleAuth, setSessions }) => {
-            const { isConnected, signIn } = googleAuth;
+        const SettingsPage = ({ onReset }) => {
             const [status, setStatus] = React.useState('');
-            
+            const { isConnected, signIn } = useGoogleAuthAndSync();
+
             const handleImport = async (importer, parser, saver, fileName, dataType) => {
                 setStatus(`Import de ${dataType}...`);
                 try {
                     const data = await importer(fileName);
-                    if (!data) throw new Error(`Fichier ${fileName} introuvable sur votre Google Drive.`);
+                    if (!data) throw new Error(`Fichier ${fileName} introuvable.`);
                     const parsed = parser(data);
                     saver(parsed);
                     setStatus(`✅ ${dataType} importé(e)s avec succès !`);
                 } catch(e) { setStatus(`❌ Erreur: ${e.message}`); }
             };
 
-            const importMastodon = (file) => new Promise((resolve, reject) => {
+            const importMastodonFromFile = (file) => new Promise((resolve, reject) => {
                 if (!file) return reject(new Error("Aucun fichier sélectionné."));
                 const reader = new FileReader();
                 reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(new Error("Erreur de lecture du fichier."));
+                reader.onerror = () => reject(new Error("Erreur de lecture du fichier."));
                 reader.readAsText(file);
             });
 
@@ -431,70 +453,72 @@
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <h3 className="text-lg font-semibold mb-4">Connexion Google Drive</h3>
-                        {isConnected ? <p className="text-green-700">✅ Connecté et synchronisé.</p> : <button onClick={signIn} className="px-4 py-2 bg-blue-500 text-white rounded">Se Connecter</button>}
+                        {GoogleDriveAPI.isSignedIn ? <p className="text-green-700">✅ Connecté.</p> : <button onClick={signIn} className="px-4 py-2 bg-blue-500 text-white rounded">Se Connecter</button>}
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                         <h3 className="text-lg font-semibold">Imports de Données</h3>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <label htmlFor="mastodon-file" className="flex-1 w-full text-center px-4 py-2 border rounded hover:bg-gray-50 cursor-pointer">Importer Blog Mastodon</label>
-                            <input type="file" id="mastodon-file" className="hidden" onChange={(e) => handleImport(() => importMastodon(e.target.files[0]), MastodonData.parseOutbox, MastodonData.savePosts, null, 'Blog Mastodon')} />
-                            
-                            {/* LA CORRECTION EST ICI : on utilise .bind(GoogleDriveAPI) */}
-                            <button 
-                                onClick={() => handleImport(GoogleDriveAPI.loadJsonFile.bind(GoogleDriveAPI), PhotoData.parsePhotoIndex, PhotoData.saveIndex, 'photos_index_clean.json', 'Index Photos')} 
-                                className="flex-1 px-4 py-2 border rounded hover:bg-gray-50" 
-                                disabled={!isConnected}>
-                                Importer Index Photos (Drive)
-                            </button>
+                            <input type="file" id="mastodon-file" className="hidden" onChange={(e) => handleImport(() => importMastodonFromFile(e.target.files[0]), MastodonData.parseOutbox, MastodonData.savePosts, null, 'Blog Mastodon')} />
+                            <button onClick={() => handleImport(GoogleDriveAPI.loadJsonFile.bind(GoogleDriveAPI), PhotoData.parsePhotoIndex, PhotoData.saveIndex, 'photos_index_clean.json', 'Index Photos')} className="flex-1 px-4 py-2 border rounded hover:bg-gray-50" disabled={!GoogleDriveAPI.isSignedIn}>Importer Index Photos (Drive)</button>
                         </div>
                         {status && <p className="text-center text-sm mt-4">{status}</p>}
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <h3 className="text-lg font-semibold mb-4">Réinitialisation</h3>
-                        <button onClick={() => {if(confirm('Réinitialiser toute l\'application ?')) { Storage.clear(); window.location.reload(); }}} className="px-4 py-2 bg-red-500 text-white rounded">Reset Complet</button>
+                        <button onClick={onReset} className="px-4 py-2 bg-red-500 text-white rounded">Reset Complet</button>
                     </div>
                 </div>
             );
         };
         
         // ===== APP ROOT =====
-        const GAMES = [ { id: 1, title: "Photo roulette" }, { id: 7, title: "Souvenir du jour" } ]; // Simplified
         const MemoireMekong = () => {
-            const { currentPage, setCurrentPage, currentUser, setCurrentUser } = useAppState();
-            const { sessions, createSession, updateSession, deleteSession } = useSessionState();
-            const { isConnected, isLoading, signIn, toast, setToast } = useGoogleAuthAndSync(sessions, (newSessions) => updateSession({ id: -1, notes: [] }, newSessions)); // Workaround to update sessions from sync
-
+            const { currentPage, setCurrentPage, currentUser, setCurrentUser, resetApp } = useAppState();
+            const { sessions, syncWithCloud, updateAndSaveSession, createAndSaveSession, toast, setToast } = useSessionManager();
             const [currentChatSession, setCurrentChatSession] = React.useState(null);
 
+            React.useEffect(() => {
+                const autoSync = async () => {
+                    await GoogleDriveAPI.init();
+                    if(gapi.client.getToken()){
+                       GoogleDriveAPI.isSignedIn = true;
+                       await syncWithCloud();
+                    }
+                };
+                autoSync();
+            }, []);
+
             const handleSessionSelect = (session) => { setCurrentChatSession(session); setCurrentPage('chat'); };
-            const handleCreateSession = (game, content) => { const newSession = createSession(game, currentUser, content); handleSessionSelect(newSession); };
+            const handleCreateSession = (game, content) => { const newSession = createAndSaveSession(game, currentUser, content); handleSessionSelect(newSession); };
 
             const PageContent = () => {
                 switch(currentPage) {
                     case 'home': return <HomePage onPageChange={setCurrentPage} />;
-                    case 'sessions': return <SessionsPage sessions={sessions} onSessionSelect={handleSessionSelect} onNewSession={() => alert("Choisissez un jeu depuis la page Mémoires.")} />;
-                    case 'chat': return currentChatSession ? <ChatPage session={currentChatSession} onUpdateSession={updateSession} currentUser={currentUser} /> : <p>Session non trouvée.</p>;
+                    case 'sessions': return <SessionsPage sessions={sessions} onSessionSelect={handleSessionSelect} onNewSession={() => setCurrentPage('memories')} />;
+                    case 'chat': return currentChatSession ? <ChatPage session={currentChatSession} onUpdateSession={updateAndSaveSession} currentUser={currentUser} /> : <div onClick={()=>setCurrentPage('sessions')} className="cursor-pointer text-center py-8">Session non sélectionnée. Retour aux sessions.</div>;
                     case 'memories': return <MemoriesPage onCreateSession={handleCreateSession} />;
-                    case 'settings': return <SettingsPage googleAuth={{isConnected, signIn}} />;
+                    case 'settings': return <SettingsPage onReset={resetApp} />;
                     default: return <HomePage onPageChange={setCurrentPage} />;
                 }
             };
             
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-                    <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b">
+                    <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b flex justify-between items-center">
                         <h1 className="text-xl font-bold text-amber-900">{currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}</h1>
+                        {currentUser && <div className="flex items-center gap-2 text-sm"><span>{USERS[currentUser].name}</span><span className="text-2xl">{USERS[currentUser].emoji}</span></div>}
                     </header>
                     <main className="p-4 pb-24"><div className="max-w-6xl mx-auto"><div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">{PageContent()}</div></div></main>
                     <footer className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-t flex justify-around">
                         {['home', 'sessions', 'memories', 'settings'].map(p => (
-                            <button key={p} onClick={() => setCurrentPage(p)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${currentPage === p ? 'text-amber-600' : 'text-gray-500'}`}>
+                            <button key={p} onClick={() => setCurrentPage(p)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${currentPage === p ? 'text-amber-600' : 'text-gray-500 hover:text-amber-500'}`}>
                                 {React.createElement({home: Home, sessions: BookOpen, memories: Cloud, settings: Settings}[p], {className: "w-6 h-6 mb-1"})}
                                 <span className="text-xs font-medium">{p.charAt(0).toUpperCase() + p.slice(1)}</span>
                             </button>
                         ))}
                     </footer>
-                    <Toast message={toast.msg} type={toast.type} onDismiss={() => setToast({msg: '', type: ''})} />
+                    <Toast message={toast.message} type={toast.type} onDismiss={() => setToast({message: '', type: ''})} />
                 </div>
             );
         };
