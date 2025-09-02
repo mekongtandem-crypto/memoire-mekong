@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>🐘 Mémoire du Mékong V0.5.2.0 : Phase 2 - Composants UI Photos</title>    
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+	<title>🐘 Mémoire du Mékong V0.5.3.0 : Phase 3 - Intégration Page Mémoires</title>
+	<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
     <script src="https://apis.google.com/js/api.js"></script>
@@ -2649,254 +2649,201 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (MODIFIÉE - AVEC SPINNER CREATION)
+// Page Memoire (MODIFIÉE - V3 AVEC PHOTOS, TIMELINE ET TABS)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
+    // États de base
+    const [currentDay, setCurrentDay] = React.useState(1);
+    const [activeTab, setActiveTab] = React.useState('blog'); // 'blog' ou 'photos'
+    
+    // États pour le blog
     const [currentPost, setCurrentPost] = React.useState(null);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [searchResults, setSearchResults] = React.useState([]);
-    const [dayNumber, setDayNumber] = React.useState(1);
     const [viewMode, setViewMode] = React.useState('blog');
     
-    const isInitialLoad = React.useRef(true);
+    // NOUVEAU : États pour les photos
+    const [dayPhotos, setDayPhotos] = React.useState([]);
+    const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
 
-    const isImported = MastodonData.isImported();
-    const stats = MastodonData.getStats();
-
+    const isMastodonImported = MastodonData.isImported();
+    const mastodonStats = MastodonData.getStats();
+    const isPhotoIndexImported = PhotoData.isImported();
+    
+    // --- EFFETS ---
+    
+    // Chargement initial et mise à jour quand le jour change
     React.useEffect(() => {
-        if (isImported && isInitialLoad.current) {
-            const randomPost = MastodonData.getRandomPost();
-            if (randomPost) {
-                setCurrentPost(randomPost);
-                setDayNumber(randomPost.dayNumber);
-            }
-            isInitialLoad.current = false;
-        }
-    }, [isImported]);
-
-    React.useEffect(() => {
-        if (isImported && !isInitialLoad.current) {
-            const post = MastodonData.getPostByDay(dayNumber);
+        if (isMastodonImported) {
+            const post = MastodonData.getPostByDay(currentDay);
             setCurrentPost(post);
         }
-    }, [dayNumber, isImported]);
+        if (isPhotoIndexImported) {
+            loadPhotosForDay(currentDay);
+        }
+    }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
-    const handleSearch = () => {
-        if (searchQuery.trim()) {
-            const results = MastodonData.searchPosts(searchQuery);
-            setSearchResults(results);
-            setViewMode('search');
-        } else {
-            setSearchResults([]);
-            setViewMode('blog');
+    // --- FONCTIONS ---
+
+    const handleDaySelect = (day) => {
+        setCurrentDay(day);
+        setViewMode('blog'); // Revenir à la vue blog/photo par défaut
+        setActiveTab('blog'); // Optionnel: revenir au blog par défaut
+    };
+
+    const loadPhotosForDay = async (day) => {
+        setIsLoadingPhotos(true);
+        setDayPhotos([]); // Vider les photos précédentes
+        const photoIndexEntries = PhotoData.getPhotosByDay(day);
+        
+        if (photoIndexEntries.length > 0) {
+            // Utiliser Promise.all pour charger les URLs en parallèle
+            const photoPromises = photoIndexEntries.map(async (photoInfo) => {
+                const url = await GoogleDriveAPI.getPhotoWebContentLink(photoInfo);
+                return { ...photoInfo, webContentLink: url };
+            });
+            const photosWithLinks = await Promise.all(photoPromises);
+            setDayPhotos(photosWithLinks.filter(p => p.webContentLink)); // Garder uniquement celles avec un lien valide
+        }
+        setIsLoadingPhotos(false);
+    };
+    
+    const createSessionFromPost = (post) => {
+        const game = getGameById(7); // Jeu "Souvenir du jour"
+        const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
+        
+        onCreateSession({
+            type: 'game',
+            game: { ...game, title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}` },
+            postContent: postPreview
+        });
+    };
+    
+    // NOUVEAU : Créer une session depuis une photo
+    const createSessionFromPhoto = (photo) => {
+        const game = {
+            id: 1, // Jeu "Photo Roulette"
+            title: `Souvenir photo du jour ${photo.day}`,
+            description: `Discussion autour de la photo : ${photo.filename}`,
+        };
+
+        // On prépare une note initiale avec l'image
+        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo...`;
+        
+        onCreateSession({
+            type: 'game',
+            game: game,
+            postContent: initialNoteContent // On utilise le même canal pour passer l'info
+        });
+    };
+    
+    const handlePhotoSelect = (index) => {
+        setSelectedPhotoIndex(index);
+    };
+
+    const handlePhotoNavigate = (direction) => {
+        if (direction === 'prev' && selectedPhotoIndex > 0) {
+            setSelectedPhotoIndex(selectedIndex - 1);
+        } else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) {
+            setSelectedPhotoIndex(selectedIndex + 1);
         }
     };
     
-    const showRandomPost = () => {
-        const randomPost = MastodonData.getRandomPost();
-        if (randomPost) {
-            setCurrentPost(randomPost);
-            setDayNumber(randomPost.dayNumber);
-            setViewMode('blog');
-        }
-    };
-
-    const goToPreviousDay = () => {
-        if (dayNumber > 1) {
-            setDayNumber(dayNumber - 1);
-            setViewMode('blog');
-        }
-    };
-
-    const goToNextDay = () => {
-        if (stats?.dayRange && dayNumber < stats.dayRange.max) {
-            setDayNumber(dayNumber + 1);
-            setViewMode('blog');
-        }
-    };
-
-    const createSessionFromPost = async (post) => {
-        const game = {
-            id: 7,
-            title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}`,
-            description: `Discussion autour du post du jour ${post.dayNumber}`,
-            duration: "libre",
-            type: "mémoire",
-            icon: BookOpen
-        };
-        
-        const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
-        
-        if (onCreateSession) {
-            onCreateSession({ type: 'game', game, postContent: postPreview });
-        }
-    };
-
-    // NOUVEAU : Si en cours de création, afficher le spinner
-    if (isCreatingSession) {
+    // --- RENDU ---
+    
+    // Si données non importées
+    if (!isMastodonImported && !isPhotoIndexImported) {
         return (
-            <div className="space-y-6 fade-in">
-                <LoadingSpinner message="Création de votre session de mémoire..." size="normal" />
+             <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+                <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-blue-900 mb-4">Aucune mémoire importée</h3>
+                <p className="text-blue-700">Importez votre blog Mastodon ou votre index de photos pour commencer.</p>
+                <p className="text-sm text-blue-600 mt-6">Rendez-vous dans <strong>Réglages</strong>.</p>
             </div>
         );
     }
-
-    if (!isImported) {
-        return (
-            <div className="space-y-6 fade-in">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-                    <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-blue-900 mb-4">Blog Mastodon non importé</h3>
-                    <p className="text-blue-700 mb-6">Importez votre fichier outbox.json pour explorer vos posts de voyage.</p>
-                    <p className="text-sm text-blue-600 mb-6">Rendez-vous dans <strong>Réglages</strong> → <strong>Importer blog Mastodon</strong></p>
-                </div>
-            </div>
-        );
+    
+    if (isCreatingSession) {
+        return <LoadingSpinner message="Création de votre session de mémoire..." size="large" />;
     }
 
     return (
         <div className="space-y-6 fade-in">
-            {/* 1. Navigation et Hasard */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
-                <div className="flex items-center justify-center space-x-4">
-                    <button 
-                        onClick={goToPreviousDay} 
-                        disabled={dayNumber <= 1 || isCreatingSession} 
-                        className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div className="flex items-baseline space-x-2">
-                        <label className="font-medium text-gray-700">Jour</label>
-                        <input 
-                            type="number" 
-                            min="1" 
-                            max={stats?.dayRange?.max} 
-                            value={dayNumber} 
-                            onChange={(e) => setDayNumber(parseInt(e.target.value) || 1)} 
-                            disabled={isCreatingSession}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-center font-bold text-lg disabled:opacity-50"
-                        />
-                        <span className="text-gray-500">/ {stats?.dayRange?.max}</span>
-                    </div>
-                    <button 
-                        onClick={goToNextDay} 
-                        disabled={!stats?.dayRange || dayNumber >= stats.dayRange.max || isCreatingSession} 
-                        className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
-                    <button 
-                        onClick={showRandomPost} 
-                        disabled={isCreatingSession}
-                        className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg disabled:opacity-50" 
-                        title="Post au hasard"
-                    >
-                        <Shuffle className="w-5 h-5" />
-                    </button>
-                </div>
+            {/* 1. Navigation temporelle */}
+            <Timeline 
+                currentDay={currentDay} 
+                maxDay={mastodonStats?.dayRange?.max || 275} 
+                onDaySelect={handleDaySelect} 
+            />
+
+            {/* 2. Sélecteur d'onglet */}
+            <div className="flex justify-center border-b border-gray-200">
+                <button 
+                    onClick={() => setActiveTab('blog')}
+                    className={`px-6 py-3 text-sm font-semibold transition-colors ${activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500 hover:text-amber-500'}`}
+                    disabled={!isMastodonImported}
+                >
+                    <BookOpen className="w-5 h-5 inline-block mr-2" /> Blog
+                </button>
+                <button 
+                    onClick={() => setActiveTab('photos')}
+                    className={`px-6 py-3 text-sm font-semibold transition-colors ${activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500 hover:text-amber-500'}`}
+                    disabled={!isPhotoIndexImported}
+                >
+                    <Camera className="w-5 h-5 inline-block mr-2" /> Photos
+                </button>
             </div>
 
-            {/* 2. Recherche */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <div className="flex space-x-2">
-                    <input 
-                        type="text" 
-                        value={searchQuery} 
-                        onChange={(e) => setSearchQuery(e.target.value)} 
-                        onKeyDown={(e) => e.key === 'Enter' && !isCreatingSession && handleSearch()} 
-                        placeholder="Rechercher un souvenir..." 
-                        disabled={isCreatingSession}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50" 
-                    />
-                    <button 
-                        onClick={handleSearch} 
-                        disabled={isCreatingSession}
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg disabled:opacity-50"
-                    >
-                        <Search className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-
-            {/* 3. Contenu */}
-            {viewMode === 'search' && searchResults.length > 0 ? (
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{searchResults.length} résultat(s) pour "{searchQuery}"</h3>
-                    {searchResults.map((post) => (
-                        <div key={post.id} className="bg-white p-4 rounded-lg border border-gray-200">
-                            <div className="flex justify-between items-start mb-3">
-                                <h4 className="font-medium text-amber-900">Jour {post.dayNumber}</h4>
-                                <div className="flex space-x-2">
-                                    <button 
-                                        onClick={() => { setDayNumber(post.dayNumber); setViewMode('blog'); }} 
-                                        disabled={isCreatingSession}
-                                        className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-sm disabled:opacity-50"
-                                    >
-                                        Voir
-                                    </button>
-                                    <button 
-                                        onClick={() => createSessionFromPost(post)} 
-                                        disabled={isCreatingSession}
-                                        className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded text-sm flex items-center space-x-1 disabled:opacity-50"
-                                    >
-                                        <Plus className="w-3 h-3" />
-                                        <span>Session</span>
-                                    </button>
-                                </div>
+            {/* 3. Contenu de l'onglet */}
+            <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
+                {activeTab === 'blog' ? (
+                    isMastodonImported && currentPost ? (
+                        <div>
+                             <div className="flex justify-between items-start mb-4">
+                                <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
+                                <button 
+                                    onClick={() => createSessionFromPost(currentPost)} 
+                                    className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>Session</span>
+                                </button>
                             </div>
-                            <p className="text-gray-700 text-sm leading-relaxed">{post.content.slice(0, 300)}{post.content.length > 300 && '...'}</p>
+                            <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
+                                <p>{currentPost.content}</p>
+                            </div>
                         </div>
-                    ))}
-                </div>
-            ) : viewMode === 'search' && searchResults.length === 0 && searchQuery ? (
-                <div className="bg-gray-50 p-8 rounded-lg text-center">
-                    <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun résultat</h3>
-                    <p className="text-gray-500">Essayez d'autres mots-clés.</p>
-                </div>
-            ) : currentPost ? (
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                    <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
-                        <button 
-                            onClick={() => createSessionFromPost(currentPost)} 
-                            disabled={isCreatingSession}
-                            className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            {isCreatingSession ? (
-                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                            ) : (
-                                <Plus className="w-4 h-4" />
-                            )}
-                            <span>Session</span>
-                        </button>
-                    </div>
-                    <div className="prose max-w-none prose-p:text-gray-800 prose-p:leading-relaxed prose-p:whitespace-pre-line">
-                        <p>{currentPost.content}</p>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
-                        <span>{new Date(currentPost.published).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                        {currentPost.attachments && currentPost.attachments.length > 0 && (
-                            <span className="flex items-center space-x-1 font-medium">
-                                <Camera className="w-4 h-4"/>
-                                <span>{currentPost.attachments.length}</span>
-                            </span>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <div className="bg-gray-50 p-8 rounded-lg text-center">
-                    <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun post ce jour</h3>
-                    <p className="text-gray-500">Essayez un autre jour ou utilisez la recherche.</p>
-                </div>
+                    ) : (
+                        <div className="text-center py-12 text-gray-500">
+                           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                           <p>Aucun post de blog pour ce jour.</p>
+                        </div>
+                    )
+                ) : (
+                    isLoadingPhotos ? (
+                        <LoadingSpinner message="Chargement des photos..." />
+                    ) : (
+                        <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
+                    )
+                )}
+            </div>
+
+            {/* 4. Visionneuse (modale) */}
+            {selectedPhotoIndex !== null && (
+                <PhotoViewer 
+                    photos={dayPhotos}
+                    selectedIndex={selectedPhotoIndex}
+                    onClose={() => setSelectedPhotoIndex(null)}
+                    onNavigate={handlePhotoNavigate}
+                    onCreateSession={createSessionFromPhoto}
+                />
             )}
         </div>
     );
 };
 		
 		
-		
+// ====Pages Config réglages Settings  =====		
 const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
     const [mastodonImportStatus, setMastodonImportStatus] = React.useState('');
     const [isImportingMastodon, setIsImportingMastodon] = React.useState(false);
