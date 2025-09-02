@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.4.30d : Généralisation su spinner d'attente (main app et Games pages</title>
+    <title>🐘 Mémoire du Mékong V0.4.30e : Spinner d'attente pour création session via post</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
@@ -2425,10 +2425,8 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-
-		
-		// Page Memoire (repris de la version 0.4.23
-	const MemoriesPage = ({ currentUser, onCreateSession }) => {
+// Page Memoire (MODIFIÉE - AVEC SPINNER CREATION)
+const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentPost, setCurrentPost] = React.useState(null);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [searchResults, setSearchResults] = React.useState([]);
@@ -2452,7 +2450,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
     }, [isImported]);
 
     React.useEffect(() => {
-        if (isImported && !isInitialLoad.current) { // Ne pas re-chercher au premier chargement
+        if (isImported && !isInitialLoad.current) {
             const post = MastodonData.getPostByDay(dayNumber);
             setCurrentPost(post);
         }
@@ -2492,28 +2490,31 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
         }
     };
 
-    // Fonction createSessionFromPost corrigée
-const createSessionFromPost = async (post) => {
-    // NOUVEAU : Créer directement la session au lieu d'utiliser window.pendingGameSession
-    const game = {
-        id: 7,
-        title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}`, // NOUVEAU : Utiliser le titre du post
-        description: `Discussion autour du post du jour ${post.dayNumber}`,
-        duration: "libre",
-        type: "mémoire",
-        icon: BookOpen
+    const createSessionFromPost = async (post) => {
+        const game = {
+            id: 7,
+            title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}`,
+            description: `Discussion autour du post du jour ${post.dayNumber}`,
+            duration: "libre",
+            type: "mémoire",
+            icon: BookOpen
+        };
+        
+        const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
+        
+        if (onCreateSession) {
+            onCreateSession({ type: 'game', game, postContent: postPreview });
+        }
     };
-    
-    const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
-    
-    // NOUVEAU : Sauvegarder temporairement le contenu du post
-    window.pendingPostContent = postPreview;
-    
-    if (onCreateSession) {
-        // NOUVEAU : Passer le jeu directement pour traitement immédiat  
-        onCreateSession({ type: 'game', game, postContent: postPreview });
+
+    // NOUVEAU : Si en cours de création, afficher le spinner
+    if (isCreatingSession) {
+        return (
+            <div className="space-y-6 fade-in">
+                <LoadingSpinner message="Création de votre session de mémoire..." size="normal" />
+            </div>
+        );
     }
-};
 
     if (!isImported) {
         return (
@@ -2521,7 +2522,7 @@ const createSessionFromPost = async (post) => {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
                     <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-blue-900 mb-4">Blog Mastodon non importé</h3>
-                    <p className="text-blue-700 mb-6">Importez votre fichier outbox.json pour explorer vos 275 posts de voyage.</p>
+                    <p className="text-blue-700 mb-6">Importez votre fichier outbox.json pour explorer vos posts de voyage.</p>
                     <p className="text-sm text-blue-600 mb-6">Rendez-vous dans <strong>Réglages</strong> → <strong>Importer blog Mastodon</strong></p>
                 </div>
             </div>
@@ -2533,28 +2534,68 @@ const createSessionFromPost = async (post) => {
             {/* 1. Navigation et Hasard */}
             <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
                 <div className="flex items-center justify-center space-x-4">
-                    <button onClick={goToPreviousDay} disabled={dayNumber <= 1} className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
+                    <button 
+                        onClick={goToPreviousDay} 
+                        disabled={dayNumber <= 1 || isCreatingSession} 
+                        className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
                     <div className="flex items-baseline space-x-2">
                         <label className="font-medium text-gray-700">Jour</label>
-                        <input type="number" min="1" max={stats?.dayRange?.max} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value) || 1)} className="w-20 px-2 py-1 border border-gray-300 rounded text-center font-bold text-lg"/>
+                        <input 
+                            type="number" 
+                            min="1" 
+                            max={stats?.dayRange?.max} 
+                            value={dayNumber} 
+                            onChange={(e) => setDayNumber(parseInt(e.target.value) || 1)} 
+                            disabled={isCreatingSession}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-center font-bold text-lg disabled:opacity-50"
+                        />
                         <span className="text-gray-500">/ {stats?.dayRange?.max}</span>
                     </div>
-                    <button onClick={goToNextDay} disabled={!stats?.dayRange || dayNumber >= stats.dayRange.max} className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
-                    <button onClick={showRandomPost} className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg" title="Post au hasard"><Shuffle className="w-5 h-5" /></button>
+                    <button 
+                        onClick={goToNextDay} 
+                        disabled={!stats?.dayRange || dayNumber >= stats.dayRange.max || isCreatingSession} 
+                        className="p-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 rounded-lg"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <button 
+                        onClick={showRandomPost} 
+                        disabled={isCreatingSession}
+                        className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg disabled:opacity-50" 
+                        title="Post au hasard"
+                    >
+                        <Shuffle className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
             {/* 2. Recherche */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex space-x-2">
-                    <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} placeholder="Rechercher un souvenir..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500" />
-                    <button onClick={handleSearch} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg"><Search className="w-5 h-5" /></button>
+                    <input 
+                        type="text" 
+                        value={searchQuery} 
+                        onChange={(e) => setSearchQuery(e.target.value)} 
+                        onKeyDown={(e) => e.key === 'Enter' && !isCreatingSession && handleSearch()} 
+                        placeholder="Rechercher un souvenir..." 
+                        disabled={isCreatingSession}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50" 
+                    />
+                    <button 
+                        onClick={handleSearch} 
+                        disabled={isCreatingSession}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg disabled:opacity-50"
+                    >
+                        <Search className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
-            {/* 3. Contenu (Post ou résultats de recherche) */}
+            {/* 3. Contenu */}
             {viewMode === 'search' && searchResults.length > 0 ? (
-                // CODE CORRIGÉ : Le JSX pour les résultats de recherche est de retour
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900">{searchResults.length} résultat(s) pour "{searchQuery}"</h3>
                     {searchResults.map((post) => (
@@ -2562,8 +2603,21 @@ const createSessionFromPost = async (post) => {
                             <div className="flex justify-between items-start mb-3">
                                 <h4 className="font-medium text-amber-900">Jour {post.dayNumber}</h4>
                                 <div className="flex space-x-2">
-                                    <button onClick={() => { setDayNumber(post.dayNumber); setViewMode('blog'); }} className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-sm">Voir</button>
-                                    <button onClick={() => createSessionFromPost(post)} className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded text-sm flex items-center space-x-1"><Plus className="w-3 h-3" /><span>Session</span></button>
+                                    <button 
+                                        onClick={() => { setDayNumber(post.dayNumber); setViewMode('blog'); }} 
+                                        disabled={isCreatingSession}
+                                        className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-sm disabled:opacity-50"
+                                    >
+                                        Voir
+                                    </button>
+                                    <button 
+                                        onClick={() => createSessionFromPost(post)} 
+                                        disabled={isCreatingSession}
+                                        className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded text-sm flex items-center space-x-1 disabled:opacity-50"
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                        <span>Session</span>
+                                    </button>
                                 </div>
                             </div>
                             <p className="text-gray-700 text-sm leading-relaxed">{post.content.slice(0, 300)}{post.content.length > 300 && '...'}</p>
@@ -2571,7 +2625,6 @@ const createSessionFromPost = async (post) => {
                     ))}
                 </div>
             ) : viewMode === 'search' && searchResults.length === 0 && searchQuery ? (
-                // CODE CORRIGÉ : Le JSX pour "aucun résultat" est de retour
                 <div className="bg-gray-50 p-8 rounded-lg text-center">
                     <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun résultat</h3>
@@ -2581,8 +2634,16 @@ const createSessionFromPost = async (post) => {
                 <div className="bg-white p-6 rounded-lg border border-gray-200">
                     <div className="flex justify-between items-start mb-4">
                         <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3>
-                        <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold">
-                            <Plus className="w-4 h-4" />
+                        <button 
+                            onClick={() => createSessionFromPost(currentPost)} 
+                            disabled={isCreatingSession}
+                            className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-wait"
+                        >
+                            {isCreatingSession ? (
+                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                            ) : (
+                                <Plus className="w-4 h-4" />
+                            )}
                             <span>Session</span>
                         </button>
                     </div>
@@ -2609,6 +2670,8 @@ const createSessionFromPost = async (post) => {
         </div>
     );
 };
+		
+		
 		
 // ====Pages Config réglages Settings  =====
         const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
@@ -3047,11 +3110,12 @@ const MemoireMekong = () => {
                             />
                         )}
                         {currentPage === 'memories' && (
-                            <MemoriesPage 
-                                currentUser={currentUser}
-                                onCreateSession={handleCreateSessionFromMemory}
-                            />
-                        )}
+    <MemoriesPage 
+        currentUser={currentUser}
+        onCreateSession={handleCreateSessionFromMemory}
+        isCreatingSession={isCreatingSession}
+    />
+)}
                         {currentPage === 'settings' && (
                             <SettingsPage 
                                 onReset={resetApp}
