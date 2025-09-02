@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.0 : Version Finale Fonctionnelle</title>
+    <title>🐘 Mémoire du Mékong V0.6.0.1 : Debug Import photo index</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -412,7 +412,7 @@
                 setStatus(`Import de ${dataType}...`);
                 try {
                     const data = await importer(fileName);
-                    if (!data) throw new Error(`Fichier ${fileName} introuvable.`);
+                    if (!data) throw new Error(`Fichier ${fileName} introuvable sur votre Google Drive.`);
                     const parsed = parser(data);
                     saver(parsed);
                     setStatus(`✅ ${dataType} importé(e)s avec succès !`);
@@ -436,9 +436,16 @@
                     <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                         <h3 className="text-lg font-semibold">Imports de Données</h3>
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <button onClick={() => handleImport(() => document.getElementById('mastodon-file').click(), null, null, null, 'Mastodon (local)')} className="flex-1 px-4 py-2 border rounded hover:bg-gray-50">Importer Blog Mastodon</button>
+                            <label htmlFor="mastodon-file" className="flex-1 w-full text-center px-4 py-2 border rounded hover:bg-gray-50 cursor-pointer">Importer Blog Mastodon</label>
                             <input type="file" id="mastodon-file" className="hidden" onChange={(e) => handleImport(() => importMastodon(e.target.files[0]), MastodonData.parseOutbox, MastodonData.savePosts, null, 'Blog Mastodon')} />
-                            <button onClick={() => handleImport(GoogleDriveAPI.loadJsonFile, PhotoData.parsePhotoIndex, PhotoData.saveIndex, 'photos_index_clean.json', 'Index Photos')} className="flex-1 px-4 py-2 border rounded hover:bg-gray-50" disabled={!isConnected}>Importer Index Photos (Drive)</button>
+                            
+                            {/* LA CORRECTION EST ICI : on utilise .bind(GoogleDriveAPI) */}
+                            <button 
+                                onClick={() => handleImport(GoogleDriveAPI.loadJsonFile.bind(GoogleDriveAPI), PhotoData.parsePhotoIndex, PhotoData.saveIndex, 'photos_index_clean.json', 'Index Photos')} 
+                                className="flex-1 px-4 py-2 border rounded hover:bg-gray-50" 
+                                disabled={!isConnected}>
+                                Importer Index Photos (Drive)
+                            </button>
                         </div>
                         {status && <p className="text-center text-sm mt-4">{status}</p>}
                     </div>
