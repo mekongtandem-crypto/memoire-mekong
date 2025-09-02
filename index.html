@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>🐘 Mémoire du Mékong V0.5.3.0 : Phase 3 - Intégration Page Mémoires</title>
+	<title>🐘 Mémoire du Mékong V0.5.3.3 : Phase 3 - Intégration Page Mémoires</title>
 	<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
@@ -549,14 +549,14 @@ const PhotoData = {
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email' // scope drive.file remplacé par readonly
+    SCOPES: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
 
 const GoogleDriveAPI = {
     isSignedIn: false,
     isInitialized: false,
     tokenClient: null,
-    _folderCache: new Map(), // NOUVEAU: Cache pour les IDs de dossiers
+    _folderCache: new Map(),
 
     async init() {
         if (this.isInitialized) return;
@@ -645,11 +645,10 @@ const GoogleDriveAPI = {
             gapi.client.setToken('');
         }
         this.isSignedIn = false;
-        this._folderCache.clear(); // Vider le cache à la déconnexion
+        this._folderCache.clear();
         console.log('✅ Déconnecté de Google Drive');
     },
     
-    // Méthode générique pour trouver un fichier/dossier par nom dans un parent
     async _findFileByName(name, parentId = 'root') {
         const cacheKey = `${parentId}-${name}`;
         if (this._folderCache.has(cacheKey)) {
@@ -673,7 +672,6 @@ const GoogleDriveAPI = {
         }
     },
 
-    // NOUVEAU : Trouver un fichier JSON à la racine
     async findJsonFile(fileName) {
         if (!this.isSignedIn) return null;
         return this._findFileByName(fileName, 'root');
@@ -700,7 +698,6 @@ const GoogleDriveAPI = {
         }
     },
 
-    // NOUVEAU : Charger un fichier JSON générique
     async loadJsonFile(fileName) {
         if (!this.isSignedIn) throw new Error('Pas connecté à Google Drive');
         try {
@@ -717,8 +714,8 @@ const GoogleDriveAPI = {
         }
     },
     
-    // NOUVEAU : Obtenir l'URL de contenu web d'une photo
-    async getPhotoWebContentLink(photo) {
+    // MODIFIÉ : Renommé en getPhotoLinks et récupère thumbnailLink
+    async getPhotoLinks(photo) {
         if (!this.isSignedIn) throw new Error('Pas connecté à Google Drive');
 
         try {
@@ -734,12 +731,13 @@ const GoogleDriveAPI = {
             const q = `'${dayFolder.id}' in parents and name='${photo.filename}' and trashed=false`;
             const response = await gapi.client.drive.files.list({
                 q: q,
-                fields: 'files(webContentLink)',
+                // On demande les deux types de liens
+                fields: 'files(webContentLink, thumbnailLink)',
                 pageSize: 1
             });
 
             if (response.result.files && response.result.files.length > 0) {
-                return response.result.files[0].webContentLink;
+                return response.result.files[0]; // Retourne l'objet {webContentLink, thumbnailLink}
             } else {
                 console.warn(`Photo non trouvée: ${photo.folderName}/${photo.filename}`);
                 return null;
@@ -2649,17 +2647,14 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (MODIFIÉE - V3 AVEC PHOTOS, TIMELINE ET TABS)
+// Page Memoire (MODIFIÉE - V3.1 AVEC THUMBNAILLINK)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     // États de base
     const [currentDay, setCurrentDay] = React.useState(1);
-    const [activeTab, setActiveTab] = React.useState('blog'); // 'blog' ou 'photos'
+    const [activeTab, setActiveTab] = React.useState('blog');
     
     // États pour le blog
     const [currentPost, setCurrentPost] = React.useState(null);
-    const [searchQuery, setSearchQuery] = React.useState('');
-    const [searchResults, setSearchResults] = React.useState([]);
-    const [viewMode, setViewMode] = React.useState('blog');
     
     // NOUVEAU : États pour les photos
     const [dayPhotos, setDayPhotos] = React.useState([]);
@@ -2672,14 +2667,24 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     
     // --- EFFETS ---
     
-    // Chargement initial et mise à jour quand le jour change
     React.useEffect(() => {
         if (isMastodonImported) {
-            const post = MastodonData.getPostByDay(currentDay);
-            setCurrentPost(post);
+            setCurrentPost(MastodonData.getPostByDay(currentDay));
         }
         if (isPhotoIndexImported) {
-            loadPhotosForDay(currentDay);
+            // Passer au nouvel onglet 'photos' s'il y en a, sinon 'blog'
+            const photosExist = PhotoData.getPhotosByDay(currentDay).length > 0;
+            const blogExists = !!MastodonData.getPostByDay(currentDay);
+            
+            if (photosExist) {
+                setActiveTab('photos');
+                loadPhotosForDay(currentDay);
+            } else if (blogExists) {
+                setActiveTab('blog');
+            } else {
+                setActiveTab('blog'); // Fallback
+                setDayPhotos([]);
+            }
         }
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
@@ -2687,29 +2692,30 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
     const handleDaySelect = (day) => {
         setCurrentDay(day);
-        setViewMode('blog'); // Revenir à la vue blog/photo par défaut
-        setActiveTab('blog'); // Optionnel: revenir au blog par défaut
     };
 
     const loadPhotosForDay = async (day) => {
         setIsLoadingPhotos(true);
-        setDayPhotos([]); // Vider les photos précédentes
+        setDayPhotos([]);
         const photoIndexEntries = PhotoData.getPhotosByDay(day);
         
         if (photoIndexEntries.length > 0) {
-            // Utiliser Promise.all pour charger les URLs en parallèle
             const photoPromises = photoIndexEntries.map(async (photoInfo) => {
-                const url = await GoogleDriveAPI.getPhotoWebContentLink(photoInfo);
-                return { ...photoInfo, webContentLink: url };
+                const links = await GoogleDriveAPI.getPhotoLinks(photoInfo);
+                // On s'assure que les liens existent et on les ajoute à l'objet
+                if (links) {
+                    return { ...photoInfo, ...links };
+                }
+                return null;
             });
             const photosWithLinks = await Promise.all(photoPromises);
-            setDayPhotos(photosWithLinks.filter(p => p.webContentLink)); // Garder uniquement celles avec un lien valide
+            setDayPhotos(photosWithLinks.filter(p => p && p.thumbnailLink));
         }
         setIsLoadingPhotos(false);
     };
     
     const createSessionFromPost = (post) => {
-        const game = getGameById(7); // Jeu "Souvenir du jour"
+        const game = getGameById(7);
         const postPreview = post.content.length > 200 ? post.content.slice(0, 200) + '...' : post.content;
         
         onCreateSession({
@@ -2719,21 +2725,14 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         });
     };
     
-    // NOUVEAU : Créer une session depuis une photo
     const createSessionFromPhoto = (photo) => {
-        const game = {
-            id: 1, // Jeu "Photo Roulette"
-            title: `Souvenir photo du jour ${photo.day}`,
-            description: `Discussion autour de la photo : ${photo.filename}`,
-        };
-
-        // On prépare une note initiale avec l'image
-        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo...`;
+        const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` };
+        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`;
         
         onCreateSession({
             type: 'game',
             game: game,
-            postContent: initialNoteContent // On utilise le même canal pour passer l'info
+            postContent: initialNoteContent
         });
     };
     
@@ -2751,7 +2750,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     
     // --- RENDU ---
     
-    // Si données non importées
     if (!isMastodonImported && !isPhotoIndexImported) {
         return (
              <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
@@ -2769,14 +2767,12 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
     return (
         <div className="space-y-6 fade-in">
-            {/* 1. Navigation temporelle */}
             <Timeline 
                 currentDay={currentDay} 
                 maxDay={mastodonStats?.dayRange?.max || 275} 
                 onDaySelect={handleDaySelect} 
             />
 
-            {/* 2. Sélecteur d'onglet */}
             <div className="flex justify-center border-b border-gray-200">
                 <button 
                     onClick={() => setActiveTab('blog')}
@@ -2794,7 +2790,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 </button>
             </div>
 
-            {/* 3. Contenu de l'onglet */}
             <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
                 {activeTab === 'blog' ? (
                     isMastodonImported && currentPost ? (
@@ -2828,8 +2823,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 )}
             </div>
 
-            {/* 4. Visionneuse (modale) */}
-            {selectedPhotoIndex !== null && (
+            {selectedPhotoIndex !== null && dayPhotos.length > 0 && (
                 <PhotoViewer 
                     photos={dayPhotos}
                     selectedIndex={selectedPhotoIndex}
