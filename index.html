@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>🐘 Mémoire du Mékong V0.5.4.1 (Debug sync pb) : Phase 4 - Affichage Photos Robuste</title>
-	<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+	<title>🐘 Mémoire du Mékong V0.5.5.0 : Phase 5 - Stabilisation API</title>	<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
     <script src="https://apis.google.com/js/api.js"></script>
@@ -545,11 +544,11 @@ const PhotoData = {
     }
 };       
 
-// ===== GOOGLE DRIVE API - VERSION FINALE SIMPLIFIÉE =====
+// ===== GOOGLE DRIVE API - VERSION STABLE ET COMPLÈTE =====
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
+    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email' // On remet le scope drive.file pour la sauvegarde
 };
 
 const GoogleDriveAPI = {
@@ -562,46 +561,85 @@ const GoogleDriveAPI = {
     async signIn() { if (!this.isInitialized) await this.init(); return new Promise((resolve, reject) => { if (!this.tokenClient) return reject(new Error('Token client non initialisé')); this.tokenClient.callback = async (res) => { if (res.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${res.error}`)); } try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } catch (e) { this.isSignedIn = false; reject(new Error('Accès API impossible')); } }; const token = gapi.client.getToken(); if (token) { gapi.client.drive.files.list({ pageSize: 1 }).then(() => { this.isSignedIn = true; resolve(true); }).catch(() => { gapi.client.setToken(''); this.tokenClient.requestAccessToken({ prompt: 'consent' }); }); } else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); } }); },
     async signOut() { const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } this.isSignedIn = false; this._folderCache.clear(); console.log('✅ Déconnecté'); },
     
-    async _findFolderByName(name, parentId = 'root') {
-        const cacheKey = `${parentId}-${name}-folder`;
+    // --- Fonctions utilitaires ---
+    async _findFile(name, parentId = 'root', mimeType = null) {
+        const cacheKey = `${parentId}-${name}-${mimeType || 'any'}`;
         if (this._folderCache.has(cacheKey)) return this._folderCache.get(cacheKey);
         try {
-            const q = `'${parentId}' in parents and name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-            const response = await gapi.client.drive.files.list({ q, fields: 'files(id, name)', pageSize: 1 });
-            const folder = response.result.files[0] || null;
-            if (folder) this._folderCache.set(cacheKey, folder);
-            return folder;
-        } catch (e) { console.error(`❌ Erreur recherche dossier '${name}':`, e); throw e; }
+            let query = `'${parentId}' in parents and name='${name}' and trashed=false`;
+            if (mimeType) query += ` and mimeType='${mimeType}'`;
+            const response = await gapi.client.drive.files.list({ q: query, fields: 'files(id, name)', pageSize: 1 });
+            const file = response.result.files[0] || null;
+            if (file) this._folderCache.set(cacheKey, file);
+            return file;
+        } catch (e) { console.error(`❌ Erreur recherche '${name}':`, e); throw e; }
     },
 
+    // --- Fonctions pour les SESSIONS (Lecture et Ecriture) ---
+    async findMekongFile() {
+        return this._findFile("mekong_sessions.json", "root");
+    },
+    
+    async loadSessions() {
+        if (!this.isSignedIn) throw new Error('Pas connecté');
+        try {
+            const file = await this.findMekongFile();
+            if (!file) return null;
+            const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
+            return JSON.parse(response.body).sessions || [];
+        } catch (error) { console.error('❌ Erreur chargement sessions:', error); throw error; }
+    },
+    
+    async saveSessions(sessions) {
+        if (!this.isSignedIn) throw new Error('Pas connecté');
+        try {
+            const data = JSON.stringify({ sessions, lastUpdated: new Date().toISOString() }, null, 2);
+            const existingFile = await this.findMekongFile();
+            if (existingFile) {
+                await gapi.client.request({
+                    path: `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}`,
+                    method: 'PATCH',
+                    params: { uploadType: 'media' },
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data
+                });
+            } else {
+                const boundary = '-------314159265358979323846';
+                const metadata = { 'name': 'mekong_sessions.json', 'mimeType': 'application/json' };
+                const multipartRequestBody = `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${data}\r\n--${boundary}--`;
+                await gapi.client.request({
+                    'path': 'https://www.googleapis.com/upload/drive/v3/files',
+                    'method': 'POST',
+                    'params': {'uploadType': 'multipart'},
+                    'headers': { 'Content-Type': `multipart/related; boundary="${boundary}"` },
+                    'body': multipartRequestBody
+                });
+            }
+            return true;
+        } catch (e) { console.error('❌ Erreur sauvegarde sessions:', e); throw e; }
+    },
+
+    // --- Fonctions pour les PHOTOS et AUTRES JSON (Lecture seule) ---
     async loadJsonFile(fileName) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
         try {
-            const file = await this._findFolderByName(fileName, 'root'); // Note: JSON files are not folders
-            if (!file) {
-                 const fileResponse = await gapi.client.drive.files.list({q: `name='${fileName}' and 'root' in parents and trashed=false`, fields: 'files(id, name)', pageSize: 1});
-                 const jsonFile = fileResponse.result.files[0];
-                 if(!jsonFile) return null;
-                 const response = await gapi.client.drive.files.get({ fileId: jsonFile.id, alt: 'media' });
-                 return JSON.parse(response.body);
-            }
+            const file = await this._findFile(fileName, "root");
+            if (!file) return null;
+            const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
+            return JSON.parse(response.body);
         } catch (e) { console.error(`❌ Erreur chargement JSON '${fileName}':`, e); throw e; }
     },
-    
-    // NOUVEAU : Fonction simple pour lister les photos d'un dossier
+
     async listPhotoFiles(folderId) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
         try {
             const response = await gapi.client.drive.files.list({
                 q: `'${folderId}' in parents and mimeType contains 'image/' and trashed=false`,
                 fields: 'files(name, webContentLink, thumbnailLink)',
-                pageSize: 500 // On peut raisonnablement supposer moins de 500 photos par jour
+                pageSize: 500
             });
             return response.result.files || [];
-        } catch (e) {
-            console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e);
-            return [];
-        }
+        } catch (e) { console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e); return []; }
     }
 };
 
@@ -780,71 +818,41 @@ const GoogleDriveAPI = {
             }
         ];
 
-// ===== CLOUD SESSION STORAGE - AVEC DETECTION DECONNEXION =====
-		const CloudSessionStorage = {
-    // Fonction pour notifier la déconnexion détectée
-    onConnectionLost: null, // Sera défini par l'app principale
+// ===== CLOUD SESSION STORAGE - VERSION STABLE ET COMPLÈTE =====
+const CloudSessionStorage = {
+    onConnectionLost: null,
 
     async getSessions() {
         try {
-            if (!GoogleDriveAPI.isSignedIn) {
-                console.log('📱 Pas connecté au cloud, utilisation cache local');
-                return Storage.get('sessions', []);
-            }
-            
-            const cloudSessions = await GoogleDriveAPI.loadSessions();
+            if (!GoogleDriveAPI.isSignedIn) { return Storage.get('sessions', []); }
+            const cloudSessions = await GoogleDriveAPI.loadSessions(); // Utilise la fonction restaurée
             if (cloudSessions) {
                 Storage.set('sessions', cloudSessions);
-                console.log(`✅ ${cloudSessions.length} sessions chargées depuis Google Drive`);
                 return cloudSessions;
             }
         } catch (error) {
             console.warn('⚠️ Erreur chargement cloud:', error.message);
-            
-            // NOUVEAU : Détecter si c'est une erreur de connexion
-            if (this.isConnectionError(error)) {
-                console.error('🔴 Déconnexion détectée lors du chargement');
-                if (this.onConnectionLost) {
-                    this.onConnectionLost('Perte de connexion détectée lors du chargement des sessions');
-                }
+            if (this.isConnectionError(error) && this.onConnectionLost) {
+                this.onConnectionLost('Perte de connexion lors du chargement des sessions');
             }
         }
         return Storage.get('sessions', []);
     },
     
     async saveSession(session) {
-        // Récupérer toutes les sessions
         const sessions = Storage.get('sessions', []);
-        
-        // Mettre à jour ou ajouter la session
         const existingIndex = sessions.findIndex(s => s.id === session.id);
-        if (existingIndex >= 0) {
-            sessions[existingIndex] = session;
-        } else {
-            sessions.unshift(session);
-        }
-        
-        // Sauvegarder localement
+        if (existingIndex >= 0) { sessions[existingIndex] = session; } else { sessions.unshift(session); }
         Storage.set('sessions', sessions);
         
-        // Sauvegarder dans le cloud si connecté
-        if (!GoogleDriveAPI.isSignedIn) {
-            console.log('📱 Session sauvegardée localement (cloud déconnecté)');
-            return;
-        }
+        if (!GoogleDriveAPI.isSignedIn) { return; }
         
         try {
-            await GoogleDriveAPI.saveSessions(sessions);
-            console.log('✅ Session sauvegardée localement + cloud');
+            await GoogleDriveAPI.saveSessions(sessions); // Utilise la fonction restaurée
         } catch (error) {
             console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
-            
-            // NOUVEAU : Détecter si c'est une erreur de connexion
             if (this.isConnectionError(error)) {
-                console.error('🔴 Déconnexion détectée lors de la sauvegarde');
-                if (this.onConnectionLost) {
-                    this.onConnectionLost('Impossible de synchroniser - Connexion Google Drive perdue');
-                }
+                if (this.onConnectionLost) { this.onConnectionLost('Impossible de synchroniser - Connexion perdue'); }
                 throw new Error(`Connexion Google Drive perdue. Session sauvegardée localement.`);
             } else {
                 throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
@@ -855,24 +863,13 @@ const GoogleDriveAPI = {
     async deleteSession(sessionId) {
         const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId);
         Storage.set('sessions', sessions);
-        
-        if (!GoogleDriveAPI.isSignedIn) {
-            console.log('🗑️ Session supprimée localement (cloud déconnecté)');
-            return;
-        }
-        
+        if (!GoogleDriveAPI.isSignedIn) { return; }
         try {
-            await GoogleDriveAPI.saveSessions(sessions);
-            console.log('✅ Session supprimée localement + cloud');
+            await GoogleDriveAPI.saveSessions(sessions); // Utilise la fonction restaurée
         } catch (error) {
             console.warn('⚠️ Erreur suppression cloud:', error.message);
-            
-            // NOUVEAU : Détecter si c'est une erreur de connexion
             if (this.isConnectionError(error)) {
-                console.error('🔴 Déconnexion détectée lors de la suppression');
-                if (this.onConnectionLost) {
-                    this.onConnectionLost('Impossible de synchroniser la suppression - Connexion Google Drive perdue');
-                }
+                if (this.onConnectionLost) { this.onConnectionLost('Impossible de synchroniser la suppression - Connexion perdue');}
                 throw new Error(`Connexion Google Drive perdue. Suppression locale effectuée.`);
             } else {
                 throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
@@ -881,71 +878,30 @@ const GoogleDriveAPI = {
     },
 
     async forceSyncFromCloud() {
-        if (!GoogleDriveAPI.isSignedIn) {
-            throw new Error('Non connecté à Google Drive');
-        }
-        
+        if (!GoogleDriveAPI.isSignedIn) throw new Error('Non connecté');
         try {
-            const cloudSessions = await GoogleDriveAPI.loadSessions();
+            const cloudSessions = await GoogleDriveAPI.loadSessions(); // Utilise la fonction restaurée
             if (cloudSessions) {
                 Storage.set('sessions', cloudSessions);
-                console.log(`🔄 ${cloudSessions.length} sessions synchronisées depuis Google Drive`);
                 return cloudSessions;
-            } else {
-                console.log('🔍 Aucune donnée cloud trouvée');
-                return Storage.get('sessions', []);
             }
+            return Storage.get('sessions', []);
         } catch (error) {
             console.error('❌ Erreur synchronisation:', error);
-            
-            // NOUVEAU : Détecter si c'est une erreur de connexion
-            if (this.isConnectionError(error)) {
-                console.error('🔴 Déconnexion détectée lors de la synchronisation');
-                if (this.onConnectionLost) {
-                    this.onConnectionLost('Échec de synchronisation - Connexion Google Drive perdue');
-                }
+            if (this.isConnectionError(error) && this.onConnectionLost) {
+                this.onConnectionLost('Échec de synchronisation - Connexion perdue');
             }
-            
             throw new Error(`Échec synchronisation: ${error.message}`);
         }
     },
 
-    // NOUVEAU : Fonction pour détecter les erreurs de connexion
     isConnectionError(error) {
         if (!error) return false;
-        
-        const errorMessage = error.message?.toLowerCase() || '';
-        const errorStatus = error.status;
-        
-        // Erreurs réseau courantes
-        const networkErrors = [
-            'network error',
-            'failed to fetch',
-            'networkerror',
-            'network request failed',
-            'offline',
-            'no internet',
-            'connection lost',
-            'timeout'
-        ];
-        
-        // Erreurs d'authentification Google
-        const authErrors = [
-            'unauthorized',
-            'invalid_token',
-            'token_expired',
-            'access_denied',
-            'invalid_grant'
-        ];
-        
-        // Vérifier le message d'erreur
-        const hasNetworkError = networkErrors.some(term => errorMessage.includes(term));
-        const hasAuthError = authErrors.some(term => errorMessage.includes(term));
-        
-        // Vérifier les codes d'erreur HTTP
-        const isNetworkStatus = [0, 401, 403, 500, 502, 503, 504].includes(errorStatus);
-        
-        return hasNetworkError || hasAuthError || isNetworkStatus;
+        const msg = error.message?.toLowerCase() || '';
+        const status = error.status;
+        const netErrors = ['network', 'failed to fetch', 'offline', 'lost', 'timeout'];
+        const authErrors = ['unauthorized', 'invalid_token', 'expired', 'denied', 'invalid_grant'];
+        return netErrors.some(t => msg.includes(t)) || authErrors.some(t => msg.includes(t)) || [0, 401, 403, 500, 503].includes(status);
     }
 };
 
