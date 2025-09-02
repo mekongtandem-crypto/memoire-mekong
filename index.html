@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mémoire du Mékong - V0.5.0</title>
+    <title>Mémoire du Mékong - V0.5.1</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -191,43 +191,48 @@
                 console.log('✅ Déconnecté de Google Drive');
             },
 
-            // NOUVEAU : Rechercher un fichier par nom dans un dossier spécifique
-            async findFileInFolder(folderName, fileName) {
+            // NOUVEAU : Trouver dossier Photos dans Google Drive
+            async findPhotosRootFolder() {
                 if (!this.isSignedIn) throw new Error('Non connecté à Google Drive');
                 
                 try {
-                    // D'abord trouver le dossier
-                    const folderResponse = await gapi.client.drive.files.list({
-                        q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-                        fields: 'files(id, name)'
+                    // Chercher le dossier "Photos" dans "Medias"
+                    const response = await gapi.client.drive.files.list({
+                        q: `name='Photos' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                        fields: 'files(id, name, parents)'
                     });
                     
-                    if (folderResponse.result.files.length === 0) {
-                        throw new Error(`Dossier ${folderName} non trouvé`);
+                    // Vérifier que c'est bien dans le dossier Medias
+                    for (const folder of response.result.files) {
+                        const parentResponse = await gapi.client.drive.files.get({
+                            fileId: folder.parents[0],
+                            fields: 'name'
+                        });
+                        
+                        if (parentResponse.result.name === 'Medias') {
+                            console.log('✅ Dossier Photos trouvé:', folder.id);
+                            return folder.id;
+                        }
                     }
                     
-                    const folderId = folderResponse.result.files[0].id;
-                    
-                    // Ensuite chercher le fichier dans ce dossier
-                    const fileResponse = await gapi.client.drive.files.list({
-                        q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
-                        fields: 'files(id, name, webContentLink, thumbnailLink)'
-                    });
-                    
-                    return fileResponse.result.files[0] || null;
+                    throw new Error('Dossier Photos/Medias non trouvé');
                 } catch (error) {
-                    console.error('❌ Erreur recherche fichier:', error);
+                    console.error('❌ Erreur recherche dossier Photos:', error);
                     throw error;
                 }
             },
 
-            // NOUVEAU : Lister tous les fichiers d'un dossier photos
+            // NOUVEAU : Lister tous les fichiers d'un dossier photos par nom
             async listPhotosInFolder(folderName) {
                 if (!this.isSignedIn) throw new Error('Non connecté à Google Drive');
                 
                 try {
+                    // D'abord trouver le dossier Photos racine
+                    const photosRootId = await this.findPhotosRootFolder();
+                    
+                    // Chercher le sous-dossier spécifique (ex: "001.Paris-Bangkok")
                     const folderResponse = await gapi.client.drive.files.list({
-                        q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                        q: `name='${folderName}' and '${photosRootId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
                         fields: 'files(id, name)'
                     });
                     
@@ -238,17 +243,27 @@
                     
                     const folderId = folderResponse.result.files[0].id;
                     
+                    // Lister toutes les photos du dossier
                     const photosResponse = await gapi.client.drive.files.list({
                         q: `'${folderId}' in parents and (mimeType contains 'image/' or name contains '.jpg' or name contains '.jpeg' or name contains '.png') and trashed=false`,
                         fields: 'files(id, name, webContentLink, thumbnailLink, size)',
-                        orderBy: 'name'
+                        orderBy: 'name',
+                        pageSize: 100 // Maximum pour éviter pagination pour l'instant
                     });
                     
+                    console.log(`📸 ${photosResponse.result.files.length} photos trouvées dans ${folderName}`);
                     return photosResponse.result.files;
                 } catch (error) {
                     console.error(`❌ Erreur liste photos ${folderName}:`, error);
                     return [];
                 }
+            },
+
+            // NOUVEAU : Obtenir URL thumbnail optimisé
+            getThumbnailUrl(thumbnailLink, size = 's220') {
+                if (!thumbnailLink) return null;
+                // Remplacer =s220 par la taille souhaitée (s220, s400, s800, etc.)
+                return thumbnailLink.replace(/=s\d+/, `=${size}`);
             },
 
             // Méthodes existantes...
@@ -346,7 +361,122 @@
             }
         };
 
-        // ===== NOUVEAU : GESTION PHOTOS =====
+        // ===== NOUVEAU : CACHE D'IMAGES =====
+        const ImageCache = {
+            cache: new Map(),
+            maxSize: 50, // Maximum 50 images en cache
+            
+            // Ajouter une image au cache
+            set(key, data) {
+                if (this.cache.size >= this.maxSize) {
+                    // Supprimer la plus ancienne entrée
+                    const firstKey = this.cache.keys().next().value;
+                    this.cache.delete(firstKey);
+                }
+                this.cache.set(key, {
+                    ...data,
+                    cachedAt: Date.now()
+                });
+            },
+            
+            // Récupérer une image du cache
+            get(key) {
+                return this.cache.get(key);
+            },
+            
+            // Vérifier si une image est en cache
+            has(key) {
+                return this.cache.has(key);
+            },
+            
+            // Nettoyer le cache (images > 10 minutes)
+            cleanup() {
+                const now = Date.now();
+                const maxAge = 10 * 60 * 1000; // 10 minutes
+                
+                for (const [key, data] of this.cache.entries()) {
+                    if (now - data.cachedAt > maxAge) {
+                        this.cache.delete(key);
+                    }
+                }
+            }
+        };
+
+        // ===== NOUVEAU : COMPOSANT IMAGE OPTIMISÉE =====
+        const DriveImage = ({ driveFile, size = 's220', className, onClick, alt }) => {
+            const [imageUrl, setImageUrl] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            const [hasError, setHasError] = useState(false);
+
+            useEffect(() => {
+                if (!driveFile) return;
+                
+                const loadImage = async () => {
+                    const cacheKey = `${driveFile.id}_${size}`;
+                    
+                    // Vérifier le cache d'abord
+                    if (ImageCache.has(cacheKey)) {
+                        const cached = ImageCache.get(cacheKey);
+                        setImageUrl(cached.url);
+                        setIsLoading(false);
+                        return;
+                    }
+                    
+                    try {
+                        let url;
+                        if (driveFile.thumbnailLink) {
+                            // Utiliser thumbnail avec taille optimisée
+                            url = GoogleDriveAPI.getThumbnailUrl(driveFile.thumbnailLink, size);
+                        } else if (driveFile.webContentLink) {
+                            // Fallback sur webContentLink
+                            url = driveFile.webContentLink;
+                        } else {
+                            throw new Error('Aucun lien image disponible');
+                        }
+                        
+                        // Mettre en cache
+                        ImageCache.set(cacheKey, { url, driveFile });
+                        setImageUrl(url);
+                        setIsLoading(false);
+                    } catch (error) {
+                        console.error('❌ Erreur chargement image:', error);
+                        setHasError(true);
+                        setIsLoading(false);
+                    }
+                };
+                
+                loadImage();
+            }, [driveFile, size]);
+
+            if (hasError) {
+                return (
+                    <div className={`bg-gray-200 flex items-center justify-center ${className}`}>
+                        <div className="text-center text-gray-500">
+                            <Camera className="w-6 h-6 mx-auto mb-1" />
+                            <span className="text-xs">Erreur</span>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (isLoading || !imageUrl) {
+                return (
+                    <div className={`bg-gray-200 flex items-center justify-center ${className}`}>
+                        <LoadingSpinner size="w-6 h-6" color="border-gray-400" />
+                    </div>
+                );
+            }
+
+            return (
+                <img
+                    src={imageUrl}
+                    alt={alt || driveFile.name}
+                    className={className}
+                    onClick={onClick}
+                    onError={() => setHasError(true)}
+                />
+            );
+        };
         const PhotoData = {
             // Import de l'index photos depuis un fichier JSON
             async importPhotosIndex(file) {
@@ -492,10 +622,41 @@
             );
         };
 
-        // ===== NOUVEAU : COMPOSANT GALERIE PHOTOS =====
-        const PhotoGallery = ({ dayNumber, photosData }) => {
+        // ===== GALERIE PHOTOS AVEC VRAIES IMAGES =====
+        const PhotoGallery = ({ dayNumber, photosData, googleAuth }) => {
             const [selectedPhoto, setSelectedPhoto] = useState(null);
-            const [isLoading, setIsLoading] = useState(false);
+            const [drivePhotosData, setDrivePhotosData] = useState(null);
+            const [isLoadingDrive, setIsLoadingDrive] = useState(false);
+
+            // Charger les métadonnées Google Drive pour ce jour
+            useEffect(() => {
+                const loadDriveData = async () => {
+                    if (!photosData || !googleAuth.isConnected) return;
+                    
+                    setIsLoadingDrive(true);
+                    try {
+                        const driveData = await PhotoData.loadDrivePhotosForDay(dayNumber);
+                        setDrivePhotosData(driveData);
+                        console.log(`📸 Photos Drive chargées pour jour ${dayNumber}:`, driveData);
+                    } catch (error) {
+                        console.error('❌ Erreur chargement photos Drive:', error);
+                        setDrivePhotosData({ hasError: true, errorMessage: error.message });
+                    } finally {
+                        setIsLoadingDrive(false);
+                    }
+                };
+                
+                loadDriveData();
+            }, [dayNumber, photosData, googleAuth.isConnected]);
+
+            // Nettoyer le cache périodiquement
+            useEffect(() => {
+                const cleanup = setInterval(() => {
+                    ImageCache.cleanup();
+                }, 5 * 60 * 1000); // Toutes les 5 minutes
+                
+                return () => clearInterval(cleanup);
+            }, []);
 
             if (!photosData) {
                 return (
@@ -507,9 +668,66 @@
                 );
             }
 
+            if (!googleAuth.isConnected) {
+                return (
+                    <div className="bg-orange-50 p-8 rounded-lg text-center border border-orange-200">
+                        <Cloud className="w-12 h-12 text-orange-400 mx-auto mb-3" />
+                        <h3 className="text-lg font-medium text-orange-700 mb-2">Connexion Google Drive requise</h3>
+                        <p className="text-orange-600">Connectez-vous pour voir les photos</p>
+                    </div>
+                );
+            }
+
+            if (isLoadingDrive) {
+                return (
+                    <div className="bg-blue-50 p-8 rounded-lg text-center border border-blue-200">
+                        <LoadingSpinner size="w-12 h-12" color="border-blue-500" />
+                        <h3 className="text-lg font-medium text-blue-700 mt-4 mb-2">Chargement photos</h3>
+                        <p className="text-blue-600">Connexion à Google Drive...</p>
+                    </div>
+                );
+            }
+
+            if (drivePhotosData?.hasError) {
+                return (
+                    <div className="bg-red-50 p-8 rounded-lg text-center border border-red-200">
+                        <Camera className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                        <h3 className="text-lg font-medium text-red-700 mb-2">Erreur chargement photos</h3>
+                        <p className="text-red-600 text-sm">{drivePhotosData.errorMessage}</p>
+                    </div>
+                );
+            }
+
             const handlePhotoClick = (photo, index) => {
-                setSelectedPhoto({ ...photo, index });
+                if (photo.driveFile) {
+                    setSelectedPhoto({ ...photo, index });
+                }
             };
+
+            const handleModalNavigation = (direction) => {
+                if (!selectedPhoto || !drivePhotosData?.photosWithDrive) return;
+                
+                const currentIndex = selectedPhoto.index;
+                let newIndex;
+                
+                if (direction === 'prev') {
+                    newIndex = currentIndex > 0 ? currentIndex - 1 : drivePhotosData.photosWithDrive.length - 1;
+                } else {
+                    newIndex = currentIndex < drivePhotosData.photosWithDrive.length - 1 ? currentIndex + 1 : 0;
+                }
+                
+                const newPhoto = drivePhotosData.photosWithDrive[newIndex];
+                if (newPhoto.driveFile) {
+                    setSelectedPhoto({ ...newPhoto, index: newIndex });
+                }
+            };
+
+            const photosToDisplay = drivePhotosData?.photosWithDrive || photosData.photos.map((photo, index) => ({
+                name: photo,
+                driveFile: null,
+                hasError: true,
+                index
+            }));
 
             return (
                 <div>
@@ -519,47 +737,101 @@
                             <p className="text-sm text-gray-600">{photosData.folderName}</p>
                         </div>
                         <div className="text-sm text-gray-500">
-                            {photosData.photos?.length || 0} photos
+                            {drivePhotosData ? (
+                                <span>
+                                    {drivePhotosData.totalFound || 0}/{drivePhotosData.totalExpected || 0} photos
+                                </span>
+                            ) : (
+                                <span>{photosData.photos?.length || 0} photos</span>
+                            )}
                         </div>
                     </div>
 
                     {/* Grille photos thumbnails */}
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                        {photosData.photos?.map((photo, index) => (
+                        {photosToDisplay.map((photo, index) => (
                             <div 
-                                key={index}
-                                className="photo-thumbnail bg-gray-200 flex items-center justify-center"
+                                key={photo.name}
+                                className={`photo-thumbnail bg-gray-200 ${photo.driveFile ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                                 onClick={() => handlePhotoClick(photo, index)}
                             >
-                                {/* TODO: Remplacer par vraie image Google Drive */}
-                                <Camera className="w-6 h-6 text-gray-400" />
-                                <span className="text-xs text-gray-500 ml-1">{index + 1}</span>
+                                {photo.driveFile ? (
+                                    <DriveImage
+                                        driveFile={photo.driveFile}
+                                        size="s220"
+                                        className="photo-thumbnail w-full h-full object-cover"
+                                        alt={`Photo ${index + 1} - Jour ${dayNumber}`}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <Camera className="w-6 h-6" />
+                                        <span className="text-xs ml-1">{index + 1}</span>
+                                    </div>
+                                )}
                             </div>
-                        )) || (
-                            <div className="col-span-full text-center py-8 text-gray-500">
-                                Aucune photo trouvée pour ce jour
-                            </div>
-                        )}
+                        ))}
                     </div>
 
-                    {/* Modal zoom photo (placeholder) */}
-                    {selectedPhoto && (
+                    {/* Stats de chargement */}
+                    {drivePhotosData && drivePhotosData.totalFound !== drivePhotosData.totalExpected && (
+                        <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                            ⚠️ {drivePhotosData.totalFound}/{drivePhotosData.totalExpected} photos trouvées sur Google Drive
+                        </div>
+                    )}
+
+                    {/* Modal zoom photo plein écran */}
+                    {selectedPhoto && selectedPhoto.driveFile && (
                         <div 
-                            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+                            className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
                             onClick={() => setSelectedPhoto(null)}
                         >
-                            <div className="max-w-4xl max-h-full p-4">
-                                <div className="bg-white rounded-lg p-4 text-center">
-                                    <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                    <h3 className="font-semibold mb-2">{selectedPhoto}</h3>
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Photo {selectedPhoto.index + 1} - Jour {dayNumber}
-                                    </p>
+                            <div className="max-w-6xl max-h-full w-full h-full flex flex-col">
+                                {/* Header modal */}
+                                <div className="flex items-center justify-between p-4 text-white">
+                                    <div>
+                                        <h3 className="font-semibold">{selectedPhoto.name}</h3>
+                                        <p className="text-sm text-gray-300">
+                                            Photo {selectedPhoto.index + 1} - Jour {dayNumber} - {photosData.folderName}
+                                        </p>
+                                    </div>
                                     <button 
                                         onClick={() => setSelectedPhoto(null)}
-                                        className="px-4 py-2 bg-gray-500 text-white rounded"
+                                        className="text-white hover:text-gray-300 text-2xl"
                                     >
-                                        Fermer
+                                        ×
+                                    </button>
+                                </div>
+
+                                {/* Image principale */}
+                                <div className="flex-1 flex items-center justify-center px-4 pb-4">
+                                    <DriveImage
+                                        driveFile={selectedPhoto.driveFile}
+                                        size="s800"
+                                        className="max-w-full max-h-full object-contain rounded"
+                                        alt={selectedPhoto.name}
+                                    />
+                                </div>
+
+                                {/* Navigation en bas */}
+                                <div className="flex items-center justify-center space-x-6 pb-4">
+                                    <button
+                                        onClick={() => handleModalNavigation('prev')}
+                                        className="flex items-center space-x-2 px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg"
+                                    >
+                                        <ChevronLeft />
+                                        <span>Précédente</span>
+                                    </button>
+                                    
+                                    <span className="text-white text-sm">
+                                        {selectedPhoto.index + 1} / {photosToDisplay.length}
+                                    </span>
+                                    
+                                    <button
+                                        onClick={() => handleModalNavigation('next')}
+                                        className="flex items-center space-x-2 px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg"
+                                    >
+                                        <span>Suivante</span>
+                                        <ChevronRight />
                                     </button>
                                 </div>
                             </div>
@@ -1011,8 +1283,8 @@
             );
         };
 
-        // ===== NOUVEAU : PAGE MÉMOIRES AVEC TIMELINE =====
-        const MemoriesPage = ({ currentUser, onCreateSession }) => {
+        // ===== NOUVELLE PAGE MÉMOIRES AVEC VRAIES IMAGES =====
+        const MemoriesPage = ({ currentUser, onCreateSession, googleAuth }) => {
             const [activeTab, setActiveTab] = useState('blog'); // 'blog' ou 'photos'
             const [currentDay, setCurrentDay] = useState(1);
             const [isImportingPhotos, setIsImportingPhotos] = useState(false);
@@ -1213,7 +1485,7 @@
                             )}
                         </div>
                     ) : (
-                        /* ENCART PHOTOS (nouveau) */
+                        /* ENCART PHOTOS AVEC VRAIES IMAGES */
                         <div className="bg-white p-6 rounded-lg border border-gray-200">
                             {!isPhotosImported ? (
                                 /* Interface import index photos */
@@ -1256,11 +1528,12 @@
                                     </div>
                                 </div>
                             ) : (
-                                /* Galerie photos */
+                                /* Galerie photos avec vraies images */
                                 <div>
                                     <PhotoGallery 
                                         dayNumber={currentDay}
                                         photosData={currentPhotos}
+                                        googleAuth={googleAuth}
                                     />
                                     
                                     {currentPhotos && (
