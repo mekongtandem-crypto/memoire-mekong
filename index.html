@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.5.2 : Correctif de Démarrage</title>
+    <title>🐘 Mémoire du Mékong V0.5.5.3 : Correctif de Démarrage</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -191,7 +191,7 @@ const PhotoGrid = ({ photos, onPhotoSelect }) => {
 };
 
 
-// ===== COMPOSANT PHOTOVIEWER (LIGHTBOX) =====
+// ===== COMPOSANT PHOTOVIEWER (LIGHTBOX) - CORRIGÉ =====
 const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSession }) => {
     if (selectedIndex === null) return null;
 
@@ -205,55 +205,37 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onClose, onNavigate]);
 
+    // La fonction de nettoyage d'URL qui résout le problème
+    const cleanDriveImageLink = (url) => {
+        if (!url) return null;
+        // Supprime le paramètre de taille (ex: "=s220") ou d'export pour éviter les blocages
+        return url.split('=')[0];
+    };
+
     const currentPhoto = photos[selectedIndex];
     const canGoPrev = selectedIndex > 0;
     const canGoNext = selectedIndex < photos.length - 1;
 
+    // On applique la correction à l'URL de la grande image
+    const largeImageUrl = cleanDriveImageLink(currentPhoto.webContentLink);
+
     return (
         <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 fade-in p-4">
-            {/* Bouton de fermeture */}
-            <button onClick={onClose} className="absolute top-4 right-4 text-white text-3xl hover:opacity-75 z-50">
-                &times;
-            </button>
-
-            {/* Contenu principal */}
+            <button onClick={onClose} className="absolute top-4 right-4 text-white text-3xl hover:opacity-75 z-50">&times;</button>
             <div className="relative w-full h-full flex items-center justify-center">
-                {/* Image */}
                 <div className="relative flex items-center justify-center max-w-full max-h-full">
                      <img 
-                        src={currentPhoto.webContentLink} 
+                        src={largeImageUrl} 
                         alt={currentPhoto.filename} 
                         className="max-h-[85vh] max-w-[90vw] object-contain"
                     />
                 </div>
-
-                {/* Navigation */}
-                <button 
-                    onClick={() => onNavigate('prev')} 
-                    disabled={!canGoPrev}
-                    className="absolute left-4 text-white text-4xl hover:opacity-75 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                    <ChevronLeft className="w-10 h-10" />
-                </button>
-                 <button 
-                    onClick={() => onNavigate('next')} 
-                    disabled={!canGoNext}
-                    className="absolute right-4 text-white text-4xl hover:opacity-75 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                    <ChevronRight className="w-10 h-10" />
-                </button>
+                <button onClick={() => onNavigate('prev')} disabled={!canGoPrev} className="absolute left-4 text-white text-4xl hover:opacity-75 disabled:opacity-30"><ChevronLeft className="w-10 h-10" /></button>
+                <button onClick={() => onNavigate('next')} disabled={!canGoNext} className="absolute right-4 text-white text-4xl hover:opacity-75 disabled:opacity-30"><ChevronRight className="w-10 h-10" /></button>
             </div>
-            
-            {/* Barre d'outils en bas */}
             <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-white bg-black/30 p-3 rounded-lg">
                 <p className="text-sm truncate pr-4">{currentPhoto.filename}</p>
-                <button
-                    onClick={() => onCreateSession(currentPhoto)}
-                    className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Session</span>
-                </button>
+                <button onClick={() => onCreateSession(currentPhoto)} className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4"/><span>Session</span></button>
             </div>
         </div>
     );
