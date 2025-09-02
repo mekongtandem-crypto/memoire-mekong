@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mémoire du Mékong V0.5.0</title>
+    <title>Mémoire du Mékong V0.5.3</title>
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -298,15 +298,21 @@ const GoogleDriveAPI = {
             });
             
             const folders = dayFoldersResponse.result.files.map(folder => {
-                // Parser le nom du dossier pour extraire le numéro de jour
-                const match = folder.name.match(/^(\d+)-(.+)$/);
+                // Parser le nom du dossier - formats acceptés : "025-Bangkok", "025.Bangkok", "025 Bangkok"
+                const matchTiret = folder.name.match(/^(\d+)-(.+)$/);
+                const matchPoint = folder.name.match(/^(\d+)\.(.+)$/);
+                const matchEspace = folder.name.match(/^(\d+)\s+(.+)$/);
+                
+                const match = matchTiret || matchPoint || matchEspace;
+                
                 return {
                     id: folder.id,
                     name: folder.name,
                     dayNumber: match ? parseInt(match[1]) : null,
                     location: match ? match[2] : folder.name,
                     createdTime: folder.createdTime,
-                    type: 'day-folder'
+                    type: 'day-folder',
+                    parsed: !!match // Pour debug
                 };
             });
             
@@ -902,8 +908,8 @@ const TestApp = () => {
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <h1 className="text-2xl font-bold text-orange-800">🔍 Mémoire du Mékong V0.5.1</h1>
-                    <p className="text-gray-600 mt-1">Diagnostic Google Drive - Localisation dossier Medias</p>
+                    <h1 className="text-2xl font-bold text-orange-800">📸 Mémoire du Mékong V0.5.3</h1>
+                    <p className="text-gray-600 mt-1">Parsing adaptatif noms dossiers (point/tiret/espace)</p>
                     
                     <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
