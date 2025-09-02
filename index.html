@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>🐘 Mémoire du Mékong V0.5.3.4 (Debug version) : Phase 3 - Intégration Page Mémoires</title>
+	<title>🐘 Mémoire du Mékong V0.5.3.5 (correcting GoogleDrive) : Phase 3 - Intégration Page Mémoires</title>
 	<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
@@ -545,7 +545,7 @@ const PhotoData = {
     }
 };       
 
-// ===== GOOGLE DRIVE API - AVEC CACHE ET GESTION PHOTOS (VERSION DEBUG) =====
+// ===== GOOGLE DRIVE API - AVEC CACHE ET GESTION PHOTOS (VERSION STRICTE) =====
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
@@ -582,13 +582,42 @@ const GoogleDriveAPI = {
         const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } this.isSignedIn = false; this._folderCache.clear(); console.log('✅ Déconnecté de Google Drive');
     },
     
-    async _findFileByName(name, parentId = 'root') {
-        const cacheKey = `${parentId}-${name}`; if (this._folderCache.has(cacheKey)) return this._folderCache.get(cacheKey);
-        try { const response = await gapi.client.drive.files.list({ q: `'${parentId}' in parents and name='${name}' and trashed=false`, fields: 'files(id, name)', pageSize: 1 }); const file = response.result.files[0] || null; if (file) this._folderCache.set(cacheKey, file); return file; } catch (error) { console.error(`❌ Erreur recherche fichier '${name}':`, error); throw error; }
+    // MODIFIÉ : Ajout d'un paramètre mimeType pour une recherche plus précise
+    async _findFileByName(name, parentId = 'root', mimeType = null) {
+        const cacheKey = `${parentId}-${name}-${mimeType}`;
+        if (this._folderCache.has(cacheKey)) {
+            return this._folderCache.get(cacheKey);
+        }
+
+        try {
+            let query = `'${parentId}' in parents and name='${name}' and trashed=false`;
+            if (mimeType) {
+                query += ` and mimeType='${mimeType}'`;
+            }
+
+            const response = await gapi.client.drive.files.list({
+                q: query,
+                fields: 'files(id, name)',
+                pageSize: 1
+            });
+            const file = response.result.files[0] || null;
+            
+            if (file) {
+                this._folderCache.set(cacheKey, file);
+            } else {
+                // Pas de fallback ici, si la recherche stricte ne trouve rien, c'est qu'il y a un vrai problème de nommage
+                console.error(`IMPOSSIBLE de trouver '${name}' avec le type ${mimeType || 'inconnu'}.`);
+            }
+            return file;
+        } catch (error) {
+            console.error(`❌ Erreur critique lors de la recherche de '${name}':`, error);
+            throw error;
+        }
     },
 
     async findJsonFile(fileName) {
-        if (!this.isSignedIn) return null; return this._findFileByName(fileName, 'root');
+        if (!this.isSignedIn) return null; 
+        return this._findFileByName(fileName, 'root');
     },
     
     async loadSessions() {
@@ -603,29 +632,28 @@ const GoogleDriveAPI = {
     
     async getPhotoLinks(photo) {
         if (!this.isSignedIn) throw new Error('Pas connecté à Google Drive');
+        const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
         try {
-            const mediasFolder = await this._findFileByName('Medias'); if (!mediasFolder) throw new Error("Dossier 'Medias' introuvable");
-            const photosFolder = await this._findFileByName('Photos', mediasFolder.id); if (!photosFolder) throw new Error("Dossier 'Photos' introuvable");
-            const dayFolder = await this._findFileByName(photo.folderName, photosFolder.id); if (!dayFolder) throw new Error(`Dossier jour '${photo.folderName}' introuvable`);
+            // MODIFIÉ : On cherche spécifiquement des DOSSIERS
+            const mediasFolder = await this._findFileByName('Medias', 'root', FOLDER_MIME_TYPE); 
+            if (!mediasFolder) throw new Error("Dossier 'Medias' introuvable");
             
-            const q = `'${dayFolder.id}' in parents and name='${photo.filename}' and trashed=false`;
-            const response = await gapi.client.drive.files.list({ q: q, fields: 'files(webContentLink, thumbnailLink)', pageSize: 1 });
-
-            if (response.result.files && response.result.files.length > 0) {
-                return response.result.files[0];
-            } else {
-                // --- BLOC DE DEBUG ---
-                console.warn(`Photo non trouvée via recherche directe: ${photo.folderName}/${photo.filename}`);
-                console.log(`DEBUG: Listing de tous les fichiers dans le dossier '${photo.folderName}' pour comparaison...`);
-                const allFilesResponse = await gapi.client.drive.files.list({
-                    q: `'${dayFolder.id}' in parents and trashed=false`,
-                    fields: 'files(name)',
-                    pageSize: 100 // Augmentez si dossiers très grands
+            const photosFolder = await this._findFileByName('Photos', mediasFolder.id, FOLDER_MIME_TYPE); 
+            if (!photosFolder) throw new Error("Dossier 'Photos' introuvable");
+            
+            const dayFolder = await this._findFileByName(photo.folderName, photosFolder.id, FOLDER_MIME_TYPE); 
+            if (!dayFolder) throw new Error(`Dossier jour '${photo.folderName}' introuvable`);
+            
+            // La recherche de fichier, elle, n'a pas de mimeType spécifié
+            const photoFile = await this._findFileByName(photo.filename, dayFolder.id);
+            
+            if (photoFile) {
+                 const response = await gapi.client.drive.files.get({
+                    fileId: photoFile.id,
+                    fields: 'webContentLink, thumbnailLink'
                 });
-                const foundNames = allFilesResponse.result.files.map(f => f.name);
-                console.log("Nom de fichier recherché :", `'${photo.filename}'`);
-                console.log("Noms de fichiers trouvés dans le dossier :", foundNames);
-                // --- FIN BLOC DE DEBUG ---
+                return response.result;
+            } else {
                 return null;
             }
         } catch (error) { console.error(`Erreur pour obtenir le lien de ${photo.filename}:`, error); return null; }
