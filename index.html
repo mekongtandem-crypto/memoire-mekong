@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6 : Affichage photo grand forma BAse64</title>
+    <title>🐘 Mémoire du Mékong V0.5.6b : Affichage photo grand forma BAse64</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -192,6 +192,7 @@ const PhotoGrid = ({ photos, onPhotoSelect }) => {
 
 
 // COMPOSANT: PhotoViewer avec base64 pour grand format
+// COMPOSANT: PhotoViewer avec base64 pour grand format
 const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSession }) => {
     const [fullImageSrc, setFullImageSrc] = React.useState('');
     const [isLoadingFullImage, setIsLoadingFullImage] = React.useState(false);
@@ -222,15 +223,29 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
             setFullImageSrc(photo.webContentLink);
         }
     }, [photo]);
+
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+            if (e.key === 'ArrowLeft') onNavigate('prev');
+            if (e.key === 'ArrowRight') onNavigate('next');
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose, onNavigate]);
+
+    const canGoPrev = selectedIndex > 0;
+    const canGoNext = selectedIndex < photos.length - 1;
     
     return (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
             <div className="relative max-w-4xl max-h-full p-4">
+                {/* Bouton de fermeture */}
                 <button 
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-10 text-white bg-black/50 hover:bg-black/70 rounded-full p-2"
+                    className="absolute top-4 right-4 z-10 text-white text-3xl hover:opacity-75"
                 >
-                    <X className="w-6 h-6" />
+                    &times;
                 </button>
                 
                 {isLoadingFullImage ? (
@@ -246,34 +261,37 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
                     />
                 )}
                 
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg">
-                    <p className="text-sm">{photo.filename}</p>
-                    <button 
-                        onClick={() => onCreateSession(photo)}
-                        className="mt-2 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-xs"
-                    >
-                        Créer une session
-                    </button>
-                </div>
-                
+                {/* Navigation */}
                 {photos.length > 1 && (
                     <>
                         <button 
                             onClick={() => onNavigate('prev')}
-                            disabled={selectedIndex === 0}
-                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 disabled:opacity-50"
+                            disabled={!canGoPrev}
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-4xl hover:opacity-75 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                            <ChevronLeft className="w-6 h-6" />
+                            <ChevronLeft className="w-10 h-10" />
                         </button>
                         <button 
                             onClick={() => onNavigate('next')}
-                            disabled={selectedIndex === photos.length - 1}
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 disabled:opacity-50"
+                            disabled={!canGoNext}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-4xl hover:opacity-75 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                            <ChevronRight className="w-6 h-6" />
+                            <ChevronRight className="w-10 h-10" />
                         </button>
                     </>
                 )}
+                
+                {/* Barre d'outils en bas */}
+                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-white bg-black/30 p-3 rounded-lg">
+                    <p className="text-sm truncate pr-4">{photo.filename}</p>
+                    <button
+                        onClick={() => onCreateSession(photo)}
+                        className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Session</span>
+                    </button>
+                </div>
             </div>
         </div>
     );
