@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7 : fusion de 0.5.5.2 et 0.5.10(photo grand format)</title>
+    <title>🐘 Mémoire du Mékong V0.5.7b : fusion de 0.5.5.2 et 0.5.10(photo grand format)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -195,7 +195,7 @@ const PhotoGrid = ({ photos, onPhotoSelect }) => {
 const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSession }) => {
     if (selectedIndex === null) return null;
 
-    useEffect(() => {
+    React.useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') onClose();
             if (e.key === 'ArrowLeft') onNavigate('prev');
@@ -2149,21 +2149,104 @@ const MessageContent = ({ content }) => {
     );
 };
 
+// ===== COMPOSANTS POUR SUPPORT PHOTOS - V0.5.6 =====
+
+// Fonction pour parser les messages avec photos
+const formatMessage = (content) => {
+    const photoRegex = /\[PHOTO\](.*?)\[\/PHOTO\]/g;
+    
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = photoRegex.exec(content)) !== null) {
+        // Ajouter le texte avant la photo
+        if (match.index > lastIndex) {
+            parts.push({
+                type: 'text',
+                content: content.slice(lastIndex, match.index)
+            });
+        }
+        
+        // Ajouter la photo
+        parts.push({
+            type: 'photo',
+            url: match[1]
+        });
+        
+        lastIndex = match.index + match[0].length;
+    }
+    
+    // Ajouter le texte restant
+    if (lastIndex < content.length) {
+        parts.push({
+            type: 'text',
+            content: content.slice(lastIndex)
+        });
+    }
+    
+    // Si aucune photo trouvée, retourner le contenu comme texte simple
+    if (parts.length === 0) {
+        parts.push({
+            type: 'text',
+            content: content
+        });
+    }
+    
+    return parts;
+};
+
+// Composant pour afficher le contenu des messages (texte + photos)
+const MessageContent = ({ content }) => {
+    const messageParts = formatMessage(content);
+    
+    return (
+        <div className="space-y-2">
+            {messageParts.map((part, index) => {
+                if (part.type === 'photo') {
+                    return (
+                        <div key={index} className="mb-3">
+                            <img 
+                                src={part.url} 
+                                alt="Photo du souvenir"
+                                className="max-w-full h-auto rounded-lg shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+                                onClick={() => window.open(part.url, '_blank')}
+                                style={{ maxHeight: '300px', objectFit: 'contain' }}
+                                onError={(e) => {
+                                    console.error('Erreur chargement photo:', part.url);
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        </div>
+                    );
+                } else if (part.content.trim()) {
+                    return (
+                        <div key={index} className="whitespace-pre-wrap text-sm leading-relaxed">
+                            {part.content}
+                        </div>
+                    );
+                }
+                return null;
+            })}
+        </div>
+    );
+};
+
 // ===== FONCTION CHATPAGE COMPLÈTE V0.5.6 =====
 const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-    const [newMessageContent, setNewMessageContent] = useState('');
-    const [editingMessage, setEditingMessage] = useState(null);
-    const [editingTitle, setEditingTitle] = useState(false);
-    const [titleContent, setTitleContent] = useState('');
-    const [isSending, setIsSending] = useState(false);
-    const [isSessionReady, setIsSessionReady] = useState(false);
-    const [editContent, setEditContent] = useState('');
+    const [newMessageContent, setNewMessageContent] = React.useState('');
+    const [editingMessage, setEditingMessage] = React.useState(null);
+    const [editingTitle, setEditingTitle] = React.useState(false);
+    const [titleContent, setTitleContent] = React.useState('');
+    const [isSending, setIsSending] = React.useState(false);
+    const [isSessionReady, setIsSessionReady] = React.useState(false);
+    const [editContent, setEditContent] = React.useState('');
     
-    const messagesEndRef = useRef(null);
+    const messagesEndRef = React.useRef(null);
     const { renderGameIcon, getUserStyle } = useSessionState();
 
     // Gérer le loading de la session
-    useEffect(() => {
+    React.useEffect(() => {
         if (currentSession) {
             const timer = setTimeout(() => {
                 setIsSessionReady(true);
@@ -2179,7 +2262,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
     }, [currentSession?.id]);
 
     // Auto-scroll vers le bas des messages
-    useEffect(() => {
+    React.useEffect(() => {
         if (currentSession?.notes && messagesEndRef.current && isSessionReady) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
