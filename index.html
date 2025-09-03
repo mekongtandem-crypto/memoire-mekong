@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7f : reecriture const useGoogleAut </title>
+    <title>🐘 Mémoire du Mékong V0.5.8 : revision affichage des post </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -191,6 +191,56 @@ const PhotoGrid = ({ photos, onPhotoSelect }) => {
     );
 };
 
+// NOUVEAU: COMPOSANT MastodonPostViewer
+const MastodonPostViewer = ({ post, photos, isLoadingPhotos, onCreateSession }) => {
+    if (!post) {
+        return (
+            <div className="text-center py-12 text-gray-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Aucun post de blog pour ce jour.</p>
+            </div>
+        );
+    }
+
+    const hasPhotos = photos && photos.length > 0;
+    
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-start">
+                <h3 className="text-2xl font-bold text-amber-900 pr-4">
+                    Jour {post.dayNumber} : {post.title}
+                </h3>
+                <button onClick={onCreateSession} className="flex-shrink-0 flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm">
+                    <Plus className="w-4 h-4" />
+                    <span>Session</span>
+                </button>
+            </div>
+            
+            <div className="prose max-w-none text-gray-700">
+                <p>{post.content}</p>
+            </div>
+            
+            <div className="flex items-center space-x-2 text-gray-500 text-sm">
+                <Cloud className="w-4 h-4" />
+                <span>Publié sur Mastodon le {new Date(post.published).toLocaleDateString('fr-FR')}</span>
+            </div>
+            
+            {/* Encadré pour les photos du post */}
+            {isLoadingPhotos ? (
+                 <LoadingSpinner message="Chargement des photos du post..." size="small" />
+            ) : hasPhotos ? (
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-4">
+                    <h4 className="font-semibold text-gray-800 flex items-center space-x-2">
+                        <Camera className="w-5 h-5 text-gray-600" />
+                        <span>Photos associées ({photos.length})</span>
+                    </h4>
+                    <PhotoGrid photos={photos} onPhotoSelect={() => {}} /> 
+                </div>
+            ) : null}
+            
+        </div>
+    );
+};		
 
 // COMPOSANT: PhotoViewer avec base64 pour grand format
 // COMPOSANT: PhotoViewer avec base64 pour grand format
@@ -356,25 +406,40 @@ const allPosts = orderedItems
         const content = note.content || '';
         
         // Nettoyer le HTML et décoder les entités HTML
-        const cleanContent = content.replace(/<[^>]*>/g, '');
-        const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+        const cleanContentHtml = content.replace(/<[^>]*>/g, '');
+        const decodedContent = MastodonData.decodeHtmlEntities(cleanContentHtml);
         
         // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
         const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
         const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
         const hasJourNumber = dayNumber !== null;
         
-        // NOUVEAU : Extraire le titre
-        let title;
+        // NOUVEAU : Extraire le titre et le contenu
+        let title = '';
+        let postContent = decodedContent;
         if (hasJourNumber) {
-            // Pour les posts avec Jnnn: extraire le titre après
+            // Pour les posts avec Jnnn: extraire le titre après et le reste est le contenu
             const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
-            title = afterJour.split('\n')[0].slice(0, 60).trim();
-            if (title.length === 60) title += '...';
+            const lines = afterJour.split('\n').filter(line => line.trim() !== '');
+            if (lines.length > 0) {
+                title = lines[0].trim().replace(/[#]/g, ''); // Suppression des # pour le titre
+                if (lines.length > 1) {
+                    postContent = lines.slice(1).join('\n').trim();
+                } else {
+                    postContent = ''; // Pas de contenu après le titre
+                }
+            }
         } else {
-            // Pour les posts sans Jnnn: utiliser le début comme titre
-            title = decodedContent.split('\n')[0].slice(0, 60).trim();
-            if (title.length === 60) title += '...';
+            // Pour les posts sans Jnnn: la première ligne est le titre
+            const lines = decodedContent.split('\n').filter(line => line.trim() !== '');
+            if (lines.length > 0) {
+                title = lines[0].trim();
+                if (lines.length > 1) {
+                    postContent = lines.slice(1).join('\n').trim();
+                } else {
+                    postContent = ''; // Pas de contenu après le titre
+                }
+            }
         }
         
         // Nettoyer le titre des emojis excessifs et caractères spéciaux
@@ -384,8 +449,8 @@ const allPosts = orderedItems
             id: note.id || `post-${index}`,
             dayNumber,
             hasJourNumber,
-            title: title || 'Post sans titre', // NOUVEAU
-            content: decodedContent,
+            title: title || 'Post sans titre',
+            content: postContent,
             published: note.published || item.published,
             attachments: note.attachment || [],
             url: note.url,
@@ -404,7 +469,7 @@ const allPosts = orderedItems
             const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
             postsWithoutDay.forEach((post, index) => {
                 post.dayNumber = maxDayNumber + index + 1;
-                post.isExtraPost = true; // Marquer comme post additionnel
+                post.isExtraPost = true;
             });
 
             // ÉTAPE 5 : Combiner tous les posts
@@ -436,68 +501,6 @@ const allPosts = orderedItems
             throw error;
         }
     },
-
-    // Sauvegarder les posts
-    savePosts: (posts) => {
-        Storage.set('mastodon_posts', posts);
-        Storage.set('mastodon_imported_at', new Date().toISOString());
-    },
-
-    // Récupérer les posts
-    getPosts: () => {
-        return Storage.get('mastodon_posts', []);
-    },
-
-    // Rechercher dans les posts
-    searchPosts: (query) => {
-        const posts = MastodonData.getPosts();
-        if (!query.trim()) return posts;
-        
-        const searchTerms = query.toLowerCase().trim().split(/\s+/);
-        return posts.filter(post => 
-            searchTerms.every(term => 
-                post.content.toLowerCase().includes(term)
-            )
-        );
-    },
-
-    // Obtenir un post par numéro de jour
-    getPostByDay: (dayNumber) => {
-        const posts = MastodonData.getPosts();
-        return posts.find(post => post.dayNumber === dayNumber);
-    },
-
-    // Obtenir un post aléatoire
-    getRandomPost: () => {
-        const posts = MastodonData.getPosts();
-        if (posts.length === 0) return null;
-        return posts[Math.floor(Math.random() * posts.length)];
-    },
-
-    // Vérifier si les données sont importées
-    isImported: () => {
-        const posts = MastodonData.getPosts();
-        return posts.length > 0;
-    },
-
-    // Obtenir les stats
-    getStats: () => {
-        const posts = MastodonData.getPosts();
-        const importedAt = Storage.get('mastodon_imported_at');
-        const extraPosts = posts.filter(p => p.isExtraPost);
-        
-        return {
-            totalPosts: posts.length,
-            regularPosts: posts.length - extraPosts.length,
-            extraPosts: extraPosts.length,
-            dayRange: posts.length > 0 ? {
-                min: Math.min(...posts.map(p => p.dayNumber)),
-                max: Math.max(...posts.map(p => p.dayNumber))
-            } : null,
-            importedAt
-        };
-    }
-};
 
 // ===== PHOTO DATA MANAGEMENT - GESTION DE L'INDEX DES PHOTOS =====
 const PhotoData = {
@@ -2469,22 +2472,35 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const mastodonStats = MastodonData.getStats();
     const isPhotoIndexImported = PhotoData.isImported();
     
+    // NOUVEAU: État pour les photos du post
+    const [postPhotos, setPostPhotos] = React.useState([]);
+    const [isLoadingPostPhotos, setIsLoadingPostPhotos] = React.useState(false);
+
     React.useEffect(() => {
         const loadDataForDay = async () => {
             let hasContent = false;
+            // Toujours charger le post, il est la base de la page
             if (isMastodonImported) {
                 const post = MastodonData.getPostByDay(currentDay);
                 setCurrentPost(post);
-                if (post) hasContent = true;
+                if (post) {
+                    hasContent = true;
+                    // Charger les photos du post si le post existe
+                    await loadPostPhotos(post);
+                } else {
+                    setPostPhotos([]);
+                }
+            } else {
+                setCurrentPost(null);
             }
+
+            // Charger les photos du jour (pour la galerie)
             if (isPhotoIndexImported) {
                 const photosInIndex = PhotoData.getPhotosByDay(currentDay);
                 if (photosInIndex.length > 0) {
                     hasContent = true;
-                    setActiveTab('photos');
                     await loadPhotosForDay(currentDay);
                 } else {
-                    setActiveTab('blog');
                     setDayPhotos([]);
                 }
             }
@@ -2496,6 +2512,51 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const cleanThumbnailLink = (url) => {
         if (!url) return null;
         return url.split('=')[0];
+    };
+    
+    // NOUVEAU: Fonction pour charger les photos liées au post
+    const loadPostPhotos = async (post) => {
+        setIsLoadingPostPhotos(true);
+        setPostPhotos([]);
+        
+        if (!post?.attachments || post.attachments.length === 0) {
+            setIsLoadingPostPhotos(false);
+            return;
+        }
+
+        let allFoundPhotos = [];
+        for (const attachment of post.attachments) {
+            if (attachment.url) {
+                // Pour le moment, nous avons seulement l'URL du fichier sur Mastodon.
+                // Nous avons besoin de l'ID Google Drive pour le charger.
+                // Si l'URL est de type 'https://mastodon.social/.../file.jpeg', il est difficile de retrouver
+                // l'ID Drive. Le plus simple est de s'appuyer sur l'index photos existant.
+                // On peut ajouter une logique pour trouver la photo dans l'index par nom de fichier.
+                const filename = attachment.url.split('/').pop();
+                const photoEntry = PhotoData.getIndex()?.allPhotos.find(p => p.filename === filename);
+                
+                if (photoEntry) {
+                     const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', 'application/vnd.google-apps.folder');
+                     const photosRootFolder = await GoogleDriveAPI._findFile('Photos', mediasFolder.id, 'application/vnd.google-apps.folder');
+                     const dayFolder = await GoogleDriveAPI._findFile(photoEntry.folderName, photosRootFolder.id, 'application/vnd.google-apps.folder');
+                     if (dayFolder) {
+                        const filesInDrive = await GoogleDriveAPI.listPhotoFiles(dayFolder.id);
+                        const fileData = filesInDrive.find(f => f.name === filename);
+                        if(fileData) {
+                            allFoundPhotos.push({
+                                id: fileData.id,
+                                filename: filename,
+                                webContentLink: fileData.webContentLink,
+                                thumbnailLink: cleanThumbnailLink(fileData.thumbnailLink),
+                                mimeType: fileData.mimeType || 'image/jpeg'
+                            });
+                        }
+                     }
+                }
+            }
+        }
+        setPostPhotos(allFoundPhotos);
+        setIsLoadingPostPhotos(false);
     };
 
     const loadPhotosForDay = async (day) => {
@@ -2534,11 +2595,11 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                     if (driveFilesMap.has(filename)) {
                         const fileData = driveFilesMap.get(filename);
                         allFoundPhotos.push({
-                            id: fileData.id,  // NOUVEAU: ID nécessaire pour base64
+                            id: fileData.id,
                             filename: filename,
                             webContentLink: fileData.webContentLink,
                             thumbnailLink: cleanThumbnailLink(fileData.thumbnailLink),
-                            mimeType: fileData.mimeType || 'image/jpeg'  // NOUVEAU: Type MIME
+                            mimeType: fileData.mimeType || 'image/jpeg'
                         });
                     }
                 }
@@ -2554,7 +2615,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
 	const handlePhotoNavigate = (direction) => { if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedPhotoIndex - 1); else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1); };
     
-
     if (isCreatingSession) return <LoadingSpinner message="Création de session..." size="large" />;
     
     return (
@@ -2568,7 +2628,13 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 {activeTab === 'photos' ? (
                     isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
                 ) : (
-                    currentPost ? ( <div> <div className="flex justify-between items-start mb-4"> <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3> <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><Plus className="w-4 h-4"/><span>Session</span></button> </div> <div className="prose max-w-none"><p>{currentPost.content}</p></div> </div> ) : ( <div className="text-center py-12 text-gray-500"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Aucun post de blog pour ce jour.</p></div> )
+                    <MastodonPostViewer 
+                        post={currentPost} 
+                        photos={postPhotos}
+                        isLoadingPhotos={isLoadingPostPhotos}
+                        onCreateSession={() => createSessionFromPost(currentPost)}
+                        onPhotoSelect={handlePhotoSelect}
+                    />
                 )}
             </div>
             {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={handlePhotoNavigate} onCreateSession={createSessionFromPhoto} />}
