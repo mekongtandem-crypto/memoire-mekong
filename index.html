@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7b : page config (2 options pour charger fichier</title>
+    <title>🐘 Mémoire du Mékong V0.5.7c : page config (modify useGoogleAut )</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -10,9 +10,11 @@
 	<script src="https://accounts.google.com/gsi/client"></script>
 	<script>
 	window.onload = () => {
-  		google.accounts.id.initialize({
-    		client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com'
-  		});
+  	    google.accounts.id.initialize({
+            client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
+            // NOUVEAU: Ajout du scope pour l'accès en lecture au Drive
+            scope: 'https://www.googleapis.com/auth/drive.readonly'
+  	    });
 	};
 	</script>
 
@@ -1142,7 +1144,7 @@ const useSessionState = () => {
     };
 };
 
-// ===== GOOGLE AUTH HOOK - CONNECTION-FIRST - AVEC DETECTION DECONNEXION =====
+// ===== GOOGLE AUTH HOOK - CONNECTION-FIRST - AVEC DETECTION DECONNEXION (REMPLACER CE BLOC COMPLET) =====
 		const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -1239,6 +1241,7 @@ const useSessionState = () => {
         setLastConnectionError(null);
         
         try {
+            // NOUVEAU: Appeler la méthode signIn de GoogleDriveAPI avec le bon scope
             const success = await GoogleDriveAPI.signIn();
             if (success) {
                 const token = gapi.client.getToken();
@@ -1287,6 +1290,7 @@ const useSessionState = () => {
         setIsLoading(true);
         
         try {
+            // NOUVEAU: Utiliser la fonction de révocation du token
             const token = gapi.client.getToken();
             if (token) {
                 google.accounts.oauth2.revoke(token.access_token);
