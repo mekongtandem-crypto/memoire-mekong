@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6c : Affichage photo grand forma BAse64</title>
+    <title>🐘 Mémoire du Mékong V0.5.6d : Affichage photo grand forma BAse64</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2096,8 +2096,97 @@ const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
         </div>
     );
 }; 
-	
+// ===== COMPOSANT MESSAGE CONTENT - AFFICHAGE INTELLIGENT DES IMAGES =====
+const MessageContent = ({ content }) => {
+    const [processedContent, setProcessedContent] = React.useState(content);
+    const [loadingImages, setLoadingImages] = React.useState(new Set());
+    
+    React.useEffect(() => {
+        const processImagesInContent = async () => {
+            // Rechercher toutes les balises [IMAGE]...[/IMAGE]
+            const imageRegex = /\[IMAGE\](https:\/\/drive\.google\.com\/uc\?id=([^&]+)[^)]*)\[\/IMAGE\]/g;
+            let match;
+            let newContent = content;
+            const imagesToLoad = [];
+            
+            while ((match = imageRegex.exec(content)) !== null) {
+                const [fullMatch, driveUrl, fileId] = match;
+                imagesToLoad.push({ fullMatch, driveUrl, fileId });
+            }
+            
+            if (imagesToLoad.length === 0) {
+                setProcessedContent(content);
+                return;
+            }
+            
+            // Marquer les images comme en cours de chargement
+            const loadingIds = new Set(imagesToLoad.map(img => img.fileId));
+            setLoadingImages(loadingIds);
+            
+            // Traiter chaque image
+            for (const { fullMatch, driveUrl, fileId } of imagesToLoad) {
+                try {
+                    console.log('🖼️ Chargement image en base64:', fileId);
+                    
+                    // Déterminer le type MIME (par défaut JPEG)
+                    const mimeType = 'image/jpeg'; // On peut améliorer ça plus tard
+                    
+                    // Charger l'image en base64
+                    const base64Data = await GoogleDriveAPI.getPhotoAsBase64(fileId, mimeType);
+                    
+                    if (base64Data) {
+                        // Remplacer la balise par une balise img HTML
+                        const imageHTML = `<img src="${base64Data}" alt="Photo du voyage" class="max-w-full h-auto rounded-lg shadow-md my-2" style="max-height: 300px; object-fit: contain;" />`;
+                        newContent = newContent.replace(fullMatch, imageHTML);
+                        console.log('✅ Image remplacée en base64');
+                    } else {
+                        // Si le chargement base64 échoue, garder l'URL originale
+                        const imageHTML = `<img src="${driveUrl}" alt="Photo du voyage" class="max-w-full h-auto rounded-lg shadow-md my-2" style="max-height: 300px; object-fit: contain;" onerror="this.alt='Image non disponible'; this.className='text-red-500 italic'" />`;
+                        newContent = newContent.replace(fullMatch, imageHTML);
+                        console.log('⚠️ Fallback sur URL originale');
+                    }
+                } catch (error) {
+                    console.error('❌ Erreur chargement image:', fileId, error);
+                    // En cas d'erreur, remplacer par un texte d'erreur
+                    const errorText = `<span class="text-red-500 italic text-sm">📷 Image non disponible</span>`;
+                    newContent = newContent.replace(fullMatch, errorText);
+                }
+                
+                // Retirer de la liste des images en cours de chargement
+                setLoadingImages(prev => {
+                    const next = new Set(prev);
+                    next.delete(fileId);
+                    return next;
+                });
+            }
+            
+            setProcessedContent(newContent);
+        };
+        
+        processImagesInContent();
+    }, [content]);
+    
+    // Si des images sont en cours de chargement, afficher un indicateur
+    if (loadingImages.size > 0) {
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center space-x-2 text-blue-500 text-sm">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                    <span>Chargement des images...</span>
+                </div>
+                <div dangerouslySetInnerHTML={{ __html: processedContent }} className="text-sm whitespace-pre-wrap" />
+            </div>
+        );
+    }
+    
+    // Afficher le contenu traité (avec les images remplacées)
+    return (
+        <div dangerouslySetInnerHTML={{ __html: processedContent }} className="text-sm whitespace-pre-wrap" />
+    );
+};
+		
 // Page Chat (MODIFIÉE - HOOKS DANS LE BON ORDRE)
+// Page Chat (VERSION 0.5.5.2 - AMÉLIORÉE AVEC MESSAGECONTEN)
 const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
     const [newMessageContent, setNewMessageContent] = React.useState('');
     const [editingMessage, setEditingMessage] = React.useState(null);
@@ -2105,115 +2194,66 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
     const [editingTitle, setEditingTitle] = React.useState(false);
     const [titleContent, setTitleContent] = React.useState('');
     const [isSessionReady, setIsSessionReady] = React.useState(false);
-    const [isSending, setIsSending] = React.useState(false); // NOUVEAU - BON ENDROIT !
+    const [isSending, setIsSending] = React.useState(false);
     const messagesEndRef = React.useRef(null);
-    const { renderGameIcon } = useSessionState();
 
-    // NOUVEAU : Gérer le loading de la session
+    // Auto-scroll vers le bas
     React.useEffect(() => {
-        if (currentSession) {
-            const timer = setTimeout(() => {
-                setIsSessionReady(true);
-            }, 100);
-            
-            return () => {
-                clearTimeout(timer);
-                setIsSessionReady(false);
-            };
-        } else {
-            setIsSessionReady(false);
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [currentSession?.id]);
+    }, [currentSession?.notes]);
 
-    // Auto-scroll vers le bas des messages
+    // Vérifier si session valide
     React.useEffect(() => {
-        if (currentSession?.notes && messagesEndRef.current && isSessionReady) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (currentSession && currentSession.gameId && currentSession.notes) {
+            setIsSessionReady(true);
         }
-    }, [currentSession?.notes, isSessionReady]);
+    }, [currentSession]);
 
-    // NOUVEAU : État de chargement de session
-    if (!currentSession || !isSessionReady) {
+    if (!currentSession) {
         return (
-            <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-                <div className="flex items-center justify-center flex-1">
-                    {!currentSession ? (
-                        <div className="text-center py-12">
-                            <Send className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune session sélectionnée</h3>
-                            <button
-                                onClick={onBackToSessions}
-                                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                            >
-                                Retour aux sessions
-                            </button>
-                        </div>
-                    ) : (
-                        <LoadingSpinner message="Chargement de la session..." size="large" />
-                    )}
-                </div>
+            <div className="text-center py-12 text-gray-500 fade-in">
+                <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                <h3 className="text-xl font-medium mb-2">Aucune session sélectionnée</h3>
+                <p className="mb-4">Sélectionnez une session pour commencer.</p>
+                <button 
+                    onClick={onBackToSessions}
+                    className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
+                >
+                    Voir les sessions
+                </button>
             </div>
         );
     }
 
-    const formatTime = (dateString) => {
-        return new Date(dateString).toLocaleTimeString('fr-FR', { 
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('fr-FR', { 
-            day: 'numeric', 
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    // Fonctions pour éditer le titre
-    const startEditTitle = () => {
-        setEditingTitle(true);
-        setTitleContent(currentSession.gameTitle || '');
-    };
-
-    const saveTitle = async () => {
-        if (!titleContent.trim()) return;
-        
-        const updatedSession = {
-            ...currentSession,
-            gameTitle: titleContent.trim()
-        };
-        
-        await onUpdateSession(updatedSession);
-        setEditingTitle(false);
-    };
-
-    const cancelEditTitle = () => {
-        setEditingTitle(false);
-        setTitleContent('');
+    const handleUpdate = (updatedSession) => { 
+        onUpdateSession(updatedSession); 
     };
 
     const sendMessage = async () => {
         if (!newMessageContent.trim() || isSending) return;
-
+        
         setIsSending(true);
         try {
-            const newMessage = {
-                id: Date.now(),
-                content: newMessageContent.trim(),
-                author: currentUser,
-                timestamp: new Date().toISOString()
-            };
-
             const updatedSession = {
                 ...currentSession,
-                notes: [...(currentSession.notes || []), newMessage]
+                notes: [
+                    ...(currentSession.notes || []), 
+                    {
+                        id: Date.now(),
+                        content: newMessageContent.trim(),
+                        author: currentUser,
+                        timestamp: new Date().toISOString()
+                    }
+                ],
+                lastModifiedBy: currentUser
             };
-
-            await onUpdateSession(updatedSession);
+            
+            await handleUpdate(updatedSession);
             setNewMessageContent('');
+        } catch (error) {
+            console.error('Erreur envoi message:', error);
         } finally {
             setIsSending(false);
         }
@@ -2236,7 +2276,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             )
         };
 
-        await onUpdateSession(updatedSession);
+        await handleUpdate(updatedSession);
         setEditingMessage(null);
         setEditContent('');
     };
@@ -2254,116 +2294,76 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
             notes: (currentSession.notes || []).filter(note => note.id !== messageId)
         };
 
-        await onUpdateSession(updatedSession);
+        await handleUpdate(updatedSession);
     };
 
-    const inviteOtherUser = async () => {
-        const otherUser = currentUser === 'tom' ? 'lambert' : 'tom';
-        alert(`Invitation envoyée à ${USERS[otherUser]?.name} !`);
-        
-        const updatedSession = {
-            ...currentSession,
-            status: 'pending',
-            lastPingBy: currentUser
-        };
-        await onUpdateSession(updatedSession);
+    const startEditTitle = () => {
+        setTitleContent(currentSession.gameTitle);
+        setEditingTitle(true);
     };
 
-    const pauseSession = async () => {
-        const updatedSession = {
-            ...currentSession,
-            status: 'paused'
-        };
-        await onUpdateSession(updatedSession);
-    };
+    const saveTitle = async () => {
+        if (!titleContent.trim()) {
+            setEditingTitle(false);
+            return;
+        }
 
-    const closeSession = async () => {
         const updatedSession = {
             ...currentSession,
-            status: 'completed'
+            gameTitle: titleContent.trim()
         };
         
-        await onUpdateSession(updatedSession);
-        onBackToSessions();
+        await handleUpdate(updatedSession);
+        setEditingTitle(false);
+    };
+
+    const getBubbleStyle = (author) => {
+        if (author === 'tom') return 'bg-blue-500 text-white';
+        if (author === 'lambert') return 'bg-green-500 text-white'; 
+        if (author === 'duo') return 'bg-amber-500 text-white';
+        return 'bg-gray-500 text-white';
     };
 
     return (
         <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-            {/* Session Header - Inchangé */}
+            {/* Session Header */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
                         <div>
                             {editingTitle ? (
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="text"
-                                        value={titleContent}
-                                        onChange={(e) => setTitleContent(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') saveTitle();
-                                            if (e.key === 'Escape') cancelEditTitle();
-                                        }}
-                                        className="font-bold text-amber-900 text-base bg-white border border-amber-300 rounded px-2 py-1 min-w-0 flex-1"
-                                        autoFocus
-                                        onBlur={saveTitle}
-                                    />
-                                    <button
-                                        onClick={saveTitle}
-                                        className="p-1 bg-green-100 hover:bg-green-200 text-green-700 rounded"
-                                        title="Sauvegarder"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={cancelEditTitle}
-                                        className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded"
-                                        title="Annuler"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
+                                <input
+                                    type="text"
+                                    value={titleContent}
+                                    onChange={(e) => setTitleContent(e.target.value)}
+                                    onBlur={saveTitle}
+                                    onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
+                                    className="font-bold text-amber-900 text-lg bg-white border border-amber-300 rounded px-2 py-1"
+                                    autoFocus
+                                />
                             ) : (
-                                <button
-                                    onClick={startEditTitle}
-                                    className="font-bold text-amber-900 text-base hover:bg-amber-100 px-2 py-1 rounded transition-colors flex items-center space-x-2 group"
-                                    title="Cliquer pour renommer"
-                                >
-                                    <span>{currentSession.gameTitle || 'Session sans titre'}</span>
-                                    <Edit className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
-                                </button>
+                                <div className="flex items-center space-x-2 group cursor-pointer" onClick={startEditTitle}>
+                                    <h3 className="font-bold text-amber-900 text-lg">{currentSession.gameTitle}</h3>
+                                    <Edit className="w-4 h-4 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
                             )}
-                            
-                            <div className="text-xs text-amber-600">
-                                {formatDate(currentSession.createdAt)} • {(currentSession.notes || []).length} message(s)
-                            </div>
                         </div>
                     </div>
                     
-                    {/* Menu session */}
                     <div className="flex items-center space-x-2">
-                        {currentUser !== 'duo' && (
-                            <button
-                                onClick={inviteOtherUser}
-                                className={`p-2 text-white rounded-lg text-xs flex items-center space-x-1 transition-colors ${
-                                    currentUser === 'tom' 
-                                        ? 'bg-green-500 hover:bg-green-600'
-                                        : 'bg-blue-500 hover:bg-blue-600'
-                                }`}
-                                title={`Inviter ${currentUser === 'tom' ? 'Lambert' : 'Tom'}`}
-                            >
-                                <Send className="w-4 h-4" />
-                                <span className="hidden sm:inline">
-                                    Inviter {currentUser === 'tom' ? 'Lambert' : 'Tom'}
-                                </span>
-                            </button>
-                        )}
+                        <button
+                            onClick={onBackToSessions}
+                            className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg"
+                            title="Retour aux sessions"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Messages Container - Inchangé */}
+            {/* Messages Container */}
             <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
                 {(!currentSession.notes || currentSession.notes.length === 0) ? (
                     <div className="text-center py-12 text-gray-500">
@@ -2382,13 +2382,6 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                         {(currentSession.notes || []).map((message) => {
                             const isOwnMessage = message.author === currentUser;
                             const isEditing = editingMessage === message.id;
-                            
-                            const getBubbleStyle = (author) => {
-                                if (author === 'tom') return 'bg-blue-500 text-white';
-                                if (author === 'lambert') return 'bg-green-500 text-white'; 
-                                if (author === 'duo') return 'bg-amber-500 text-white';
-                                return 'bg-gray-500 text-white';
-                            };
 
                             return (
                                 <div key={message.id} className={`flex ${
@@ -2426,9 +2419,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                                        {message.content}
-                                                    </p>
+                                                    <MessageContent content={message.content} />
                                                     {message.edited && (
                                                         <span className="text-xs opacity-70 italic">modifié</span>
                                                     )}
@@ -2454,40 +2445,54 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
                                                 </>
                                             )}
                                         </div>
+                                        
+                                        {/* Timestamp */}
+                                        <div className={`text-xs text-gray-500 mt-1 ${
+                                            isOwnMessage ? 'text-right' : 'text-left'
+                                        }`}>
+                                            {new Date(message.timestamp).toLocaleTimeString('fr-FR', { 
+                                                hour: '2-digit', 
+                                                minute: '2-digit' 
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
                             );
                         })}
+                        <div ref={messagesEndRef} />
                     </>
                 )}
-                <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input avec spinner */}
-            <div className="mt-4 flex-shrink-0">
-                <div className="bg-white border-2 border-gray-200 focus-within:border-amber-500 rounded-xl p-2 transition-colors">
-                    <div className="flex items-start space-x-2">
-                        <textarea
-                            value={newMessageContent}
-                            onChange={(e) => setNewMessageContent(e.target.value)}
-                            placeholder="Écrivez vos souvenirs..."
-                            className="flex-1 resize-none border-none focus:outline-none bg-transparent text-gray-800 p-2"
-                            rows="3"
-                            disabled={isSending}
-                        />
-                        <button
-                            onClick={sendMessage}
-                            disabled={!newMessageContent.trim() || isSending}
-                            className="w-12 h-12 self-end bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
-                            title="Envoyer"
-                        >
-                            {isSending ? (
-                                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                            ) : (
-                                <Send className="w-6 h-6" />
-                            )}
-                        </button>
-                    </div>
+            {/* Message Input */}
+            <div className="bg-white border-t p-4 flex-shrink-0">
+                <div className="flex space-x-2">
+                    <textarea
+                        value={newMessageContent}
+                        onChange={(e) => setNewMessageContent(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                sendMessage();
+                            }
+                        }}
+                        placeholder="Écrivez votre message... (Entrée pour envoyer)"
+                        className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        rows="2"
+                        disabled={isSending}
+                    />
+                    <button
+                        onClick={sendMessage}
+                        disabled={!newMessageContent.trim() || isSending}
+                        className="px-4 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        title="Envoyer"
+                    >
+                        {isSending ? (
+                            <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                        ) : (
+                            <Send className="w-6 h-6" />
+                        )}
+                    </button>
                 </div>
             </div>
         </div>
