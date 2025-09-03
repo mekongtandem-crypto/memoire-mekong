@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6m : reprise V0.5.6g </title>
+    <title>🐘 Mémoire du Mékong V0.5.7 : page config (2 options pour charger fichier</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2630,6 +2630,8 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
     // NOUVEAU : États pour l'import de l'index des photos
     const [photoImportStatus, setPhotoImportStatus] = React.useState('');
     const [isImportingPhotos, setIsImportingPhotos] = React.useState(false);
+    // NOUVEAU : Référence pour l'input de fichier photos
+    const photoFileInputRef = React.useRef(null);
 
     const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
 
@@ -2673,7 +2675,7 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
         }
     };
     
-    // NOUVEAU : Logique d'import pour l'index des photos
+    // Logique d'import pour l'index des photos depuis le Drive
     const handlePhotoIndexImport = async () => {
         if (!isConnected) {
             setPhotoImportStatus("Veuillez vous connecter à Google Drive d'abord.");
@@ -2694,6 +2696,30 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
             setPhotoImportStatus(`Erreur: ${error.message}`);
         } finally {
             setIsImportingPhotos(false);
+        }
+    };
+    
+    // NOUVEAU : Logique d'import locale pour l'index des photos
+    const handlePhotoIndexLocalImport = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        setIsImportingPhotos(true);
+        setPhotoImportStatus('Lecture du fichier...');
+        try {
+            const text = await file.text();
+            setPhotoImportStatus('Analyse de l\'index...');
+            const indexData = PhotoData.parsePhotoIndex(text);
+            PhotoData.saveIndex(indexData);
+            setPhotoImportStatus(`Succès ! ${indexData.allPhotos.length} photos indexées.`);
+            setTimeout(() => setPhotoImportStatus(''), 3000);
+        } catch (error) {
+            setPhotoImportStatus(`Erreur: ${error.message}`);
+        } finally {
+            setIsImportingPhotos(false);
+            if (photoFileInputRef.current) {
+                photoFileInputRef.current.value = '';
+            }
         }
     };
 
@@ -2739,8 +2765,9 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                 ) : (
                     <div className="space-y-4">
                         <p className="text-gray-600">
-                            Importez l'index de vos photos depuis le fichier `photos_index_clean.json` situé sur votre Google Drive.
+                            Importez l'index de vos photos depuis le fichier `photos_index_clean.json`.
                         </p>
+                        {/* NOUVEAU: Import depuis le Drive */}
                          <button
                             onClick={handlePhotoIndexImport}
                             disabled={isImportingPhotos || !isConnected}
@@ -2752,6 +2779,28 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                             }
                             <span>{isImportingPhotos ? 'Import en cours...' : 'Importer depuis Google Drive'}</span>
                         </button>
+                         <p className="text-center text-gray-500 my-2">ou</p>
+                        {/* NOUVEAU: Importation manuelle */}
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input
+                                ref={photoFileInputRef}
+                                type="file"
+                                accept=".json"
+                                onChange={handlePhotoIndexLocalImport}
+                                className="hidden"
+                                id="photo-file"
+                                disabled={isImportingPhotos}
+                            />
+                            <label htmlFor="photo-file" className={`cursor-pointer flex flex-col items-center ${isImportingPhotos ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                                <div className="text-lg font-medium text-gray-700">
+                                    {isImportingPhotos ? 'Import en cours...' : 'Sélectionner photos_index_clean.json'}
+                                </div>
+                                <div className="text-sm text-gray-500 mt-1">
+                                    Cliquez pour parcourir vos fichiers
+                                </div>
+                            </label>
+                        </div>
                          {!isConnected && <p className="text-red-600 text-sm text-center">Connexion à Google Drive requise pour l'import.</p>}
                     </div>
                 )}
@@ -2790,6 +2839,18 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                         <p className="text-gray-600">
                             Importez votre fichier `outbox.json` pour explorer vos posts Mastodon.
                         </p>
+                         <button
+                            onClick={handleMastodonDriveImport}
+                            disabled={isImportingMastodon || !isConnected}
+                            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold shadow disabled:bg-gray-400"
+                        >
+                            {isImportingMastodon ?
+                                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> :
+                                <Cloud className="w-5 h-5" />
+                            }
+                            <span>{isImportingMastodon ? 'Import en cours...' : 'Importer depuis Google Drive'}</span>
+                        </button>
+                         <p className="text-center text-gray-500 my-2">ou</p>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                             <input
                                 ref={mastodonFileInputRef}
