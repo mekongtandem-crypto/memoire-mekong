@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6l : coorection index depuis version V0.5.6g </title>
+    <title>🐘 Mémoire du Mékong V0.5.6m : reprise V0.5.6g </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -583,67 +583,32 @@ const PhotoData = {
 };       
 
 // ===== GOOGLE DRIVE API - VERSION STABLE ET CORRIGÉE =====
+const GOOGLE_CONFIG = {
+    API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
+    CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
+    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
+};
+
 const GoogleDriveAPI = {
     isSignedIn: false,
     isInitialized: false,
     tokenClient: null,
     _folderCache: new Map(),
 
-    async init() { if (this.isInitialized) return; try { console.log('📄 Initialisation...'); await new Promise(r => gapi.load('client', r)); await gapi.client.init({ apiKey: GOOGLE_CONFIG.API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CONFIG.CLIENT_ID, scope: GOOGLE_CONFIG.SCOPES, callback: '' }); this.isInitialized = true; console.log('✅ API initialisée'); } catch (e) { console.error('❌ Erreur init API:', e); throw e; } },
-    
+    async init() { if (this.isInitialized) return; try { console.log('🔄 Initialisation...'); await new Promise(r => gapi.load('client', r)); await gapi.client.init({ apiKey: GOOGLE_CONFIG.API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CONFIG.CLIENT_ID, scope: GOOGLE_CONFIG.SCOPES, callback: '' }); this.isInitialized = true; console.log('✅ API initialisée'); } catch (e) { console.error('❌ Erreur init API:', e); throw e; } },
     async signIn() { if (!this.isInitialized) await this.init(); return new Promise((resolve, reject) => { if (!this.tokenClient) return reject(new Error('Token client non initialisé')); this.tokenClient.callback = async (res) => { if (res.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${res.error}`)); } try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } catch (e) { this.isSignedIn = false; reject(new Error('Accès API Drive impossible')); } }; const token = gapi.client.getToken(); if (token) { this.isSignedIn = true; resolve(true); } else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); } }); },
-    
     async signOut() { const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } this.isSignedIn = false; },
-    
     async getUserInfo() { if (!this.isSignedIn) throw new Error('Non connecté'); try { const response = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v2/userinfo' }); return response.result; } catch (e) { console.error('❌ Erreur getUserInfo:', e); throw e; } },
-    
     async _findFile(name, parentId, mimeType) { try { const q = `'${parentId}' in parents and name='${name}' and trashed=false` + (mimeType ? ` and mimeType='${mimeType}'` : ''); const response = await gapi.client.drive.files.list({ q, fields: 'files(id, name)', pageSize: 1 }); return response.result.files?.[0] || null; } catch (e) { console.error(`❌ Erreur _findFile ${name}:`, e); return null; } },
+    async _loadJSONFromDrive(fileName) { const fileId = await this._findFileByName(fileName); if (!fileId) throw new Error(`Fichier ${fileName} non trouvé`); try { const response = await gapi.client.drive.files.get({ fileId, alt: 'media' }); return JSON.parse(response.body); } catch (e) { console.error(`❌ Erreur chargement JSON '${fileName}':`, e); throw e; } },
+    async _findFileByName(fileName) { try { const response = await gapi.client.drive.files.list({ q: `name='${fileName}' and trashed=false`, fields: 'files(id)', pageSize: 1 }); return response.result.files?.[0]?.id || null; } catch (e) { console.error(`❌ Erreur recherche ${fileName}:`, e); return null; } },
     
-    // CORRECTION MINIMALE : Ajout logs debug + vérification fichier trouvé
-    async _findFileByName(fileName) { 
-        try { 
-            console.log(`🔍 Recherche du fichier: ${fileName}`);
-            const response = await gapi.client.drive.files.list({ 
-                q: `name='${fileName}' and trashed=false`, 
-                fields: 'files(id, name)', 
-                pageSize: 1 
-            }); 
-            const file = response.result.files?.[0];
-            if (file) {
-                console.log(`✅ Fichier trouvé: ${fileName} (ID: ${file.id})`);
-                return file.id;
-            } else {
-                console.log(`❌ Fichier non trouvé: ${fileName}`);
-                return null;
-            }
-        } catch (e) { 
-            console.error(`❌ Erreur recherche ${fileName}:`, e); 
-            return null; 
-        } 
-    },
-
-    async _loadJSONFromDrive(fileName) { 
-        console.log(`📥 Chargement JSON: ${fileName}`);
-        const fileId = await this._findFileByName(fileName); 
-        if (!fileId) throw new Error(`Fichier ${fileName} non trouvé`); 
-        try { 
-            console.log(`📄 Téléchargement contenu...`);
-            const response = await gapi.client.drive.files.get({ fileId, alt: 'media' }); 
-            console.log(`✅ Contenu téléchargé, parsing...`);
-            return JSON.parse(response.body); 
-        } catch (e) { 
-            console.error(`❌ Erreur chargement JSON '${fileName}':`, e); 
-            throw e; 
-        } 
-    },
-    
-    // CORRECTION: Fonction pour l'import de l'index photos
+    // CORRECTION: Fonction manquante pour l'import de l'index photos
     async loadJsonFile(fileName) {
         return await this._loadJSONFromDrive(fileName);
     },
     
     async loadSessions() { try { return await this._loadJSONFromDrive('mekong_sessions.json'); } catch (e) { console.error('❌ Erreur chargement sessions:', e); return null; } },
-    
     async saveSessions(sessions) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const fileName = 'mekong_sessions.json'; let fileId = await this._findFileByName(fileName); const fileMetadata = { name: fileName }; const form = new FormData(); form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' })); form.append('file', new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' })); const url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart` : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'; const response = await fetch(url, { method: fileId ? 'PATCH' : 'POST', headers: { Authorization: `Bearer ${gapi.client.getToken().access_token}` }, body: form }); if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`); return await response.json(); } catch (e) { console.error(`❌ Erreur sauvegarde sessions:`, e); throw e; } },
 
     async listPhotoFiles(folderId) {
@@ -658,11 +623,11 @@ const GoogleDriveAPI = {
         } catch (e) { console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e); return []; }
     },
 
-    // FONCTION ORIGINALE : Chargement photo en base64 (conservée intacte de la v0.5.6g)
+    // NOUVEAU: Fonction pour charger une photo en base64 (utilisée seulement à la demande)
     async getPhotoAsBase64(fileId, mimeType) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
         try {
-            console.log('📷 Chargement photo en base64:', fileId);
+            console.log('🔄 Chargement photo en base64:', fileId);
             const response = await gapi.client.drive.files.get({
                 fileId: fileId,
                 alt: 'media'
