@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6b : Affichage photo grand forma BAse64</title>
+    <title>🐘 Mémoire du Mékong V0.5.6c : Affichage photo grand forma BAse64</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -839,14 +839,14 @@ const GoogleDriveAPI = {
             }
         ];
 
-// ===== CLOUD SESSION STORAGE - VERSION STABLE ET COMPLÈTE =====
+// ===== CLOUD SESSION STORAGE - VERSION STABLE ET CORRIGÉE =====
 const CloudSessionStorage = {
     onConnectionLost: null,
 
     async getSessions() {
         try {
             if (!GoogleDriveAPI.isSignedIn) { return Storage.get('sessions', []); }
-            const cloudSessions = await GoogleDriveAPI.loadSessions(); // Utilise la fonction restaurée
+            const cloudSessions = await GoogleDriveAPI.loadSessions();
             if (cloudSessions) {
                 Storage.set('sessions', cloudSessions);
                 return cloudSessions;
@@ -861,7 +861,14 @@ const CloudSessionStorage = {
     },
     
     async saveSession(session) {
-        const sessions = Storage.get('sessions', []);
+        // CORRECTION: S'assurer que sessions est bien un tableau
+        let sessions = Storage.get('sessions', []);
+        if (!Array.isArray(sessions)) {
+            console.warn('⚠️ Sessions corrompues détectées, réinitialisation');
+            sessions = [];
+            Storage.set('sessions', []);
+        }
+        
         const existingIndex = sessions.findIndex(s => s.id === session.id);
         if (existingIndex >= 0) { sessions[existingIndex] = session; } else { sessions.unshift(session); }
         Storage.set('sessions', sessions);
@@ -869,7 +876,7 @@ const CloudSessionStorage = {
         if (!GoogleDriveAPI.isSignedIn) { return; }
         
         try {
-            await GoogleDriveAPI.saveSessions(sessions); // Utilise la fonction restaurée
+            await GoogleDriveAPI.saveSessions(sessions);
         } catch (error) {
             console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
             if (this.isConnectionError(error)) {
@@ -882,18 +889,26 @@ const CloudSessionStorage = {
     },
     
     async deleteSession(sessionId) {
-        const sessions = Storage.get('sessions', []).filter(s => s.id !== sessionId);
+        // CORRECTION: S'assurer que sessions est bien un tableau
+        let sessions = Storage.get('sessions', []);
+        if (!Array.isArray(sessions)) {
+            console.warn('⚠️ Sessions corrompues détectées, réinitialisation');
+            sessions = [];
+        } else {
+            sessions = sessions.filter(s => s.id !== sessionId);
+        }
         Storage.set('sessions', sessions);
+        
         if (!GoogleDriveAPI.isSignedIn) { return; }
         try {
-            await GoogleDriveAPI.saveSessions(sessions); // Utilise la fonction restaurée
+            await GoogleDriveAPI.saveSessions(sessions);
         } catch (error) {
             console.warn('⚠️ Erreur suppression cloud:', error.message);
             if (this.isConnectionError(error)) {
                 if (this.onConnectionLost) { this.onConnectionLost('Impossible de synchroniser la suppression - Connexion perdue');}
                 throw new Error(`Connexion Google Drive perdue. Suppression locale effectuée.`);
             } else {
-                throw new Error(`Suppression cloud échouée: ${error.message}. Session supprimée localement.`);
+                throw new Error(`Suppression cloud échouée: ${error.message}. Suppression locale effectuée.`);
             }
         }
     },
@@ -901,7 +916,7 @@ const CloudSessionStorage = {
     async forceSyncFromCloud() {
         if (!GoogleDriveAPI.isSignedIn) throw new Error('Non connecté');
         try {
-            const cloudSessions = await GoogleDriveAPI.loadSessions(); // Utilise la fonction restaurée
+            const cloudSessions = await GoogleDriveAPI.loadSessions();
             if (cloudSessions) {
                 Storage.set('sessions', cloudSessions);
                 return cloudSessions;
