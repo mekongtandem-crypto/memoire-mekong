@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6g : Affichage photo grand forma BAse64 (photo suiv/prece)</title>
+    <title>🐘 Mémoire du Mékong V0.5.7 : Affichage photo de post</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2612,8 +2612,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 {activeTab === 'photos' ? (
                     isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
                 ) : (
-                    currentPost ? ( <div> <div className="flex justify-between items-start mb-4"> <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3> <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><Plus className="w-4 h-4"/><span>Session</span></button> </div> <div className="prose max-w-none"><p>{currentPost.content}</p></div> </div> ) : ( <div className="text-center py-12 text-gray-500"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Aucun post de blog pour ce jour.</p></div> )
-                )}
+					currentPost ? ( <div> <div className="flex justify-between items-start mb-4"> <h3 className="text-2xl font-bold text-amber-900">Jour {currentPost.dayNumber}</h3> <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><Plus className="w-4 h-4"/><span>Session</span></button> </div> <div className="prose max-w-none"><p>{currentPost.content}</p></div> <MastodonPostImages attachments={currentPost.attachments} /> </div> )                )}
             </div>
             {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={handlePhotoNavigate} onCreateSession={createSessionFromPhoto} />}
         </div>
