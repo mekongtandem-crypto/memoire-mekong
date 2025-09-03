@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.6e : Affichage photo grand forma BAse64</title>
+    <title>🐘 Mémoire du Mékong V0.5.6f : Affichage photo grand forma BAse64 ( loadPhotosForDay dans MemoriesPage)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2578,9 +2578,11 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                     if (driveFilesMap.has(filename)) {
                         const fileData = driveFilesMap.get(filename);
                         allFoundPhotos.push({
+                            id: fileData.id,  // NOUVEAU: ID nécessaire pour base64
                             filename: filename,
                             webContentLink: fileData.webContentLink,
-                            thumbnailLink: cleanThumbnailLink(fileData.thumbnailLink)
+                            thumbnailLink: cleanThumbnailLink(fileData.thumbnailLink),
+                            mimeType: fileData.mimeType || 'image/jpeg'  // NOUVEAU: Type MIME
                         });
                     }
                 }
