@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7b : revision affichage des post </title>
+    <title>🐘 Mémoire du Mékong V0.5.7c : revision affichage des post </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -192,55 +192,103 @@ const PhotoGrid = ({ photos, onPhotoSelect }) => {
 };
 
 // NOUVEAU: COMPOSANT MastodonPostViewer
+
 const MastodonPostViewer = ({ post, photos, isLoadingPhotos, onCreateSession }) => {
+
     if (!post) {
+
         return (
+
             <div className="text-center py-12 text-gray-500">
+
                 <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+
                 <p>Aucun post de blog pour ce jour.</p>
+
             </div>
+
         );
+
     }
 
+
     const hasPhotos = photos && photos.length > 0;
+
     
+
     return (
+
         <div className="space-y-6">
+
             <div className="flex justify-between items-start">
+
                 <h3 className="text-2xl font-bold text-amber-900 pr-4">
+
                     Jour {post.dayNumber} : {post.title}
+
                 </h3>
+
                 <button onClick={onCreateSession} className="flex-shrink-0 flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm">
+
                     <Plus className="w-4 h-4" />
+
                     <span>Session</span>
+
                 </button>
+
             </div>
+
             
+
             <div className="prose max-w-none text-gray-700">
+
                 <p>{post.content}</p>
+
             </div>
+
             
+
             <div className="flex items-center space-x-2 text-gray-500 text-sm">
+
                 <Cloud className="w-4 h-4" />
+
                 <span>Publié sur Mastodon le {new Date(post.published).toLocaleDateString('fr-FR')}</span>
+
             </div>
+
             
+
             {/* Encadré pour les photos du post */}
+
             {isLoadingPhotos ? (
+
                  <LoadingSpinner message="Chargement des photos du post..." size="small" />
+
             ) : hasPhotos ? (
+
                 <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-4">
+
                     <h4 className="font-semibold text-gray-800 flex items-center space-x-2">
+
                         <Camera className="w-5 h-5 text-gray-600" />
+
                         <span>Photos associées ({photos.length})</span>
+
                     </h4>
+
                     <PhotoGrid photos={photos} onPhotoSelect={() => {}} /> 
+
                 </div>
+
             ) : null}
+
             
+
         </div>
+
     );
-};		
+
+};    	
 
 // COMPOSANT: PhotoViewer avec base64 pour grand format
 // COMPOSANT: PhotoViewer avec base64 pour grand format
