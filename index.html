@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7f : reecriture const useGoogleAut </title>
+    <title>🐘 Mémoire du Mékong V0.5.7e : reecriture const useGoogleAut </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -1148,7 +1148,6 @@ const useGoogleAuth = () => {
     const [isConnected, setIsConnected] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [userInfo, setUserInfo] = React.useState(null);
-    const [hasEverBeenConnected, setHasEverBeenConnected] = React.useState(false);
     const [connectionMode, setConnectionMode] = React.useState('checking');
     const [lastConnectionError, setLastConnectionError] = React.useState(null);
 
@@ -1158,9 +1157,10 @@ const useGoogleAuth = () => {
         setConnectionMode('disconnected');
         setLastConnectionError(reason);
         GoogleDriveAPI.isSignedIn = false;
-        
+
         const token = gapi.client.getToken();
         if (token) {
+            google.accounts.oauth2.revoke(token.access_token);
             gapi.client.setToken('');
         }
     }, []);
@@ -1169,41 +1169,23 @@ const useGoogleAuth = () => {
         const initGoogle = async () => {
             setIsLoading(true);
             setConnectionMode('checking');
-            
-            try {
-                const everConnected = Storage.get('ever_connected_to_drive', false);
-                setHasEverBeenConnected(everConnected);
 
+            try {
                 await GoogleDriveAPI.init();
-                
                 const token = gapi.client.getToken();
                 if (token) {
                     try {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
                         await gapi.client.drive.files.list({ pageSize: 1 });
-                        
                         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                             headers: { 'Authorization': `Bearer ${token.access_token}` }
                         });
-                        
                         if (response.ok) {
                             const profile = await response.json();
-                            setUserInfo({
-                                name: profile.name,
-                                email: profile.email,
-                                picture: profile.picture
-                            });
+                            setUserInfo(profile);
                             setIsConnected(true);
                             GoogleDriveAPI.isSignedIn = true;
                             setConnectionMode('connected');
                             setLastConnectionError(null);
-                            
-                            if (!everConnected) {
-                                Storage.set('ever_connected_to_drive', true);
-                                setHasEverBeenConnected(true);
-                            }
-                            
                             console.log('✅ Reconnexion automatique réussie');
                         } else {
                             throw new Error('Token invalide');
@@ -1211,16 +1193,15 @@ const useGoogleAuth = () => {
                     } catch (error) {
                         console.log('⚠️ Token expiré ou invalide:', error.message);
                         gapi.client.setToken('');
-                        setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
+                        setConnectionMode('disconnected');
                         setLastConnectionError('Token expiré');
                     }
                 } else {
-                    setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
+                    setConnectionMode('disconnected');
                 }
             } catch (error) {
                 console.error('Erreur init Google:', error);
-                const everConnected = Storage.get('ever_connected_to_drive', false);
-                setConnectionMode(everConnected ? 'disconnected' : 'never-connected');
+                setConnectionMode('disconnected');
                 setLastConnectionError(error.message);
             } finally {
                 setIsLoading(false);
@@ -1229,71 +1210,56 @@ const useGoogleAuth = () => {
         initGoogle();
     }, []);
 
-    // NOUVEAU: Création du token client avec le bon scope
-    const tokenClientRef = React.useRef(null);
-    React.useEffect(() => {
-        tokenClientRef.current = google.accounts.oauth2.initTokenClient({
-            client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/drive.readonly profile', // Ligne cruciale
-            callback: async (tokenResponse) => {
-                if (tokenResponse && tokenResponse.access_token) {
-                    gapi.client.setToken({ access_token: tokenResponse.access_token });
-                    try {
-                        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                            headers: { 'Authorization': `Bearer ${tokenResponse.access_token}` }
-                        });
-                        const profile = await response.json();
-                        setUserInfo({
-                            name: profile.name,
-                            email: profile.email,
-                            picture: profile.picture
-                        });
-                        setIsConnected(true);
-                        setConnectionMode('connected');
-                        setLastConnectionError(null);
-                        
-                        if (!hasEverBeenConnected) {
-                            Storage.set('ever_connected_to_drive', true);
-                            setHasEverBeenConnected(true);
-                        }
-                        
-                        console.log('✅ Connexion Google Drive réussie');
-                    } catch (error) {
-                        console.error('❌ Erreur de récupération du profil:', error);
-                        forceDisconnect('Erreur de profil');
-                    }
-                } else {
-                    forceDisconnect('Échec de la connexion');
-                }
-            },
-            error_callback: (error) => {
-                console.error('❌ Erreur de token Google:', error);
-                forceDisconnect('Erreur de token');
-            }
-        });
-    }, [hasEverBeenConnected, forceDisconnect]);
-
-    const signIn = () => {
+    const signIn = async () => {
         setIsLoading(true);
         setLastConnectionError(null);
-        tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
+
+        try {
+            const success = await GoogleDriveAPI.signIn();
+            if (success) {
+                const token = gapi.client.getToken();
+                const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { 'Authorization': `Bearer ${token.access_token}` }
+                });
+                if (!response.ok) {
+                    throw new Error('Impossible de récupérer le profil utilisateur');
+                }
+                const profile = await response.json();
+                setUserInfo(profile);
+                setIsConnected(true);
+                setConnectionMode('connected');
+                setLastConnectionError(null);
+                console.log('Connexion réussie:', profile.name);
+                return true;
+            } else {
+                throw new Error('Échec de la connexion Google Drive');
+            }
+        } catch (error) {
+            console.error('Erreur connexion:', error);
+            setIsConnected(false);
+            setUserInfo(null);
+            setConnectionMode('disconnected');
+            setLastConnectionError(error.message);
+            return { success: false, error: error.message };
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const signOut = async () => {
         setIsLoading(true);
+
         try {
             const token = gapi.client.getToken();
             if (token) {
                 google.accounts.oauth2.revoke(token.access_token);
                 gapi.client.setToken('');
             }
-            await GoogleDriveAPI.signOut();
-            
+            GoogleDriveAPI.isSignedIn = false;
             setIsConnected(false);
             setUserInfo(null);
             setConnectionMode('disconnected');
             setLastConnectionError(null);
-            
             console.log('✅ Déconnexion réussie');
         } catch (error) {
             console.error('❌ Erreur déconnexion:', error);
@@ -1304,10 +1270,7 @@ const useGoogleAuth = () => {
     };
 
     const testConnection = React.useCallback(async () => {
-        if (!isConnected || !GoogleDriveAPI.isSignedIn) {
-            return false;
-        }
-        
+        if (!isConnected) return false;
         try {
             await gapi.client.drive.files.list({ pageSize: 1 });
             return true;
@@ -1318,14 +1281,13 @@ const useGoogleAuth = () => {
         }
     }, [isConnected, forceDisconnect]);
 
-    return { 
-        isConnected, 
-        isLoading, 
-        userInfo, 
-        hasEverBeenConnected, 
+    return {
+        isConnected,
+        isLoading,
+        userInfo,
         connectionMode,
         lastConnectionError,
-        signIn, 
+        signIn,
         signOut,
         forceDisconnect,
         testConnection
