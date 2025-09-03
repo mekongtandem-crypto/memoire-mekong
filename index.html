@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7 : page config (2 options pour charger fichier</title>
+    <title>🐘 Mémoire du Mékong V0.5.7b : page config (2 options pour charger fichier</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2627,10 +2627,9 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
     const [isImportingMastodon, setIsImportingMastodon] = React.useState(false);
     const mastodonFileInputRef = React.useRef(null);
 
-    // NOUVEAU : États pour l'import de l'index des photos
+    // États pour l'import de l'index des photos
     const [photoImportStatus, setPhotoImportStatus] = React.useState('');
     const [isImportingPhotos, setIsImportingPhotos] = React.useState(false);
-    // NOUVEAU : Référence pour l'input de fichier photos
     const photoFileInputRef = React.useRef(null);
 
     const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
@@ -2638,7 +2637,7 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
     const mastodonStats = MastodonData.getStats();
     const isMastodonImported = MastodonData.isImported();
     
-    // NOUVEAU : Stats pour les photos
+    // Stats pour les photos
     const photoStats = PhotoData.getStats();
     const isPhotoIndexImported = PhotoData.isImported();
 
@@ -2665,17 +2664,38 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
         }
     };
 
+    const handleMastodonDriveImport = async () => {
+        if (!isConnected) {
+            setMastodonImportStatus("Veuillez vous connecter à Google Drive d'abord.");
+            return;
+        }
+        setIsImportingMastodon(true);
+        setMastodonImportStatus('Recherche du fichier outbox.json sur votre Drive...');
+        try {
+            const jsonData = await GoogleDriveAPI.loadJsonFile('outbox.json');
+            if (!jsonData) {
+                throw new Error("Fichier 'outbox.json' introuvable à la racine de votre Google Drive.");
+            }
+            setMastodonImportStatus('Analyse des posts...');
+            const posts = MastodonData.parseOutbox(jsonData);
+            MastodonData.savePosts(posts);
+            setMastodonImportStatus(`Succès ! ${posts.length} posts importés.`);
+        } catch (error) {
+            setMastodonImportStatus(`Erreur: ${error.message}`);
+        } finally {
+            setIsImportingMastodon(false);
+        }
+    };
+    
     const clearMastodonData = () => {
         if (confirm('Supprimer toutes les données Mastodon importées ?')) {
             Storage.remove('mastodon_posts');
             Storage.remove('mastodon_imported_at');
-            // Force un re-render
             setMastodonImportStatus('Données Mastodon supprimées');
             setTimeout(() => setMastodonImportStatus(''), 2000);
         }
     };
     
-    // Logique d'import pour l'index des photos depuis le Drive
     const handlePhotoIndexImport = async () => {
         if (!isConnected) {
             setPhotoImportStatus("Veuillez vous connecter à Google Drive d'abord.");
@@ -2699,7 +2719,6 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
         }
     };
     
-    // NOUVEAU : Logique d'import locale pour l'index des photos
     const handlePhotoIndexLocalImport = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -2742,7 +2761,6 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                 onSignOut={onGoogleDisconnect || signOut}
             />
 
-            {/* NOUVEAU : Section Index Photos */}
             <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Index des Photos</h3>
                 {isPhotoIndexImported ? (
@@ -2767,7 +2785,6 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                         <p className="text-gray-600">
                             Importez l'index de vos photos depuis le fichier `photos_index_clean.json`.
                         </p>
-                        {/* NOUVEAU: Import depuis le Drive */}
                          <button
                             onClick={handlePhotoIndexImport}
                             disabled={isImportingPhotos || !isConnected}
@@ -2780,7 +2797,6 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                             <span>{isImportingPhotos ? 'Import en cours...' : 'Importer depuis Google Drive'}</span>
                         </button>
                          <p className="text-center text-gray-500 my-2">ou</p>
-                        {/* NOUVEAU: Importation manuelle */}
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                             <input
                                 ref={photoFileInputRef}
@@ -2801,7 +2817,6 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                                 </div>
                             </label>
                         </div>
-                         {!isConnected && <p className="text-red-600 text-sm text-center">Connexion à Google Drive requise pour l'import.</p>}
                     </div>
                 )}
                  {photoImportStatus && (
@@ -2814,7 +2829,6 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                 )}
             </div>
             
-            {/* Section Import Mastodon */}
             <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
                 {isMastodonImported ? (
@@ -2883,7 +2897,6 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                 )}
             </div>
 
-            {/* Données générales */}
             <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Données Générales</h3>
                 <div>
