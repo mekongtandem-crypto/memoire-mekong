@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9b : revision affichage blog </title>
+    <title>🐘 Mémoire du Mékong V0.5.9c : revision affichage blog (ligne debug et Memories réécrit) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2457,6 +2457,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 
 	
 // Page Memoire (V4.2 - Correction gestion photos blog vs photos index)
+// Page Memoire (V4.2 - Correction gestion photos blog vs photos index)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
@@ -2478,6 +2479,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             if (isMastodonImported) {
                 const post = MastodonData.getPostByDay(currentDay);
                 setCurrentPost(post);
+                // Le tableau blogPhotos est créé à partir des media_attachments du post
                 setBlogPhotos(post && post.media_attachments ? post.media_attachments.map(att => ({
                     id: att.id,
                     filename: att.description,
@@ -2606,6 +2608,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex flex-col">
                                     <h3 className="text-xl font-bold text-amber-900">{currentPost.title || `Jour ${currentPost.dayNumber}`}</h3>
+                                    {/* Affichage du nombre de photos associées au post du blog */}
                                     {blogPhotos.length > 0 && (
                                         <span className="text-sm text-gray-500 mt-1">
                                             <Camera className="w-4 h-4 inline mr-1" />
