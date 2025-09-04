@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7c : revision affichage des post </title>
+    <title>🐘 Mémoire du Mékong V0.5.7d : revision affichage des post (réecriture du code) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -34,158 +34,523 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
-        // ===== ICONS LUCIDE =====
-        const Home = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>;
-        const Users = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-2-2"/></svg>;
-        const User = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-        const Play = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>;
-        const Camera = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
-        const Cloud = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
-        const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25.17-.5.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
-        const ChevronLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>;
-        const ChevronRight = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>;
-        const Clock = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>;
-        const Mic = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/><line x1="8" x2="16" y1="22" y2="22"/></svg>;
-        const Zap = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>;
-        const MapPin = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
-        const BookOpen = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
-        const Edit = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/></svg>;
-        const Plus = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
-        const Shuffle = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polyline points="16,3 21,3 21,8"/><line x1="4" x2="21" y1="20" y2="3"/><polyline points="21,16 21,21 16,21"/><line x1="15" x2="21" y1="15" y2="21"/><line x1="4" x2="9" y1="4" y2="9"/></svg>;
-        const Pause = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>;
-        const ArrowLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>;
-        const Send = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
-        const Trash2 = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
-        const Search = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
-        const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
-        const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
-		const CloudOff = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg>;
+    // Déclaration des icônes
+const { LogOut, Cloud, Menu, BookOpen, User, Sun, Camera, Plus, Trash2, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle } = lucide;
 
+// ===== UTILITAIRES ET API =====
+const Storage = {
+    set: (key, value) => {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+            console.error("Error setting item to local storage", e);
+        }
+    },
+    get: (key, defaultValue) => {
+        try {
+            const value = localStorage.getItem(key);
+            return value ? JSON.parse(value) : defaultValue;
+        } catch (e) {
+            console.error("Error getting item from local storage", e);
+            return defaultValue;
+        }
+    }
+};
 
-		// ===== COMPOSANT TOAST - POSITION ET DISMISSABLE FIXES =====
-	const Toast = ({ message, type, onDismiss }) => {
-    if (!message) return null;
+const GoogleDriveAPI = {
+    isSignedIn: false,
+    init: async () => {
+        await gapi.client.init({
+            apiKey: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+        });
+        console.log('✅ API initialisée');
+    },
+    signIn: () => {
+        return new Promise((resolve) => {
+            const tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.readonly profile',
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        gapi.client.setToken({ access_token: tokenResponse.access_token });
+                        GoogleDriveAPI.isSignedIn = true;
+                        resolve(true);
+                    } else {
+                        resolve(false);
+                    }
+                }
+            });
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        });
+    },
+    signOut: () => {
+        const token = gapi.client.getToken();
+        if (token) {
+            google.accounts.oauth2.revoke(token.access_token, () => {
+                gapi.client.setToken('');
+                GoogleDriveAPI.isSignedIn = false;
+                console.log('Token révoqué.');
+            });
+        }
+    },
+    _findFile: async (name, parentId = 'root', mimeType = null) => {
+        let q = `name='${name}' and '${parentId}' in parents and trashed = false`;
+        if (mimeType) {
+            q += ` and mimeType='${mimeType}'`;
+        }
+        try {
+            const response = await gapi.client.drive.files.list({
+                q: q,
+                fields: 'files(id, name, mimeType)'
+            });
+            return response.result.files.length > 0 ? response.result.files[0] : null;
+        } catch (e) {
+            console.error(`Erreur lors de la recherche du fichier ${name}:`, e);
+            return null;
+        }
+    },
+    listPhotoFiles: async (folderId) => {
+        try {
+            const response = await gapi.client.drive.files.list({
+                q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
+                fields: 'files(id, name, webContentLink, thumbnailLink, mimeType)',
+                pageSize: 1000
+            });
+            return response.result.files;
+        } catch (e) {
+            console.error(`Erreur lors de la liste des fichiers dans le dossier ${folderId}:`, e);
+            throw new Error(`Accès API Drive impossible: ${e.result.error.message}`);
+        }
+    },
+    getFileContent: async (fileId) => {
+        try {
+            const response = await gapi.client.drive.files.get({
+                fileId: fileId,
+                alt: 'media'
+            });
+            return response.body;
+        } catch (e) {
+            console.error(`Erreur lors du chargement du contenu du fichier ${fileId}:`, e);
+            throw e;
+        }
+    },
+};
 
-    const styles = {
-        error: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
-        success: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' }
-    };
-    const style = styles[type] || styles.error;
+// ===== DATA MANAGEMENT =====
+const MastodonData = {
+    _posts: [],
+    _stats: null,
+    isImported: () => MastodonData._posts.length > 0,
+    getStats: () => MastodonData._stats,
+    getPostByDay: (dayNumber) => MastodonData._posts.find(p => p.dayNumber === dayNumber),
+    decodeHtmlEntities: (text) => {
+        const textArea = document.createElement('textarea');
+        textArea.innerHTML = text;
+        return textArea.value;
+    },
+    parseOutbox: (jsonData) => {
+        try {
+            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+            let orderedItems;
+            if (data.orderedItems) {
+                orderedItems = data.orderedItems;
+            } else if (data.data && data.data.orderedItems) {
+                orderedItems = data.data.orderedItems;
+            } else {
+                throw new Error('Format ActivityPub invalide - orderedItems non trouvé');
+            }
 
-    // Auto-dismiss après 5 secondes
+            if (!Array.isArray(orderedItems)) {
+                throw new Error('orderedItems n\'est pas un tableau');
+            }
+
+            const allPosts = orderedItems
+                .filter(item => item.type === 'Create' && item.object?.type === 'Note')
+                .map((item, index) => {
+                    const note = item.object;
+                    const content = note.content || '';
+                    const cleanContentHtml = content.replace(/<[^>]*>/g, '');
+                    const decodedContent = MastodonData.decodeHtmlEntities(cleanContentHtml);
+                    const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+                    const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+                    const hasJourNumber = dayNumber !== null;
+                    let title = '';
+                    let postContent = decodedContent;
+
+                    if (hasJourNumber) {
+                        const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
+                        const lines = afterJour.split('\n').filter(line => line.trim() !== '');
+                        if (lines.length > 0) {
+                            title = lines[0].trim().replace(/[#]/g, '');
+                            if (lines.length > 1) {
+                                postContent = lines.slice(1).join('\n').trim();
+                            } else {
+                                postContent = '';
+                            }
+                        }
+                    } else {
+                        const lines = decodedContent.split('\n').filter(line => line.trim() !== '');
+                        if (lines.length > 0) {
+                            title = lines[0].trim();
+                            if (lines.length > 1) {
+                                postContent = lines.slice(1).join('\n').trim();
+                            } else {
+                                postContent = '';
+                            }
+                        }
+                    }
+                    title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
+
+                    return {
+                        id: note.id || `post-${index}`,
+                        dayNumber,
+                        hasJourNumber,
+                        title: title || 'Post sans titre',
+                        content: postContent,
+                        published: note.published || item.published,
+                        attachments: note.attachment || [],
+                        url: note.url,
+                        originalIndex: index
+                    };
+                });
+
+            const postsWithDay = allPosts.filter(post => post.hasJourNumber);
+            const postsWithoutDay = allPosts.filter(post => !post.hasJourNumber);
+
+            postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
+
+            const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
+            postsWithoutDay.forEach((post, index) => {
+                post.dayNumber = maxDayNumber + index + 1;
+                post.isExtraPost = true;
+            });
+
+            const finalPosts = [...postsWithDay, ...postsWithoutDay];
+
+            finalPosts.forEach(post => {
+                delete post.hasJourNumber;
+                delete post.originalIndex;
+            });
+
+            MastodonData._posts = finalPosts;
+            MastodonData._stats = {
+                dayRange: finalPosts.length > 0 ? { min: finalPosts[0].dayNumber, max: finalPosts[finalPosts.length - 1].dayNumber } : null,
+                postCount: finalPosts.length,
+                withDayCount: postsWithDay.length,
+                withoutDayCount: postsWithoutDay.length
+            };
+
+            console.log(`✅ ${finalPosts.length} posts Mastodon importés`);
+            return MastodonData._posts;
+        } catch (error) {
+            console.error('❌ Erreur parsing outbox:', error);
+            throw error;
+        }
+    },
+};
+
+const PhotoData = {
+    _index: null,
+    isImported: () => PhotoData._index !== null,
+    getIndex: () => PhotoData._index,
+    getPhotosByDay: (dayNumber) => {
+        if (!PhotoData._index || !PhotoData._index.photos) return [];
+        return PhotoData._index.photos.filter(p => p.day === dayNumber);
+    },
+    parsePhotoIndex: (jsonData) => {
+        try {
+            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+            if (!data.photos) {
+                throw new Error('Index des photos invalide');
+            }
+            const normalizedPhotos = data.photos.map(p => {
+                const dayMatch = p.folder.match(/^J(\d+)/);
+                return {
+                    day: dayMatch ? parseInt(dayMatch[1]) : 0,
+                    filename: p.filename,
+                    folderName: p.folder,
+                    id: p.id // Ajout de l'ID pour référence future
+                };
+            });
+            PhotoData._index = {
+                metadata: data.metadata,
+                allPhotos: normalizedPhotos
+            };
+            console.log(`✅ ${normalizedPhotos.length} photos importées depuis l'index`);
+            return PhotoData._index;
+        } catch (error) {
+            console.error('❌ Erreur parsing index photo:', error);
+            throw error;
+        }
+    },
+};
+
+// ===== HOOKS =====
+const useGoogleAuth = () => {
+    const [isConnected, setIsConnected] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [userInfo, setUserInfo] = React.useState(null);
+    const [connectionMode, setConnectionMode] = React.useState('checking');
+    const [lastConnectionError, setLastConnectionError] = React.useState(null);
+
+    const forceDisconnect = React.useCallback((reason) => {
+        console.log('🔴 Déconnexion forcée:', reason);
+        setIsConnected(false);
+        setConnectionMode('disconnected');
+        setLastConnectionError(reason);
+        GoogleDriveAPI.isSignedIn = false;
+        
+        const token = gapi.client.getToken();
+        if (token) {
+            google.accounts.oauth2.revoke(token.access_token);
+            gapi.client.setToken('');
+        }
+    }, []);
+
     React.useEffect(() => {
-        const timer = setTimeout(() => {
-            onDismiss();
-        }, 5000);
-        return () => clearTimeout(timer);
-    }, [message, onDismiss]);
+        const initGoogle = async () => {
+            setIsLoading(true);
+            setConnectionMode('checking');
+            
+            try {
+                await GoogleDriveAPI.init();
+                const token = gapi.client.getToken();
+                if (token) {
+                    try {
+                        await gapi.client.drive.files.list({ pageSize: 1 });
+                        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                            headers: { 'Authorization': `Bearer ${token.access_token}` }
+                        });
+                        if (response.ok) {
+                            const profile = await response.json();
+                            setUserInfo(profile);
+                            setIsConnected(true);
+                            GoogleDriveAPI.isSignedIn = true;
+                            setConnectionMode('connected');
+                            setLastConnectionError(null);
+                            console.log('✅ Reconnexion automatique réussie');
+                        } else {
+                            throw new Error('Token invalide');
+                        }
+                    } catch (error) {
+                        console.log('⚠️ Token expiré ou invalide:', error.message);
+                        gapi.client.setToken('');
+                        setConnectionMode('disconnected');
+                        setLastConnectionError('Token expiré');
+                    }
+                } else {
+                    setConnectionMode('disconnected');
+                }
+            } catch (error) {
+                console.error('Erreur init Google:', error);
+                setConnectionMode('disconnected');
+                setLastConnectionError(error.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        initGoogle();
+    }, [forceDisconnect]);
 
+    const signIn = async () => {
+        setIsLoading(true);
+        setLastConnectionError(null);
+
+        try {
+            const success = await GoogleDriveAPI.signIn();
+            if (success) {
+                const token = gapi.client.getToken();
+                const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { 'Authorization': `Bearer ${token.access_token}` }
+                });
+                if (!response.ok) {
+                    throw new Error('Impossible de récupérer le profil utilisateur');
+                }
+                const profile = await response.json();
+                setUserInfo(profile);
+                setIsConnected(true);
+                setConnectionMode('connected');
+                setLastConnectionError(null);
+                console.log('Connexion réussie:', profile.name);
+                return true;
+            } else {
+                throw new Error('Échec de la connexion Google Drive');
+            }
+        } catch (error) {
+            console.error('Erreur connexion:', error);
+            setIsConnected(false);
+            setUserInfo(null);
+            setConnectionMode('disconnected');
+            setLastConnectionError(error.message);
+            return { success: false, error: error.message };
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const signOut = async () => {
+        setIsLoading(true);
+        try {
+            const token = gapi.client.getToken();
+            if (token) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken('');
+            }
+            GoogleDriveAPI.isSignedIn = false;
+            setIsConnected(false);
+            setUserInfo(null);
+            setConnectionMode('disconnected');
+            setLastConnectionError(null);
+            console.log('✅ Déconnexion réussie');
+        } catch (error) {
+            console.error('❌ Erreur déconnexion:', error);
+            setLastConnectionError(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const testConnection = React.useCallback(async () => {
+        if (!isConnected) return false;
+        try {
+            await gapi.client.drive.files.list({ pageSize: 1 });
+            return true;
+        } catch (error) {
+            console.log('🔴 Test de connexion échoué:', error.message);
+            forceDisconnect('Test de connexion échoué');
+            return false;
+        }
+    }, [isConnected, forceDisconnect]);
+
+    return { 
+        isConnected, 
+        isLoading, 
+        userInfo, 
+        connectionMode,
+        lastConnectionError,
+        signIn, 
+        signOut,
+        forceDisconnect,
+        testConnection
+    };
+};
+
+// ===== COMPOSANTS DE BASE =====
+const LoadingSpinner = ({ message = "Chargement...", size = "large" }) => {
+    const sizeClasses = { large: "w-16 h-16", medium: "w-8 h-8", small: "w-6 h-6" };
+    const spinnerClass = sizeClasses[size] || sizeClasses.large;
     return (
-        <div className={`fixed bottom-20 right-4 left-4 sm:left-auto sm:max-w-sm p-4 border-2 rounded-lg shadow-lg fade-in z-50 ${style.bg} ${style.text} ${style.border}`}>
-            <div className="flex justify-between items-start">
-                <span className="flex-1 pr-2 text-sm leading-relaxed">{message}</span>
-                <button 
-                    onClick={onDismiss} 
-                    className="ml-2 text-xl font-bold hover:opacity-70 flex-shrink-0 w-6 h-6 flex items-center justify-center"
-                    title="Fermer"
-                >
-                    ×
-                </button>
+        <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500">
+            <svg className={`animate-spin ${spinnerClass} text-amber-500`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="mt-3 text-sm font-semibold">{message}</p>
+        </div>
+    );
+};
+
+const Header = ({ onMenuClick }) => (
+    <header className="flex items-center justify-between p-4 bg-amber-500 text-white shadow-lg">
+        <h1 className="text-xl font-bold">Mémoire du Mékong</h1>
+        <button onClick={onMenuClick} className="p-2">
+            <Menu className="w-6 h-6" />
+        </button>
+    </header>
+);
+
+const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => (
+    <nav className="fixed bottom-0 left-0 right-0 bg-white shadow-2xl p-2 flex justify-around text-gray-500">
+        <button onClick={() => onPageChange('memories')} className={`flex flex-col items-center p-2 text-xs font-semibold ${currentPage === 'memories' ? 'text-amber-500' : ''}`}>
+            <BookOpen className="w-6 h-6 mb-1" />
+            Mémoires
+        </button>
+        <button onClick={() => onPageChange('home')} className={`flex flex-col items-center p-2 text-xs font-semibold ${currentPage === 'home' ? 'text-amber-500' : ''}`}>
+            <Cloud className="w-6 h-6 mb-1" />
+            Accueil
+        </button>
+        <button onClick={() => onPageChange('users')} className={`flex flex-col items-center p-2 text-xs font-semibold ${currentPage === 'users' ? 'text-amber-500' : ''}`}>
+            <div className="relative">
+                {currentUser && currentUser.picture && (
+                    <img src={currentUser.picture} alt="Profil" className="w-6 h-6 rounded-full" />
+                )}
+                {!currentUser && <User className="w-6 h-6" />}
             </div>
-        </div>
-    );
-};
+            <span>Profil</span>
+        </button>
+    </nav>
+);
 
-		// ===== COMPOSANT LOADING =====
-	const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
-    const sizeClasses = {
-        small: "w-4 h-4 border-2",
-        normal: "w-8 h-8 border-2", 
-        large: "w-12 h-12 border-4"
-    };
-
+const Toast = ({ message, type, onDismiss }) => {
+    if (!message) return null;
+    const colorClasses = type === 'success' ? 'bg-green-500' : 'bg-red-500';
     return (
-        <div className="flex flex-col items-center justify-center py-12 fade-in">
-            <div className={`animate-spin border-amber-600 border-t-transparent rounded-full mb-4 ${sizeClasses[size]}`}></div>
-            <p className="text-amber-700 text-center">{message}</p>
+        <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 p-4 rounded-lg text-white shadow-xl ${colorClasses} z-50`}>
+            {message}
         </div>
     );
 };
 
-		// ===== COMPOSANT TIMELINE (FRISE CHRONOLOGIQUE) =====
+// ===== COMPOSANT: Timeline (Horizontal) =====
 const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
-    const timelineRef = React.useRef(null);
-    const dayRef = React.useRef(null);
+    const days = Array.from({ length: maxDay }, (_, i) => i + 1);
+    const scrollRef = React.useRef(null);
 
     React.useEffect(() => {
-        if (dayRef.current) {
-            dayRef.current.scrollIntoView({
-                behavior: 'smooth',
-                inline: 'center',
-                block: 'nearest'
+        if (scrollRef.current) {
+            const element = scrollRef.current;
+            const dayWidth = 50; // Approximativement la largeur d'un jour + padding
+            const scrollPosition = (currentDay - 1) * dayWidth - element.clientWidth / 2;
+            element.scrollTo({
+                left: scrollPosition,
+                behavior: 'smooth'
             });
         }
     }, [currentDay]);
 
-    const days = Array.from({ length: maxDay }, (_, i) => i + 1);
-
     return (
-        <div className="bg-gray-100 p-2 rounded-lg border border-gray-200">
-            <div ref={timelineRef} className="flex overflow-x-auto space-x-1 py-2 scrollbar-thin scrollbar-thumb-amber-400 scrollbar-track-gray-200">
-                {days.map(day => {
-                    const isCurrent = day === currentDay;
-                    const isDecade = day % 10 === 0;
-
-                    return (
-                        <button
-                            key={day}
-                            ref={isCurrent ? dayRef : null}
-                            onClick={() => onDaySelect(day)}
-                            className={`flex-shrink-0 flex flex-col items-center justify-end h-16 w-8 rounded transition-colors duration-200 ${
-                                isCurrent ? 'bg-amber-500 text-white' : 'hover:bg-amber-100'
-                            }`}
-                        >
-                            <span className={`text-xs font-semibold ${isCurrent ? 'font-bold' : 'text-gray-600'}`}>
-                                {isDecade || day === 1 || day === maxDay ? day : ''}
-                            </span>
-                            <div className={`w-px h-full ${isDecade ? 'bg-amber-400 h-8' : 'bg-gray-300 h-4'}`}></div>
-                        </button>
-                    );
-                })}
-            </div>
+        <div className="flex items-center space-x-2 overflow-x-auto p-2 hide-scrollbar bg-gray-100 rounded-lg shadow-inner" ref={scrollRef}>
+            <style jsx>{`
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
+            {days.map(day => (
+                <button
+                    key={day}
+                    onClick={() => onDaySelect(day)}
+                    className={`flex-shrink-0 w-12 h-12 flex flex-col items-center justify-center p-1 rounded-full text-sm font-semibold transition-colors duration-200 ${
+                        day === currentDay ? 'bg-amber-500 text-white shadow-md transform scale-110' : 'bg-white text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                    J{day}
+                </button>
+            ))}
         </div>
     );
 };
 
-
 // ===== COMPOSANT PHOTOGRID (GRILLE PHOTOS) =====
-const PhotoGrid = ({ photos, onPhotoSelect }) => {
+const PhotoGrid = ({ photos, onPhotoSelect, className = "" }) => {
     if (!photos || photos.length === 0) {
         return (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Camera className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-600">Aucune photo pour ce jour</h3>
-                <p className="text-gray-500">Sélectionnez un autre jour sur la frise.</p>
+            <div className="text-center py-12 text-gray-500">
+                <Camera className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Aucune photo trouvée pour ce jour.</p>
             </div>
         );
     }
-
     return (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+        <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 ${className}`}>
             {photos.map((photo, index) => (
-                <button 
-                    key={photo.filename + index} 
-                    onClick={() => onPhotoSelect(index)}
-                    className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500"
-                >
-                    <img 
-                        src={photo.thumbnailLink} 
-                        alt={photo.filename} 
-                        loading="lazy"
+                <div key={photo.id || index} className="relative aspect-square overflow-hidden rounded-lg shadow-md cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => onPhotoSelect(index)}>
+                    <img
+                        src={photo.thumbnailLink}
+                        alt={photo.filename}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                     />
-                </button>
+                </div>
             ))}
         </div>
     );
@@ -240,2225 +605,114 @@ const MastodonPostViewer = ({ post, photos, isLoadingPhotos, onCreateSession }) 
             
         </div>
     );
-};	
+};
 
-// COMPOSANT: PhotoViewer avec base64 pour grand format
 // COMPOSANT: PhotoViewer avec base64 pour grand format
 const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSession }) => {
-    const [fullImageSrc, setFullImageSrc] = React.useState('');
-    const [isLoadingFullImage, setIsLoadingFullImage] = React.useState(false);
-    
-    if (selectedIndex === null || !photos[selectedIndex]) return null;
-    
     const photo = photos[selectedIndex];
-    
-    React.useEffect(() => {
-        const loadFullImage = async () => {
-            setIsLoadingFullImage(true);
-            setFullImageSrc('');
-            
-            // Essayer de charger l'image en base64 pour contourner les CORS
-            const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType || 'image/jpeg');
-            if (base64Src) {
-                setFullImageSrc(base64Src);
-            } else {
-                // Fallback sur l'URL originale
-                setFullImageSrc(photo.webContentLink);
-            }
-            setIsLoadingFullImage(false);
-        };
-        
-        if (photo.id && photo.mimeType) {
-            loadFullImage();
-        } else {
-            setFullImageSrc(photo.webContentLink);
-        }
-    }, [photo]);
+    if (!photo) return null;
 
-    React.useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
-            if (e.key === 'ArrowLeft') onNavigate('prev');
-            if (e.key === 'ArrowRight') onNavigate('next');
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose, onNavigate]);
-
-    const canGoPrev = selectedIndex > 0;
-    const canGoNext = selectedIndex < photos.length - 1;
-    
     return (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
-            <div className="relative max-w-4xl max-h-full p-4">
-                {/* Bouton de fermeture */}
-                <button 
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-10 text-white text-3xl hover:opacity-75"
-                >
-                    &times;
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center p-4 z-50">
+            <div className="relative w-full max-w-4xl h-full flex flex-col items-center justify-center">
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 text-white bg-black bg-opacity-50 rounded-full z-10">
+                    <LogOut className="w-6 h-6" />
                 </button>
-                
-                {isLoadingFullImage ? (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                        <span className="ml-3 text-white">Chargement...</span>
-                    </div>
-                ) : (
-                    <img 
-                        src={fullImageSrc} 
-                        alt={photo.filename}
-                        className="max-w-full max-h-full object-contain"
-                    />
-                )}
-                
-                {/* Navigation */}
-                {photos.length > 1 && (
-                    <>
-                        <button 
-                            onClick={() => onNavigate('prev')}
-                            disabled={!canGoPrev}
-                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-4xl hover:opacity-75 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                            <ChevronLeft className="w-10 h-10" />
-                        </button>
-                        <button 
-                            onClick={() => onNavigate('next')}
-                            disabled={!canGoNext}
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-4xl hover:opacity-75 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                            <ChevronRight className="w-10 h-10" />
-                        </button>
-                    </>
-                )}
-                
-                {/* Barre d'outils en bas */}
-                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-white bg-black/30 p-3 rounded-lg">
-                    <p className="text-sm truncate pr-4">{photo.filename}</p>
-                    <button
-                        onClick={() => onCreateSession(photo)}
-                        className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>Session</span>
+                <div className="relative w-full h-full flex items-center justify-center">
+                    <img src={photo.webContentLink} alt={photo.filename} className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                </div>
+                <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center space-x-4 text-white">
+                    <button onClick={() => onNavigate('prev')} disabled={selectedIndex === 0} className="p-2 bg-black bg-opacity-50 rounded-full disabled:opacity-30">
+                        <ArrowLeftCircle className="w-8 h-8" />
+                    </button>
+                    <button onClick={() => onCreateSession(photo)} className="p-2 bg-green-500 rounded-lg text-sm font-semibold">
+                        <Plus className="w-5 h-5 inline mr-1" /> Créer une session
+                    </button>
+                    <button onClick={() => onNavigate('next')} disabled={selectedIndex === photos.length - 1} className="p-2 bg-black bg-opacity-50 rounded-full disabled:opacity-30">
+                        <ArrowRightCircle className="w-8 h-8" />
                     </button>
                 </div>
             </div>
         </div>
     );
 };
-		
-        // ===== CORE STORAGE =====
-	const Storage = {
-    get: (key, defaultValue = null) => {
-        try {
-            const item = localStorage.getItem(`mekong_${key}`);
-            return item ? JSON.parse(item) : defaultValue;
-        } catch { return defaultValue; }
-    },
-    set: (key, value) => {
-        try {
-            localStorage.setItem(`mekong_${key}`, JSON.stringify(value));
-            return true;
-        } catch { return false; }
-    },
-    remove: (key) => localStorage.removeItem(`mekong_${key}`),
-    clear: () => {
-        Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('mekong_')) localStorage.removeItem(key);
-        });
-    }
-};
-		
-// ===== MASTODON DATA MANAGEMENT - IMPORT TOUS LES POSTS =====
-	const MastodonData = {
-    // Décoder les entités HTML
-    decodeHtmlEntities: (text) => {
-        const textArea = document.createElement('textarea');
-        textArea.innerHTML = text;
-        return textArea.value;
-    },
 
-    // Parser le fichier outbox.json - MODIFIÉ POUR IMPORTER TOUS LES POSTS
-    parseOutbox: (jsonData) => {
-        try {
-            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-            
-            // Gérer la structure ActivityPub complète avec @context
-            let orderedItems;
-            if (data.orderedItems) {
-                orderedItems = data.orderedItems;
-            } else if (data.data && data.data.orderedItems) {
-                orderedItems = data.data.orderedItems;
-            } else {
-                throw new Error('Format ActivityPub invalide - orderedItems non trouvé');
-            }
-
-            if (!Array.isArray(orderedItems)) {
-                throw new Error('orderedItems n\'est pas un tableau');
-            }
-
-            // ÉTAPE 1 : Traiter tous les posts et identifier ceux avec/sans numéro de jour
-const allPosts = orderedItems
-    .filter(item => item.type === 'Create' && item.object?.type === 'Note')
-    .map((item, index) => {
-        const note = item.object;
-        const content = note.content || '';
-        
-        // Nettoyer le HTML et décoder les entités HTML
-        const cleanContentHtml = content.replace(/<[^>]*>/g, '');
-        const decodedContent = MastodonData.decodeHtmlEntities(cleanContentHtml);
-        
-        // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
-        const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
-        const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-        const hasJourNumber = dayNumber !== null;
-        
-        // NOUVEAU : Extraire le titre et le contenu
-        let title = '';
-        let postContent = decodedContent;
-        if (hasJourNumber) {
-            // Pour les posts avec Jnnn: extraire le titre après et le reste est le contenu
-            const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
-            const lines = afterJour.split('\n').filter(line => line.trim() !== '');
-            if (lines.length > 0) {
-                title = lines[0].trim().replace(/[#]/g, ''); // Suppression des # pour le titre
-                if (lines.length > 1) {
-                    postContent = lines.slice(1).join('\n').trim();
-                } else {
-                    postContent = ''; // Pas de contenu après le titre
-                }
-            }
-        } else {
-            // Pour les posts sans Jnnn: la première ligne est le titre
-            const lines = decodedContent.split('\n').filter(line => line.trim() !== '');
-            if (lines.length > 0) {
-                title = lines[0].trim();
-                if (lines.length > 1) {
-                    postContent = lines.slice(1).join('\n').trim();
-                } else {
-                    postContent = ''; // Pas de contenu après le titre
-                }
-            }
-        }
-        
-        // Nettoyer le titre des emojis excessifs et caractères spéciaux
-        title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
-        
-        return {
-            id: note.id || `post-${index}`,
-            dayNumber,
-            hasJourNumber,
-            title: title || 'Post sans titre',
-            content: postContent,
-            published: note.published || item.published,
-            attachments: note.attachment || [],
-            url: note.url,
-            originalIndex: index
-        };
-    });
-
-            // ÉTAPE 2 : Séparer les posts avec et sans numéro de jour
-            const postsWithDay = allPosts.filter(post => post.hasJourNumber);
-            const postsWithoutDay = allPosts.filter(post => !post.hasJourNumber);
-
-            // ÉTAPE 3 : Trier les posts avec numéro de jour
-            postsWithDay.sort((a, b) => a.dayNumber - b.dayNumber);
-
-            // ÉTAPE 4 : Attribuer des numéros aux posts sans jour (après le dernier jour)
-            const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
-            postsWithoutDay.forEach((post, index) => {
-                post.dayNumber = maxDayNumber + index + 1;
-                post.isExtraPost = true;
-            });
-
-            // ÉTAPE 5 : Combiner tous les posts
-            const finalPosts = [...postsWithDay, ...postsWithoutDay];
-
-            // ÉTAPE 6 : Nettoyer les propriétés temporaires
-            finalPosts.forEach(post => {
-                delete post.hasJourNumber;
-                delete post.originalIndex;
-            });
-
-            console.log(`✅ ${finalPosts.length} posts Mastodon importés`);
-            console.log(`   - ${postsWithDay.length} posts avec numéro de jour (J1 à J${maxDayNumber})`);
-            console.log(`   - ${postsWithoutDay.length} posts additionnels (J${maxDayNumber + 1} à J${maxDayNumber + postsWithoutDay.length})`);
-            
-            if (postsWithoutDay.length > 0) {
-                console.log('📋 Posts sans numéro de jour ajoutés :');
-                postsWithoutDay.slice(0, 3).forEach(post => {
-                    console.log(`   J${post.dayNumber}: "${post.content.slice(0, 60)}..."`);
-                });
-                if (postsWithoutDay.length > 3) {
-                    console.log(`   ... et ${postsWithoutDay.length - 3} autres`);
-                }
-            }
-            
-            return finalPosts;
-        } catch (error) {
-            console.error('❌ Erreur parsing outbox:', error);
-            throw error;
-        }
-    },
-
-// ===== PHOTO DATA MANAGEMENT - GESTION DE L'INDEX DES PHOTOS =====
-const PhotoData = {
-    // Parser l'index des photos et le normaliser
-    parsePhotoIndex: (jsonData) => {
-        try {
-            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
-            let allPhotos = [];
-            const photosByDay = {};
-
-            for (const key in data) {
-                if (data.hasOwnProperty(key)) {
-                    const entry = data[key];
-                    const dayStr = key.trim();
-                    
-                    if (dayStr && entry.photos && entry.photos.length > 0) {
-                        const dayRanges = dayStr.split('-').map(d => parseInt(d, 10));
-                        const startDay = dayRanges[0];
-                        const endDay = dayRanges.length > 1 ? dayRanges[1] : startDay;
-
-                        for (let day = startDay; day <= endDay; day++) {
-                            if (!isNaN(day)) {
-                                if (!photosByDay[day]) {
-                                    photosByDay[day] = [];
-                                }
-                                const photoEntries = entry.photos.map(filename => ({
-                                    day: day,
-                                    folderName: entry.folderName,
-                                    filename: filename
-                                }));
-                                photosByDay[day].push(...photoEntries);
-                                allPhotos.push(...photoEntries);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            allPhotos.sort((a, b) => a.day - b.day);
-
-            console.log(`INFO: ${allPhotos.length} photos indexées sur ${Object.keys(photosByDay).length} jours.`);
-            
-            return { allPhotos, photosByDay };
-        } catch (error) {
-            console.error("Erreur lors du parsing de l'index des photos:", error);
-            throw error;
-        }
-    },
-
-    // Sauvegarder l'index
-    saveIndex: (indexData) => {
-        Storage.set('photo_index', indexData);
-        Storage.set('photo_index_imported_at', new Date().toISOString());
-    },
-
-    // Récupérer l'index
-    getIndex: () => {
-        return Storage.get('photo_index', null);
-    },
-
-    // Obtenir les photos pour un jour donné
-    getPhotosByDay: (dayNumber) => {
-        const index = PhotoData.getIndex();
-        return index?.photosByDay?.[dayNumber] || [];
-    },
-
-    // Vérifier si l'index est importé
-    isImported: () => {
-        return !!PhotoData.getIndex();
-    },
-
-    // Obtenir les stats
-    getStats: () => {
-        const index = PhotoData.getIndex();
-        const importedAt = Storage.get('photo_index_imported_at');
-        if (!index) return { totalPhotos: 0, totalDays: 0, importedAt: null };
-
-        return {
-            totalPhotos: index.allPhotos.length,
-            totalDays: Object.keys(index.photosByDay).length,
-            importedAt
-        };
-    }
-};       
-
-// ===== GOOGLE DRIVE API - VERSION STABLE ET CORRIGÉE =====
-const GOOGLE_CONFIG = {
-    API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
-    CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
-};
-
-const GoogleDriveAPI = {
-    isSignedIn: false,
-    isInitialized: false,
-    tokenClient: null,
-    _folderCache: new Map(),
-
-    async init() { if (this.isInitialized) return; try { console.log('🔄 Initialisation...'); await new Promise(r => gapi.load('client', r)); await gapi.client.init({ apiKey: GOOGLE_CONFIG.API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CONFIG.CLIENT_ID, scope: GOOGLE_CONFIG.SCOPES, callback: '' }); this.isInitialized = true; console.log('✅ API initialisée'); } catch (e) { console.error('❌ Erreur init API:', e); throw e; } },
-    async signIn() { if (!this.isInitialized) await this.init(); return new Promise((resolve, reject) => { if (!this.tokenClient) return reject(new Error('Token client non initialisé')); this.tokenClient.callback = async (res) => { if (res.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${res.error}`)); } try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } catch (e) { this.isSignedIn = false; reject(new Error('Accès API Drive impossible')); } }; const token = gapi.client.getToken(); if (token) { this.isSignedIn = true; resolve(true); } else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); } }); },
-    async signOut() { const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } this.isSignedIn = false; },
-    async getUserInfo() { if (!this.isSignedIn) throw new Error('Non connecté'); try { const response = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v2/userinfo' }); return response.result; } catch (e) { console.error('❌ Erreur getUserInfo:', e); throw e; } },
-    async _findFile(name, parentId, mimeType) { try { const q = `'${parentId}' in parents and name='${name}' and trashed=false` + (mimeType ? ` and mimeType='${mimeType}'` : ''); const response = await gapi.client.drive.files.list({ q, fields: 'files(id, name)', pageSize: 1 }); return response.result.files?.[0] || null; } catch (e) { console.error(`❌ Erreur _findFile ${name}:`, e); return null; } },
-    async _loadJSONFromDrive(fileName) { const fileId = await this._findFileByName(fileName); if (!fileId) throw new Error(`Fichier ${fileName} non trouvé`); try { const response = await gapi.client.drive.files.get({ fileId, alt: 'media' }); return JSON.parse(response.body); } catch (e) { console.error(`❌ Erreur chargement JSON '${fileName}':`, e); throw e; } },
-    async _findFileByName(fileName) { try { const response = await gapi.client.drive.files.list({ q: `name='${fileName}' and trashed=false`, fields: 'files(id)', pageSize: 1 }); return response.result.files?.[0]?.id || null; } catch (e) { console.error(`❌ Erreur recherche ${fileName}:`, e); return null; } },
-    
-    // CORRECTION: Fonction manquante pour l'import de l'index photos
-    async loadJsonFile(fileName) {
-        return await this._loadJSONFromDrive(fileName);
-    },
-    
-    async loadSessions() { try { return await this._loadJSONFromDrive('mekong_sessions.json'); } catch (e) { console.error('❌ Erreur chargement sessions:', e); return null; } },
-    async saveSessions(sessions) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const fileName = 'mekong_sessions.json'; let fileId = await this._findFileByName(fileName); const fileMetadata = { name: fileName }; const form = new FormData(); form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' })); form.append('file', new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' })); const url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart` : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'; const response = await fetch(url, { method: fileId ? 'PATCH' : 'POST', headers: { Authorization: `Bearer ${gapi.client.getToken().access_token}` }, body: form }); if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`); return await response.json(); } catch (e) { console.error(`❌ Erreur sauvegarde sessions:`, e); throw e; } },
-
-    async listPhotoFiles(folderId) {
-        if (!this.isSignedIn) throw new Error('Pas connecté');
-        try {
-            const response = await gapi.client.drive.files.list({
-                q: `'${folderId}' in parents and mimeType contains 'image/' and trashed=false`,
-                fields: 'files(id, name, webContentLink, thumbnailLink, mimeType)',
-                pageSize: 500
-            });
-            return response.result.files || [];
-        } catch (e) { console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e); return []; }
-    },
-
-    // NOUVEAU: Fonction pour charger une photo en base64 (utilisée seulement à la demande)
-    async getPhotoAsBase64(fileId, mimeType) {
-        if (!this.isSignedIn) throw new Error('Pas connecté');
-        try {
-            console.log('🔄 Chargement photo en base64:', fileId);
-            const response = await gapi.client.drive.files.get({
-                fileId: fileId,
-                alt: 'media'
-            });
-
-            // Conversion des données binaires en Base64
-            const raw = response.body;
-            const rawLength = raw.length;
-            const array = new Uint8Array(rawLength);
-            
-            for (let i = 0; i < rawLength; i++) {
-                array[i] = raw.charCodeAt(i);
-            }
-            
-            const blob = new Blob([array], { type: mimeType });
-            
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    console.log('✅ Photo chargée en base64');
-                    resolve(reader.result);
-                };
-                reader.onerror = (error) => {
-                    console.error('❌ Erreur conversion base64:', error);
-                    reject(error);
-                };
-                reader.readAsDataURL(blob);
-            });
-            
-        } catch (error) {
-            console.error(`❌ Erreur chargement photo ${fileId} en base64:`, error);
-            return null;
-        }
-    }
-};
-
-// ===== USER CONFIG =====
-        const USERS = {
-            tom: { name: 'Tom le jeune éléphanteau', color: 'blue', emoji: '🐘' },
-            lambert: { name: 'Lambert, le Vieux Pachiderme', color: 'green', emoji: '🐘' },
-            duo: { name: 'Duo Mekong Tandem', color: 'amber', emoji: '🐘🐘' }
-        };
-        
-        const getUserStyle = (userKey) => {
-            const user = USERS[userKey];
-            if (!user) return { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-800' };
-            
-            const styles = {
-                blue: { bg: 'bg-blue-100 hover:bg-blue-200', border: 'border-blue-300', text: 'text-blue-800' },
-                green: { bg: 'bg-green-100 hover:bg-green-200', border: 'border-green-300', text: 'text-green-800' },
-                amber: { bg: 'bg-amber-100 hover:bg-amber-200', border: 'border-amber-300', text: 'text-amber-800' }
-            };
-            return styles[user.color] || styles.blue;
-        };
-
-        // ===== CORE STATES =====
-        const useAppState = () => {
-            const [currentPage, setCurrentPage] = React.useState('home');
-            const [currentUser, setCurrentUser] = React.useState(Storage.get('currentUser', ''));
-            
-            // Sauvegarde automatique
-            React.useEffect(() => {
-                Storage.set('currentUser', currentUser);
-            }, [currentUser]);
-
-            const resetApp = () => {
-                setCurrentPage('home');
-                setCurrentUser('');
-                Storage.clear();
-            };
-
-            return {
-                currentPage, setCurrentPage,
-                currentUser, setCurrentUser,
-                resetApp
-            };
-        };
-        
-        // ===== PAGE USERS =====
-        const UsersPage = ({ currentUser, onUserChange, onPageChange }) => {
-            return (
-                <div className="space-y-6 fade-in">
-                    <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-amber-900 mb-2">Gestion des Utilisateurs</h2>
-                        <p className="text-amber-700">
-                            Actuellement connecté en tant que <strong>{USERS[currentUser]?.name}</strong>
-                        </p>
+// Page d'accueil
+const HomePage = ({ onImport, importState, authState, onGoogleDisconnect }) => (
+    <div className="p-4 space-y-6 fade-in">
+        <h2 className="text-3xl font-bold text-gray-800">Commencer l'aventure</h2>
+        <div className="bg-white p-6 rounded-lg shadow-md space-y-4 text-center">
+            {authState.connectionMode === 'connected' && (
+                <div className="flex flex-col items-center space-y-4">
+                    <div className="flex items-center space-x-2 text-green-600">
+                        <Sun className="w-6 h-6" />
+                        <span className="font-semibold">Connecté à Google Drive</span>
                     </div>
-
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-amber-900">Changer d'utilisateur :</h3>
-                        
-                        <div className="grid grid-cols-1 gap-4">
-                            {Object.entries(USERS).map(([key, user]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => {
-                                        onUserChange(key);
-                                        onPageChange('home');
-                                    }}
-                                    className={`flex items-center space-x-4 p-4 border-2 rounded-lg transition-all ${
-                                        key === currentUser 
-                                            ? `${getUserStyle(key).bg} ${getUserStyle(key).border} ring-2 ring-amber-300` 
-                                            : `${getUserStyle(key).bg} hover:${getUserStyle(key).border} border-gray-200 hover:border-amber-300`
-                                    }`}
-                                >
-                                    <span className="text-3xl">{user.emoji}</span>
-                                    <div className="flex-1 text-left">
-                                        <div className={`font-semibold text-lg ${getUserStyle(key).text}`}>
-                                            {user.name}
-                                            {key === currentUser && (
-                                                <span className="ml-2 text-sm bg-amber-200 text-amber-800 px-2 py-1 rounded-full">
-                                                    Actuel
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-sm text-gray-600">
-                                            {key === 'tom' && "Le jeune aventurier"}
-                                            {key === 'lambert' && "Le sage guide"}  
-                                            {key === 'duo' && "Session père-fils"}
-                                        </div>
-                                    </div>
-                                    {key !== currentUser && (
-                                        <div className="text-amber-600 font-medium">→ Changer</div>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6">
-                        <h4 className="font-semibold text-amber-900 mb-2">💡 À propos des utilisateurs</h4>
-                        <div className="text-amber-700 text-sm space-y-1">
-                            <div><strong>Tom :</strong> Voit ses propres messages à droite, ceux de Lambert à gauche</div>
-                            <div><strong>Lambert :</strong> Voit ses propres messages à droite, ceux de Tom à gauche</div>
-                            <div><strong>Duo :</strong> Mode session partagée, messages centrés</div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-center pt-4">
-                        <button
-                            onClick={() => onPageChange('home')}
-                            className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                        >
-                            Retour à l'accueil
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        // ===== GAMES CATALOG =====
-        const GAMES = [
-            { 
-                id: 1, 
-                title: "Photo roulette", 
-                duration: "15 min", 
-                type: "présentiel",
-                icon: Camera, 
-                description: "Sélectionnez une photo au hasard et racontez tout ce qui vous revient en mémoire" 
-            },
-            { 
-                id: 2, 
-                title: "Timeline aveugle", 
-                duration: "20 min", 
-                type: "présentiel",
-                icon: Clock, 
-                description: "Reconstituez la chronologie d'une étape sans regarder les dates" 
-            },
-            { 
-                id: 3, 
-                title: "Interview journaliste", 
-                duration: "25 min", 
-                type: "présentiel",
-                icon: Mic, 
-                description: "L'un interviewe l'autre sur une étape précise du voyage" 
-            },
-            { 
-                id: 4, 
-                title: "Photo sans légende", 
-                duration: "async", 
-                type: "distanciel",
-                icon: Camera, 
-                description: "Envoyez une photo, l'autre devine le contexte et ses souvenirs" 
-            },
-            { 
-                id: 5, 
-                title: "Mot déclencheur", 
-                duration: "async", 
-                type: "distanciel",
-                icon: Zap, 
-                description: "Un mot-clé pour déclencher un souvenir chez l'autre" 
-            },
-            { 
-                id: 6, 
-                title: "Géolocalisation mystère", 
-                duration: "async", 
-                type: "distanciel",
-                icon: MapPin, 
-                description: "Partagez une position GPS, l'autre raconte ce lieu" 
-            },
-            { 
-                id: 7, 
-                title: "Souvenir du jour", 
-                duration: "libre", 
-                type: "mémoire",
-                icon: BookOpen, 
-                description: "Discussion autour d'un post spécifique du blog Mastodon" 
-            }
-        ];
-
-// ===== CLOUD SESSION STORAGE - VERSION STABLE ET CORRIGÉE =====
-const CloudSessionStorage = {
-    onConnectionLost: null,
-
-    async getSessions() {
-        try {
-            if (!GoogleDriveAPI.isSignedIn) { return Storage.get('sessions', []); }
-            const cloudSessions = await GoogleDriveAPI.loadSessions();
-            if (cloudSessions) {
-                Storage.set('sessions', cloudSessions);
-                return cloudSessions;
-            }
-        } catch (error) {
-            console.warn('⚠️ Erreur chargement cloud:', error.message);
-            if (this.isConnectionError(error) && this.onConnectionLost) {
-                this.onConnectionLost('Perte de connexion lors du chargement des sessions');
-            }
-        }
-        return Storage.get('sessions', []);
-    },
-    
-    async saveSession(session) {
-        // CORRECTION: S'assurer que sessions est bien un tableau
-        let sessions = Storage.get('sessions', []);
-        if (!Array.isArray(sessions)) {
-            console.warn('⚠️ Sessions corrompues détectées, réinitialisation');
-            sessions = [];
-            Storage.set('sessions', []);
-        }
-        
-        const existingIndex = sessions.findIndex(s => s.id === session.id);
-        if (existingIndex >= 0) { sessions[existingIndex] = session; } else { sessions.unshift(session); }
-        Storage.set('sessions', sessions);
-        
-        if (!GoogleDriveAPI.isSignedIn) { return; }
-        
-        try {
-            await GoogleDriveAPI.saveSessions(sessions);
-        } catch (error) {
-            console.warn('⚠️ Erreur sauvegarde cloud:', error.message);
-            if (this.isConnectionError(error)) {
-                if (this.onConnectionLost) { this.onConnectionLost('Impossible de synchroniser - Connexion perdue'); }
-                throw new Error(`Connexion Google Drive perdue. Session sauvegardée localement.`);
-            } else {
-                throw new Error(`Sauvegarde cloud échouée: ${error.message}. Session sauvegardée localement.`);
-            }
-        }
-    },
-    
-    async deleteSession(sessionId) {
-        // CORRECTION: S'assurer que sessions est bien un tableau
-        let sessions = Storage.get('sessions', []);
-        if (!Array.isArray(sessions)) {
-            console.warn('⚠️ Sessions corrompues détectées, réinitialisation');
-            sessions = [];
-        } else {
-            sessions = sessions.filter(s => s.id !== sessionId);
-        }
-        Storage.set('sessions', sessions);
-        
-        if (!GoogleDriveAPI.isSignedIn) { return; }
-        try {
-            await GoogleDriveAPI.saveSessions(sessions);
-        } catch (error) {
-            console.warn('⚠️ Erreur suppression cloud:', error.message);
-            if (this.isConnectionError(error)) {
-                if (this.onConnectionLost) { this.onConnectionLost('Impossible de synchroniser la suppression - Connexion perdue');}
-                throw new Error(`Connexion Google Drive perdue. Suppression locale effectuée.`);
-            } else {
-                throw new Error(`Suppression cloud échouée: ${error.message}. Suppression locale effectuée.`);
-            }
-        }
-    },
-
-    async forceSyncFromCloud() {
-        if (!GoogleDriveAPI.isSignedIn) throw new Error('Non connecté');
-        try {
-            const cloudSessions = await GoogleDriveAPI.loadSessions();
-            if (cloudSessions) {
-                Storage.set('sessions', cloudSessions);
-                return cloudSessions;
-            }
-            return Storage.get('sessions', []);
-        } catch (error) {
-            console.error('❌ Erreur synchronisation:', error);
-            if (this.isConnectionError(error) && this.onConnectionLost) {
-                this.onConnectionLost('Échec de synchronisation - Connexion perdue');
-            }
-            throw new Error(`Échec synchronisation: ${error.message}`);
-        }
-    },
-
-    isConnectionError(error) {
-        if (!error) return false;
-        const msg = error.message?.toLowerCase() || '';
-        const status = error.status;
-        const netErrors = ['network', 'failed to fetch', 'offline', 'lost', 'timeout'];
-        const authErrors = ['unauthorized', 'invalid_token', 'expired', 'denied', 'invalid_grant'];
-        return netErrors.some(t => msg.includes(t)) || authErrors.some(t => msg.includes(t)) || [0, 401, 403, 500, 503].includes(status);
-    }
-};
-
-// ===== SESSION STORAGE =====
-        const SessionStorage = {
-            getSessions: () => {
-    			const sessions = Storage.get('sessions', []);
-    			// Nettoyer les sessions corrompues
-    			return sessions.filter(session => {
-        			const isValid = session && 
-                       			typeof session.id !== 'undefined' && 
-                       			typeof session.gameId === 'number' && 
-                       			session.gameId > 0 &&
-                       			Array.isArray(session.notes);
-        			if (!isValid) {
-            			console.warn('Session corrompue supprimée:', session);
-        			}
-        			return isValid;
-    			});
-			},
-            saveSession: (session) => {
-                const sessions = SessionStorage.getSessions();
-                const existingIndex = sessions.findIndex(s => s.id === session.id);
-                if (existingIndex >= 0) {
-                    sessions[existingIndex] = session;
-                } else {
-                    sessions.unshift(session);
-                }
-                Storage.set('sessions', sessions);
-            },
-            deleteSession: (sessionId) => {
-                const sessions = SessionStorage.getSessions().filter(s => s.id !== sessionId);
-                Storage.set('sessions', sessions);
-            }
-        };
-
-        // ===== SESSION HELPERS =====
-        const getGameIcon = (gameId) => {
-            if (!gameId || typeof gameId !== 'number') {
-                console.log('getGameIcon: gameId invalide', gameId);
-                return BookOpen; // Sécurité si gameId undefined/invalide
-            }
-            const game = GAMES.find(g => g.id === gameId);
-            if (!game) {
-                console.log('getGameIcon: jeu non trouvé pour gameId', gameId);
-                return BookOpen;
-            }
-            return game.icon;
-        };
-
-        const renderGameIcon = (gameId, className = "w-6 h-6 text-amber-600") => {
-    		try {
-        		const game = GAMES.find(g => g.id === gameId);
-        		if (!game || !game.icon) {
-            		console.warn('renderGameIcon: Jeu non trouvé pour gameId:', gameId);
-            		return React.createElement(BookOpen, { className });
-        		}
-        
-        		const IconComponent = game.icon;
-        		if (typeof IconComponent !== 'function') {
-            		console.warn('renderGameIcon: Icon n\'est pas une fonction:', IconComponent);
-            		return React.createElement(BookOpen, { className });
-        		}
-        
-        		return React.createElement(IconComponent, { className });
-    		} catch (error) {
-        		console.error('renderGameIcon: Erreur lors du rendu:', error);
-        		return React.createElement(BookOpen, { className });
-    		}
-		};
-
-        const getGameById = (gameId) => {
-            return GAMES.find(g => g.id === gameId);
-        };
-
-// ===== SESSION HOOKS - AVEC LOADING STATES =====
-const useSessionState = () => {
-    const [currentSession, setCurrentSession] = React.useState(null);
-    const [sessions, setSessions] = React.useState([]);
-    const [isCreatingSession, setIsCreatingSession] = React.useState(false); // NOUVEAU
-    const [isDeletingSession, setIsDeletingSession] = React.useState(null); // NOUVEAU - ID de la session en cours de suppression
-
-    React.useEffect(() => {
-        const loadSessions = async () => {
-            const loadedSessions = await CloudSessionStorage.getSessions();
-            setSessions(loadedSessions);
-        };
-        loadSessions();
-    }, []);
-
-    const createSession = async (game, user) => {
-        console.log('createSession appelée avec:', { game, user });
-
-        if (!game || !game.id) {
-            console.error('createSession: jeu invalide', game);
-            return null;
-        }
-
-        setIsCreatingSession(true); // NOUVEAU
-        try {
-            // Préparer le premier message si on a un contenu de post
-            const postContent = window.pendingGameSession?.postChapo;
-            const initialNotes = [];
-            
-            if (postContent && postContent.trim()) {
-                initialNotes.push({
-                    id: Date.now() - 1,
-                    content: postContent.trim(),
-                    author: 'duo',
-                    timestamp: new Date().toISOString()
-                });
-                console.log('Premier message ajouté depuis post:', postContent.slice(0, 100) + '...');
-            }
-
-            const newSession = {
-                id: Date.now(),
-                gameId: Number(game.id),
-                gameTitle: game.title || 'Titre inconnu',
-                gameDescription: game.description || 'Description inconnue',
-                gameDuration: game.duration || 'Durée inconnue',
-                postChapo: postContent || null,
-                user: user,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                status: 'active',
-                notes: initialNotes,
-                participants: [user]
-            };
-
-            console.log('Nouvelle session créée:', newSession);
-
-            await CloudSessionStorage.saveSession(newSession);
-            const sessions = await CloudSessionStorage.getSessions();
-            setSessions(sessions);
-            setCurrentSession(newSession);
-            
-            // Nettoyer la session en attente
-            if (window.pendingGameSession) {
-                delete window.pendingGameSession;
-            }
-            
-            return newSession;
-        } catch (error) {
-            console.error('Erreur création session:', error);
-            throw error;
-        } finally {
-            setIsCreatingSession(false); // NOUVEAU
-        }
-    };
-
-    const updateSession = async (updatedSession) => {
-        const sessionToSave = {
-            ...updatedSession, 
-            notes: updatedSession.notes || [],
-            updatedAt: new Date().toISOString()
-        };
-        await CloudSessionStorage.saveSession(sessionToSave);
-        const newSessions = await CloudSessionStorage.getSessions();
-        setSessions(newSessions);
-        setCurrentSession(sessionToSave);
-    };
-
-    const deleteSession = async (sessionId) => {
-        setIsDeletingSession(sessionId); // NOUVEAU
-        try {
-            await CloudSessionStorage.deleteSession(sessionId);
-            const sessions = await CloudSessionStorage.getSessions();
-            setSessions(sessions);
-            if (currentSession?.id === sessionId) {
-                setCurrentSession(null);
-            }
-        } catch (error) {
-            console.error('Erreur suppression session:', error);
-            throw error;
-        } finally {
-            setIsDeletingSession(null); // NOUVEAU
-        }
-    };
-    
-    const syncSessions = React.useCallback(async () => {
-        try {
-            const syncedSessions = await CloudSessionStorage.forceSyncFromCloud();
-            setSessions(syncedSessions);
-            return syncedSessions;
-        } catch (error) {
-            console.error('Erreur sync:', error);
-            throw error;
-        }
-    }, []);
-
-    return {
-        currentSession, setCurrentSession,
-        sessions, setSessions,
-        isCreatingSession, // NOUVEAU
-        isDeletingSession, // NOUVEAU
-        createSession,
-        updateSession,
-        deleteSession,
-        getGameIcon,
-        renderGameIcon,
-        syncSessions
-    };
-};
-
-// ===== GOOGLE AUTH HOOK - CONNECTION-FIRST - AVEC DETECTION DECONNEXION (REMPLACER CE BLOC COMPLET) =====
-const useGoogleAuth = () => {
-    const [isConnected, setIsConnected] = React.useState(false);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [userInfo, setUserInfo] = React.useState(null);
-    const [connectionMode, setConnectionMode] = React.useState('checking');
-    const [lastConnectionError, setLastConnectionError] = React.useState(null);
-
-    const forceDisconnect = React.useCallback((reason) => {
-        console.log('🔴 Déconnexion forcée:', reason);
-        setIsConnected(false);
-        setConnectionMode('disconnected');
-        setLastConnectionError(reason);
-        GoogleDriveAPI.isSignedIn = false;
-
-        const token = gapi.client.getToken();
-        if (token) {
-            google.accounts.oauth2.revoke(token.access_token);
-            gapi.client.setToken('');
-        }
-    }, []);
-
-    React.useEffect(() => {
-        const initGoogle = async () => {
-            setIsLoading(true);
-            setConnectionMode('checking');
-
-            try {
-                await GoogleDriveAPI.init();
-                const token = gapi.client.getToken();
-                if (token) {
-                    try {
-                        await gapi.client.drive.files.list({ pageSize: 1 });
-                        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                            headers: { 'Authorization': `Bearer ${token.access_token}` }
-                        });
-                        if (response.ok) {
-                            const profile = await response.json();
-                            setUserInfo(profile);
-                            setIsConnected(true);
-                            GoogleDriveAPI.isSignedIn = true;
-                            setConnectionMode('connected');
-                            setLastConnectionError(null);
-                            console.log('✅ Reconnexion automatique réussie');
-                        } else {
-                            throw new Error('Token invalide');
-                        }
-                    } catch (error) {
-                        console.log('⚠️ Token expiré ou invalide:', error.message);
-                        gapi.client.setToken('');
-                        setConnectionMode('disconnected');
-                        setLastConnectionError('Token expiré');
-                    }
-                } else {
-                    setConnectionMode('disconnected');
-                }
-            } catch (error) {
-                console.error('Erreur init Google:', error);
-                setConnectionMode('disconnected');
-                setLastConnectionError(error.message);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        initGoogle();
-    }, []);
-
-    const signIn = async () => {
-        setIsLoading(true);
-        setLastConnectionError(null);
-
-        try {
-            const success = await GoogleDriveAPI.signIn();
-            if (success) {
-                const token = gapi.client.getToken();
-                const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { 'Authorization': `Bearer ${token.access_token}` }
-                });
-                if (!response.ok) {
-                    throw new Error('Impossible de récupérer le profil utilisateur');
-                }
-                const profile = await response.json();
-                setUserInfo(profile);
-                setIsConnected(true);
-                setConnectionMode('connected');
-                setLastConnectionError(null);
-                console.log('Connexion réussie:', profile.name);
-                return true;
-            } else {
-                throw new Error('Échec de la connexion Google Drive');
-            }
-        } catch (error) {
-            console.error('Erreur connexion:', error);
-            setIsConnected(false);
-            setUserInfo(null);
-            setConnectionMode('disconnected');
-            setLastConnectionError(error.message);
-            return { success: false, error: error.message };
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const signOut = async () => {
-        setIsLoading(true);
-
-        try {
-            const token = gapi.client.getToken();
-            if (token) {
-                google.accounts.oauth2.revoke(token.access_token);
-                gapi.client.setToken('');
-            }
-            GoogleDriveAPI.isSignedIn = false;
-            setIsConnected(false);
-            setUserInfo(null);
-            setConnectionMode('disconnected');
-            setLastConnectionError(null);
-            console.log('✅ Déconnexion réussie');
-        } catch (error) {
-            console.error('❌ Erreur déconnexion:', error);
-            setLastConnectionError(error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const testConnection = React.useCallback(async () => {
-        if (!isConnected) return false;
-        try {
-            await gapi.client.drive.files.list({ pageSize: 1 });
-            return true;
-        } catch (error) {
-            console.log('🔴 Test de connexion échoué:', error.message);
-            forceDisconnect('Test de connexion échoué');
-            return false;
-        }
-    }, [isConnected, forceDisconnect]);
-
-    return {
-        isConnected,
-        isLoading,
-        userInfo,
-        connectionMode,
-        lastConnectionError,
-        signIn,
-        signOut,
-        forceDisconnect,
-        testConnection
-    };
-};
-
-// ===== NAVIGATION : TOP BAR - CONNECTION-FIRST =====
-		const TopBar = ({ currentPage, currentUser, onUserChange, onPageChange, connectionMode, googleAuth, onGoogleAction }) => {
-    const PAGE_TITLES = {
-        home: "Mémoire du Mékong",
-        sessions: "Vos Sessions", 
-        games: "Choisir un jeu",
-        chat: "Conversation",
-        memories: "Mémoires du Voyage",
-        settings: "Réglages",
-        users: "Gestion des Utilisateurs"
-    };
-
-    // Fonction pour obtenir le style du bouton de connexion selon l'état
-    const getConnectionButtonStyle = () => {
-        if (googleAuth.isLoading) {
-            return 'bg-blue-100 text-blue-700 cursor-wait border-2 border-blue-300';
-        }
-        
-        switch(connectionMode) {
-            case 'connected':
-                return 'bg-green-100 text-green-700 hover:bg-green-200 border-2 border-green-300';
-            case 'disconnected':
-                return 'bg-red-100 text-red-700 hover:bg-red-200 border-2 border-red-400 pulse-warning';
-            case 'never-connected':
-                return 'bg-orange-100 text-orange-700 hover:bg-orange-200 border-2 border-orange-300';
-            default:
-                return 'bg-gray-100 text-gray-700 border-2 border-gray-300';
-        }
-    };
-
-    // Fonction pour obtenir le texte du bouton de connexion
-    const getConnectionButtonText = () => {
-        if (googleAuth.isLoading) return 'Connexion...';
-        
-        switch(connectionMode) {
-            case 'connected':
-                return googleAuth.userInfo?.name?.split(' ')[0] || 'Connecté';
-            case 'disconnected':
-                return 'Reconnecter';
-            case 'never-connected':
-                return 'Se connecter';
-            default:
-                return 'Drive';
-        }
-    };
-
-    // Fonction pour obtenir l'icône du bouton de connexion
-    const getConnectionIcon = () => {
-        if (googleAuth.isLoading) {
-            return <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>;
-        }
-        
-        switch(connectionMode) {
-            case 'connected':
-                return <Cloud className="w-5 h-5" />;
-            case 'disconnected':
-                return <CloudOff className="w-5 h-5" />;
-            case 'never-connected':
-                return <Cloud className="w-5 h-5" />;
-            default:
-                return <Cloud className="w-5 h-5" />;
-        }
-    };
-
-    return (
-        <header className="sticky top-0 z-10 p-3 bg-white/90 backdrop-blur-md border-b border-gray-200">
-            <div className="flex justify-between items-center h-10">
-                {/* Titre de la page */}
-                <h1 className="text-xl font-bold text-amber-900 truncate">
-                    {PAGE_TITLES[currentPage] || "Mémoire du Mékong"}
-                </h1>
-
-                {/* Section droite : Connexion + Utilisateur */}
-                <div className="flex items-center space-x-2">
-                    {/* Bouton de connexion Google Drive - Plus proéminent */}
-                    <button
-                        onClick={onGoogleAction}
-                        className={`flex items-center justify-center h-10 px-4 rounded-lg text-sm font-semibold transition-all ${getConnectionButtonStyle()}`}
-                        title={
-                            connectionMode === 'connected' 
-                                ? `Connecté: ${googleAuth.userInfo?.email}` 
-                                : connectionMode === 'disconnected'
-                                ? 'Connexion Google Drive perdue - Cliquer pour reconnecter'
-                                : 'Non connecté à Google Drive'
-                        }
-                    >
-                        <div className="flex items-center space-x-2">
-                            {getConnectionIcon()}
-                            <span className="hidden sm:inline">{getConnectionButtonText()}</span>
-                        </div>
-                    </button>
-
-                    {/* Bouton utilisateur */}
-                    {currentUser && (
-                        <button
-                            onClick={() => onPageChange('users')}
-                            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${getUserStyle(currentUser).bg} ${getUserStyle(currentUser).border} ${
-                                connectionMode === 'disconnected' ? 'opacity-75' : ''
-                            }`}
-                            title={`Connecté en tant que ${USERS[currentUser]?.name}. Cliquer pour gérer les utilisateurs.`}
-                        >
-                            <span className="text-xl">{USERS[currentUser]?.emoji}</span>
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Bannière d'alerte si déconnecté - Uniquement sur les pages autres que home */}
-            {connectionMode === 'disconnected' && currentPage !== 'home' && (
-                <div className="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-2 text-red-700">
-                            <CloudOff className="w-4 h-4" />
-                            <span><strong>Mode déconnecté :</strong> Sessions non synchronisées</span>
-                        </div>
-                        <button
-                            onClick={onGoogleAction}
-                            disabled={googleAuth.isLoading}
-                            className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded text-xs font-medium"
-                        >
-                            Reconnecter
-                        </button>
-                    </div>
+                    <p className="text-sm text-gray-600">Les fichiers sont prêts à être importés.</p>
                 </div>
             )}
-        </header>
-    );
-};
-
-// ===== NAVIGATION : BOTTOM NAV BAR (Version à 4 icônes) =====
-		const BottomNavBar = ({ currentPage, onPageChange, currentUser }) => {
-    const navItems = [
-        { id: 'home', icon: Home, label: 'Accueil' },
-        { id: 'sessions', icon: BookOpen, label: 'Sessions' },
-        { id: 'memories', icon: Cloud, label: 'Mémoires' },
-        { id: 'settings', icon: Settings, label: 'Réglages' },
-    ];
-
-    return (
-        <div className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-t-lg z-10">
-            <div className="flex justify-around items-center h-full">
-                {navItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = currentPage === item.id;
-                    const isDisabled = !currentUser && item.id !== 'home';
-                    
-                    return (
-                        <button
-                            key={item.id}
-                            onClick={() => onPageChange(item.id)}
-                            disabled={isDisabled}
-                            className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${
-                                isActive ? 'text-amber-600' : 'text-gray-500 hover:text-amber-500'
-                            } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                        >
-                            <Icon className="w-6 h-6 mb-1" />
-                            <span className={`text-xs font-medium ${isActive ? 'font-bold' : ''}`}>
-                                {item.label}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
-    );
-};
-
-     
-// ===== GOOGLE CONNECTION COMPONENT =====
-const GoogleConnection = ({ isConnected, isLoading, userInfo, onSignIn, onSignOut }) => {
-    if (isLoading) {
-        return (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center space-x-3">
-                    <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                    <span className="text-blue-700">Connexion Google Drive...</span>
-                </div>
-            </div>
-        );
-    }
-
-    if (!isConnected) {
-        return (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                            <Cloud className="w-4 h-4 text-red-600" />
-                        </div>
-                        <div>
-                            <div className="font-medium text-red-900">Connexion Google Drive requise</div>
-                            <div className="text-sm text-red-700">Vos sessions seront partagées avec Tom/Lambert</div>
-                        </div>
+            {authState.connectionMode === 'disconnected' && (
+                <div className="flex flex-col items-center space-y-4">
+                    <div className="flex items-center space-x-2 text-red-600">
+                        <LogOut className="w-6 h-6" />
+                        <span className="font-semibold">Déconnecté de Google Drive</span>
                     </div>
-                    <button
-                        onClick={onSignIn}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium"
-                    >
-                        Se connecter
-                    </button>
+                    <p className="text-sm text-gray-600">Vous devez vous reconnecter pour importer les données.</p>
                 </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <Cloud className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div>
-                        <div className="font-medium text-green-900">Connecté à Google Drive</div>
-                        <div className="text-xs text-green-700">{userInfo?.email}</div>
-                    </div>
-                </div>
-                <button
-                    onClick={onSignOut}
-                    className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
-                >
-                    Déconnecter
-                </button>
-            </div>
-        </div>
-    );
-};
-
-
-// ===== COMPOSANT CONNEXION OBLIGATOIRE =====
-const ForceGoogleConnection = ({ onSignIn }) => (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Cloud className="w-8 h-8 text-amber-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-amber-900 mb-4">Mémoire du Mékong</h1>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Connexion Google Drive requise</h2>
-            <p className="text-gray-600 mb-6">
-                Cette application utilise Google Drive pour synchroniser vos sessions entre vos appareils. 
-                La connexion est obligatoire pour garantir la sauvegarde de vos mémoires.
-            </p>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-                <p className="text-amber-800 text-sm">
-                    <strong>Conseil :</strong> Connectez-vous avec le compte Google partagé 
-                    <strong> mekongmemoire@gmail.com</strong> pour synchroniser avec Tom/Lambert.
-                </p>
-            </div>
+            )}
+            {authState.connectionMode === 'checking' && (
+                <LoadingSpinner message="Vérification de la connexion..." size="medium" />
+            )}
+            
             <button
-                onClick={onSignIn}
-                className="w-full px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium flex items-center justify-center space-x-2"
+                onClick={() => onImport('all')}
+                className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors duration-200 ${
+                    authState.isConnected ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'
+                }`}
+                disabled={!authState.isConnected || importState.isImporting}
             >
-                <Cloud className="w-5 h-5" />
-                <span>Se connecter à Google Drive</span>
+                {importState.isImporting ? <LoadingSpinner message="" size="small" /> : "Importer toutes les données"}
+            </button>
+            <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-700">Statut de l'import :</p>
+                <p className="text-xs text-gray-500">Mastodon : {importState.mastodon.status}</p>
+                <p className="text-xs text-gray-500">Photos : {importState.photos.status}</p>
+                {importState.lastError && (
+                    <div className="text-red-500 text-xs">
+                        <p>Erreur: {importState.lastError.message}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+        <div className="text-center pt-4">
+            <button onClick={onGoogleDisconnect} className="text-sm text-gray-500 hover:text-red-500 transition-colors duration-200">
+                Se déconnecter
             </button>
         </div>
     </div>
 );
 
-// =========== MAIN PAGES =====
-       
-        // ===== HOME PAGE - CONNECTION-FIRST =====
-	const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, googleAuth }) => {
-    // Mode "Checking" - Vérification en cours
-    if (connectionMode === 'checking') {
-        return (
-            <div className="flex flex-col items-center justify-center py-16 fade-in">
-                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-6">
-                    <div className="animate-spin w-10 h-10 border-4 border-amber-600 border-t-transparent rounded-full"></div>
-                </div>
-                <h2 className="text-2xl font-bold text-amber-900 mb-4">Mémoire du Mékong</h2>
-                <p className="text-amber-700 text-center">Vérification de la connexion Google Drive...</p>
-            </div>
-        );
-    }
-
-    // Mode "Never Connected" - Onboarding obligatoire
-    if (connectionMode === 'never-connected') {
-        return (
-            <div className="space-y-8 fade-in">
-                <div className="text-center">
-                    <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                        <span className="text-4xl">🐘🐘</span>
-                    </div>
-                    <h1 className="text-3xl font-bold text-amber-900 mb-4">Bienvenue sur Mémoire du Mékong</h1>
-                    <p className="text-lg text-amber-700 mb-2">L'application de remémoration père-fils</p>
-                    <p className="text-amber-600">Revivez ensemble votre voyage à vélo de 4,5 mois en Asie du Sud-Est</p>
-                </div>
-
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-                    <div className="flex items-start space-x-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Cloud className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-blue-900 mb-3">Connexion Google Drive requise</h3>
-                            <div className="text-blue-800 space-y-3">
-                                <div className="flex items-start space-x-2">
-                                    <span className="text-blue-500 mt-1">•</span>
-                                    <span>Vos sessions sont <strong>partagées automatiquement</strong> entre Tom et Lambert</span>
-                                </div>
-                                <div className="flex items-start space-x-2">
-                                    <span className="text-blue-500 mt-1">•</span>
-                                    <span>Synchronisation <strong>temps réel</strong> sur tous vos appareils</span>
-                                </div>
-                                <div className="flex items-start space-x-2">
-                                    <span className="text-blue-500 mt-1">•</span>
-                                    <span>Sauvegarde automatique dans le cloud</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p className="text-amber-800 text-sm text-center">
-                        <strong>Conseil :</strong> Utilisez le compte Google partagé 
-                        <strong> mekongmemoire@gmail.com</strong> pour une synchronisation parfaite
-                    </p>
-                </div>
-
-                <div className="text-center">
-                    <button
-                        onClick={googleAuth.signIn}
-                        disabled={googleAuth.isLoading}
-                        className="w-full max-w-md px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-xl font-semibold text-lg shadow-lg transition-all flex items-center justify-center space-x-3"
-                    >
-                        {googleAuth.isLoading ? (
-                            <div className="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full"></div>
-                        ) : (
-                            <Cloud className="w-6 h-6" />
-                        )}
-                        <span>{googleAuth.isLoading ? 'Connexion...' : 'Se connecter à Google Drive'}</span>
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    // Mode "Disconnected" - Critique, mais permet usage limité
-    if (connectionMode === 'disconnected') {
-        return (
-            <div className="space-y-6 fade-in">
-                {/* Alerte critique en haut */}
-                <div className="pulse-warning border-2 rounded-xl p-6 text-center">
-                    <div className="flex items-center justify-center space-x-3 mb-4">
-                        <CloudOff className="w-8 h-8 text-red-600" />
-                        <h2 className="text-2xl font-bold text-red-900">Connexion Google Drive perdue !</h2>
-                    </div>
-                    <p className="text-red-800 mb-4">
-                        Vous ne pouvez plus synchroniser avec Tom/Lambert. Vos nouvelles sessions resteront locales.
-                    </p>
-                    <button
-                        onClick={googleAuth.signIn}
-                        disabled={googleAuth.isLoading}
-                        className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center space-x-2 mx-auto"
-                    >
-                        {googleAuth.isLoading ? (
-                            <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                        ) : (
-                            <Cloud className="w-5 h-5" />
-                        )}
-                        <span>{googleAuth.isLoading ? 'Reconnexion...' : 'Reconnecter Google Drive'}</span>
-                    </button>
-                </div>
-
-                {/* Contenu normal mais avec avertissements */}
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-amber-900 mb-4">Mode déconnecté</h2>
-                    {currentUser && (
-                        <p className="text-amber-700 mb-6">
-                            Bonjour <strong>{USERS[currentUser]?.name}</strong> ! 
-                            <span className="text-red-600 font-semibold"> (Mode local uniquement)</span>
-                        </p>
-                    )}
-                </div>
-
-                {!currentUser ? (
-                    <div className="max-w-md mx-auto space-y-4">
-                        <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => onUserChange('tom')}
-                                className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border} opacity-75`}
-                            >
-                                <span className="text-3xl">🐘</span>
-                                <div>
-                                    <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphanteau</div>
-                                    <div className="text-sm text-gray-600">Le jeune aventurier (mode local)</div>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => onUserChange('lambert')}
-                                className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('lambert').bg} hover:${getUserStyle('lambert').border} opacity-75`}
-                            >
-                                <span className="text-3xl">🐘</span>
-                                <div>
-                                    <div className={`font-medium text-lg ${getUserStyle('lambert').text}`}>Lambert, le vieux pachiderme</div>
-                                    <div className="text-sm text-gray-600">Le sage guide (mode local)</div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer opacity-75" onClick={() => onPageChange('sessions')}>
-                            <div className="text-center">
-                                <Play className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Sessions</h3>
-                                <p className="text-gray-600 text-sm">Créer ou reprendre (mode local)</p>
-                                <div className="text-xs text-red-600 mt-2">⚠️ Non synchronisé</div>
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}>
-                            <div className="text-center">
-                                <Cloud className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Mémoires</h3>
-                                <p className="text-gray-600 text-sm">Explorer le blog et les photos</p>
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}>
-                            <div className="text-center">
-                                <Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Réglages</h3>
-                                <p className="text-gray-600 text-sm">Configuration et reconnexion</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
-
-    // Mode "Connected" - Fonctionnement normal
-    return (
-        <div className="space-y-6 fade-in">
-            <div className="text-center">
-                <h2 className="text-2xl font-bold text-amber-900 mb-4">
-                    Bienvenue dans vos mémoires du Mékong
-                </h2>
-                {currentUser && (
-                    <p className="text-amber-700 mb-6">
-                        Bonjour <strong>{USERS[currentUser]?.name}</strong> ! Que souhaitez-vous faire aujourd'hui ?
-                    </p>
-                )}
-            </div>
-
-            {!currentUser ? (
-                <div className="max-w-md mx-auto space-y-4">
-                    <h3 className="text-lg font-semibold text-amber-900 text-center">Qui êtes-vous ?</h3>
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => onUserChange('tom')}
-                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('tom').bg} hover:${getUserStyle('tom').border}`}
-                        >
-                            <span className="text-3xl">🐘</span>
-                            <div>
-                                <div className={`font-medium text-lg ${getUserStyle('tom').text}`}>Tom le jeune éléphanteau</div>
-                                <div className="text-sm text-gray-600">Le jeune aventurier</div>
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => onUserChange('lambert')}
-                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('lambert').bg} hover:${getUserStyle('lambert').border}`}
-                        >
-                            <span className="text-3xl">🐘</span>
-                            <div>
-                                <div className={`font-medium text-lg ${getUserStyle('lambert').text}`}>Lambert, le vieux pachiderme</div>
-                                <div className="text-sm text-gray-600">Le sage guide</div>
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => onUserChange('duo')}
-                            className={`flex items-center space-x-3 p-4 border-2 rounded-lg w-full text-left transition-all ${getUserStyle('duo').bg} hover:${getUserStyle('duo').border}`}
-                        >
-                            <span className="text-3xl">🐘🐘</span>
-                            <div>
-                                <div className={`font-medium text-lg ${getUserStyle('duo').text}`}>Duo Mekong Tandem</div>
-                                <div className="text-sm text-gray-600">Session père-fils</div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('sessions')}>
-                        <div className="text-center">
-                            <Play className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Sessions</h3>
-                            <p className="text-gray-600 text-sm">Créer ou reprendre une session de remémoration</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('memories')}>
-                        <div className="text-center">
-                            <Cloud className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Mémoires</h3>
-                            <p className="text-gray-600 text-sm">Explorer le blog Mastodon et les photos</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onPageChange('settings')}>
-                        <div className="text-center">
-                            <Settings className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Réglages</h3>
-                            <p className="text-gray-600 text-sm">Configuration et préférences</p>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-		
-		// Page Games - AVEC VRAI SPINNER CENTRAL
-// Page Games - AVEC PROP EXTERNE
-const GamesPage = ({ currentUser, onPageChange, onGameSelect, isCreatingSession }) => {
-
-    if (isCreatingSession) {
-        return (
-            <div className="space-y-6 fade-in">
-                <LoadingSpinner message="Création de votre session de mémoire..." size="normal" />
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-6 fade-in">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-amber-900">Catalogue de jeux de remémoration</h2>
-                <button
-                    onClick={() => {
-                        const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
-                        onGameSelect(randomGame);
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg"
-                    disabled={isCreatingSession}
-                >
-                    <Shuffle className="w-4 h-4" />
-                    <span>Jeu au hasard</span>
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {GAMES.map(game => {
-                    const IconComponent = game.icon;
-                    return (
-                        <button
-                            key={game.id}
-                            onClick={() => onGameSelect(game)}
-                            disabled={isCreatingSession}
-                            className="p-6 border-2 border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-all text-left group disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            <div className="flex items-start space-x-4">
-                                <IconComponent className="w-8 h-8 text-amber-600 mt-1 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-semibold text-lg text-amber-900 group-hover:text-amber-800">
-                                            {game.title}
-                                        </h3>
-                                        <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                                            {game.duration}
-                                        </span>
-                                    </div>
-                                    <p className="text-gray-600 text-sm leading-relaxed mb-2">
-                                        {game.description}
-                                    </p>
-                                    <div className="flex justify-between items-center">
-                                        <div className="text-xs text-amber-600 font-medium">
-                                            {game.type}
-                                        </div>
-                                        <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                            ▶️ Créer session
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h3 className="font-semibold text-amber-900 mb-2">💡 Comment ça marche ?</h3>
-                <p className="text-amber-700 text-sm">
-                    Choisissez un jeu pour créer une nouvelle session de remémoration. 
-                    Vous pourrez ensuite échanger vos souvenirs dans un format de chat convivial.
-                </p>
-            </div>
-        </div>
-    );
-};
-		
-    // Page Session (MODIFIÉE - Loading suppression + Dernière modification)
-const SessionsPage = ({ currentUser, onPageChange, onSessionSelect }) => {
-    const { sessions, deleteSession, renderGameIcon, syncSessions, isDeletingSession } = useSessionState(); // NOUVEAU: isDeletingSession
-    const [isSyncing, setIsSyncing] = React.useState(true);
-    const [syncComplete, setSyncComplete] = React.useState(false);
-
-    // Synchronisation automatique au montage
-    React.useEffect(() => {
-        const performInitialSync = async () => {
-            try {
-                setIsSyncing(true);
-                await syncSessions();
-                setSyncComplete(true);
-            } catch (error) {
-                console.error('Erreur synchronisation initiale:', error);
-                setSyncComplete(true);
-            } finally {
-                setIsSyncing(false);
-            }
-        };
-        performInitialSync();
-    }, []);
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('fr-FR', { 
-            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-        });
-    };
-
-    const getLastModifier = (session) => {
-        if (!session.notes || session.notes.length === 0) {
-            return session.user;
-        }
-        const lastNote = session.notes[session.notes.length - 1];
-        return lastNote.author || session.user;
-    };
-
-    const getLastModificationDate = (session) => {
-        if (!session.notes || session.notes.length === 0) {
-            return session.createdAt;
-        }
-        const lastNote = session.notes[session.notes.length - 1];
-        const lastNoteDate = new Date(lastNote.timestamp);
-        const sessionUpdateDate = new Date(session.updatedAt);
-        return lastNoteDate > sessionUpdateDate ? lastNote.timestamp : session.updatedAt;
-    };
-
-    // NOUVEAU: Fonction de suppression avec confirmation
-    const handleDeleteSession = async (sessionId, sessionTitle) => {
-        if (!confirm(`Supprimer la session "${sessionTitle}" ?`)) return;
-        
-        try {
-            await deleteSession(sessionId);
-        } catch (error) {
-            alert('Erreur lors de la suppression: ' + error.message);
-        }
-    };
-    
-    const statusIcons = {
-        active: { icon: Play, color: 'text-green-500', title: 'Active' },
-        paused: { icon: Pause, color: 'text-orange-500', title: 'En pause' },
-        pending: { icon: Clock, color: 'text-blue-500', title: 'En attente' },
-        completed: { icon: FileText, color: 'text-gray-500', title: 'Terminée' }
-    };
-
-    return (
-        <div className="space-y-4 fade-in">
-            <div className="flex justify-between items-center">
-                <button
-                    onClick={() => onPageChange('games')}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold shadow"
-                >
-                    <Plus className="w-5 h-5" />
-                    <span>Nouveau Jeu de Mémoire</span>
-                </button>
-            </div>
-
-            {isSyncing && !syncComplete ? (
-                <LoadingSpinner message="Synchronisation des sessions..." />
-            ) : sessions.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune session</h3>
-                    <p className="text-gray-500 mb-6">Créez votre première session de mémoire</p>
-                    <button
-                        onClick={() => onPageChange('games')}
-                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium"
-                    >
-                        Commencer un jeu
+// Page Utilisateur
+const UsersPage = ({ currentUser, onUserChange, onPageChange }) => (
+    <div className="p-4 space-y-6 fade-in">
+        <h2 className="text-3xl font-bold text-gray-800">Profil de l'utilisateur</h2>
+        <div className="bg-white p-6 rounded-lg shadow-md space-y-4 text-center">
+            {currentUser ? (
+                <div className="flex flex-col items-center">
+                    <img src={currentUser.picture} alt="Profil" className="w-24 h-24 rounded-full mb-4 shadow-md" />
+                    <h3 className="text-xl font-bold text-gray-800">{currentUser.name}</h3>
+                    <p className="text-sm text-gray-500">{currentUser.email}</p>
+                    <button onClick={() => { onUserChange(null); onPageChange('home'); }} className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold">
+                        Déconnexion
                     </button>
                 </div>
             ) : (
-                <div className="space-y-3">
-                    {sessions.map((session) => {
-                        const StatusIcon = statusIcons[session.status]?.icon || FileText;
-                        const statusColor = statusIcons[session.status]?.color || 'text-gray-500';
-                        const statusTitle = statusIcons[session.status]?.title || 'Archivée';
-                        const lastModifier = getLastModifier(session);
-                        const lastModificationDate = getLastModificationDate(session);
-                        const userStyle = getUserStyle(lastModifier);
-                        
-                        // NOUVEAU: Vérifier si cette session est en cours de suppression
-                        const isBeingDeleted = isDeletingSession === session.id;
-
-                        return (
-                            <div
-                                key={session.id}
-                                className={`bg-white p-3 rounded-lg border border-gray-200 transition-all flex items-center space-x-3 ${
-                                    isBeingDeleted 
-                                        ? 'opacity-50 cursor-wait' 
-                                        : 'hover:border-amber-400 cursor-pointer'
-                                }`}
-                                onClick={() => !isBeingDeleted && onSessionSelect(session)}
-                            >
-                                <div 
-                                    className={`w-12 h-12 rounded-full border-2 ${userStyle.bg} ${userStyle.border} flex items-center justify-center flex-shrink-0 shadow-sm ${
-                                        isBeingDeleted ? 'opacity-50' : ''
-                                    }`}
-                                    title={`Dernière modification par ${USERS[lastModifier]?.name} le ${formatDate(lastModificationDate)}`}
-                                >
-                                    <span className="text-xl">{USERS[lastModifier]?.emoji || '🐘'}</span>
-                                </div>
-
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className={`font-bold pr-2 ${isBeingDeleted ? 'text-gray-500' : 'text-gray-800'}`}>
-                                            {session.gameTitle}
-                                        </h3>
-                                        <span className="text-xs text-gray-400 whitespace-nowrap">
-                                            {(session.notes || []).length} notes
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-1">
-                                        <span className={`text-xs ${isBeingDeleted ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            {formatDate(lastModificationDate)}
-                                        </span>
-                                        <div className="flex items-center space-x-2">
-                                            <StatusIcon className={`w-5 h-5 ${statusColor} ${isBeingDeleted ? 'opacity-50' : ''}`} title={statusTitle} />
-                                            
-                                            {/* NOUVEAU: Bouton de suppression avec spinner */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (!isBeingDeleted) {
-                                                        handleDeleteSession(session.id, session.gameTitle);
-                                                    }
-                                                }}
-                                                disabled={isBeingDeleted}
-                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full disabled:cursor-wait"
-                                            >
-                                                {isBeingDeleted ? (
-                                                    <div className="animate-spin w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"></div>
-                                                ) : (
-                                                    <Trash2 className="w-4 h-4" />
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <p className="text-sm text-gray-500">Aucun utilisateur connecté.</p>
             )}
         </div>
-    );
-}; 
-// ===== COMPOSANT MESSAGE CONTENT - AFFICHAGE INTELLIGENT DES IMAGES =====
-const MessageContent = ({ content }) => {
-    const [processedContent, setProcessedContent] = React.useState(content);
-    const [loadingImages, setLoadingImages] = React.useState(new Set());
-    
-    React.useEffect(() => {
-        const processImagesInContent = async () => {
-            // Rechercher toutes les balises [IMAGE]...[/IMAGE]
-            const imageRegex = /\[IMAGE\](https:\/\/drive\.google\.com\/uc\?id=([^&]+)[^)]*)\[\/IMAGE\]/g;
-            let match;
-            let newContent = content;
-            const imagesToLoad = [];
-            
-            while ((match = imageRegex.exec(content)) !== null) {
-                const [fullMatch, driveUrl, fileId] = match;
-                imagesToLoad.push({ fullMatch, driveUrl, fileId });
-            }
-            
-            if (imagesToLoad.length === 0) {
-                setProcessedContent(content);
-                return;
-            }
-            
-            // Marquer les images comme en cours de chargement
-            const loadingIds = new Set(imagesToLoad.map(img => img.fileId));
-            setLoadingImages(loadingIds);
-            
-            // Traiter chaque image
-            for (const { fullMatch, driveUrl, fileId } of imagesToLoad) {
-                try {
-                    console.log('🖼️ Chargement image en base64:', fileId);
-                    
-                    // Déterminer le type MIME (par défaut JPEG)
-                    const mimeType = 'image/jpeg'; // On peut améliorer ça plus tard
-                    
-                    // Charger l'image en base64
-                    const base64Data = await GoogleDriveAPI.getPhotoAsBase64(fileId, mimeType);
-                    
-                    if (base64Data) {
-                        // Remplacer la balise par une balise img HTML
-                        const imageHTML = `<img src="${base64Data}" alt="Photo du voyage" class="max-w-full h-auto rounded-lg shadow-md my-2" style="max-height: 300px; object-fit: contain;" />`;
-                        newContent = newContent.replace(fullMatch, imageHTML);
-                        console.log('✅ Image remplacée en base64');
-                    } else {
-                        // Si le chargement base64 échoue, garder l'URL originale
-                        const imageHTML = `<img src="${driveUrl}" alt="Photo du voyage" class="max-w-full h-auto rounded-lg shadow-md my-2" style="max-height: 300px; object-fit: contain;" onerror="this.alt='Image non disponible'; this.className='text-red-500 italic'" />`;
-                        newContent = newContent.replace(fullMatch, imageHTML);
-                        console.log('⚠️ Fallback sur URL originale');
-                    }
-                } catch (error) {
-                    console.error('❌ Erreur chargement image:', fileId, error);
-                    // En cas d'erreur, remplacer par un texte d'erreur
-                    const errorText = `<span class="text-red-500 italic text-sm">📷 Image non disponible</span>`;
-                    newContent = newContent.replace(fullMatch, errorText);
-                }
-                
-                // Retirer de la liste des images en cours de chargement
-                setLoadingImages(prev => {
-                    const next = new Set(prev);
-                    next.delete(fileId);
-                    return next;
-                });
-            }
-            
-            setProcessedContent(newContent);
-        };
-        
-        processImagesInContent();
-    }, [content]);
-    
-    // Si des images sont en cours de chargement, afficher un indicateur
-    if (loadingImages.size > 0) {
-        return (
-            <div className="space-y-2">
-                <div className="flex items-center space-x-2 text-blue-500 text-sm">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                    <span>Chargement des images...</span>
-                </div>
-                <div dangerouslySetInnerHTML={{ __html: processedContent }} className="text-sm whitespace-pre-wrap" />
-            </div>
-        );
-    }
-    
-    // Afficher le contenu traité (avec les images remplacées)
-    return (
-        <div dangerouslySetInnerHTML={{ __html: processedContent }} className="text-sm whitespace-pre-wrap" />
-    );
-};
-		
-// Page Chat (MODIFIÉE - HOOKS DANS LE BON ORDRE)
-// Page Chat (VERSION 0.5.5.2 - AMÉLIORÉE AVEC MESSAGECONTEN)
-const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessions }) => {
-    const [newMessageContent, setNewMessageContent] = React.useState('');
-    const [editingMessage, setEditingMessage] = React.useState(null);
-    const [editContent, setEditContent] = React.useState('');
-    const [editingTitle, setEditingTitle] = React.useState(false);
-    const [titleContent, setTitleContent] = React.useState('');
-    const [isSessionReady, setIsSessionReady] = React.useState(false);
-    const [isSending, setIsSending] = React.useState(false);
-    const messagesEndRef = React.useRef(null);
+    </div>
+);
 
-    // Auto-scroll vers le bas
-    React.useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [currentSession?.notes]);
-
-    // Vérifier si session valide
-    React.useEffect(() => {
-        if (currentSession && currentSession.gameId && currentSession.notes) {
-            setIsSessionReady(true);
-        }
-    }, [currentSession]);
-
-    if (!currentSession) {
-        return (
-            <div className="text-center py-12 text-gray-500 fade-in">
-                <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <h3 className="text-xl font-medium mb-2">Aucune session sélectionnée</h3>
-                <p className="mb-4">Sélectionnez une session pour commencer.</p>
-                <button 
-                    onClick={onBackToSessions}
-                    className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
-                >
-                    Voir les sessions
-                </button>
-            </div>
-        );
-    }
-
-    const handleUpdate = (updatedSession) => { 
-        onUpdateSession(updatedSession); 
-    };
-
-    const sendMessage = async () => {
-        if (!newMessageContent.trim() || isSending) return;
-        
-        setIsSending(true);
-        try {
-            const updatedSession = {
-                ...currentSession,
-                notes: [
-                    ...(currentSession.notes || []), 
-                    {
-                        id: Date.now(),
-                        content: newMessageContent.trim(),
-                        author: currentUser,
-                        timestamp: new Date().toISOString()
-                    }
-                ],
-                lastModifiedBy: currentUser
-            };
-            
-            await handleUpdate(updatedSession);
-            setNewMessageContent('');
-        } catch (error) {
-            console.error('Erreur envoi message:', error);
-        } finally {
-            setIsSending(false);
-        }
-    };
-
-    const startEditMessage = (message) => {
-        setEditingMessage(message.id);
-        setEditContent(message.content);
-    };
-
-    const saveEditMessage = async (messageId) => {
-        if (!editContent.trim()) return;
-
-        const updatedSession = {
-            ...currentSession,
-            notes: (currentSession.notes || []).map(note => 
-                note.id === messageId 
-                    ? { ...note, content: editContent.trim(), edited: true }
-                    : note
-            )
-        };
-
-        await handleUpdate(updatedSession);
-        setEditingMessage(null);
-        setEditContent('');
-    };
-
-    const cancelEdit = () => {
-        setEditingMessage(null);
-        setEditContent('');
-    };
-
-    const deleteMessage = async (messageId) => {
-        if (!confirm('Supprimer ce message ?')) return;
-
-        const updatedSession = {
-            ...currentSession,
-            notes: (currentSession.notes || []).filter(note => note.id !== messageId)
-        };
-
-        await handleUpdate(updatedSession);
-    };
-
-    const startEditTitle = () => {
-        setTitleContent(currentSession.gameTitle);
-        setEditingTitle(true);
-    };
-
-    const saveTitle = async () => {
-        if (!titleContent.trim()) {
-            setEditingTitle(false);
-            return;
-        }
-
-        const updatedSession = {
-            ...currentSession,
-            gameTitle: titleContent.trim()
-        };
-        
-        await handleUpdate(updatedSession);
-        setEditingTitle(false);
-    };
-
-    const getBubbleStyle = (author) => {
-        if (author === 'tom') return 'bg-blue-500 text-white';
-        if (author === 'lambert') return 'bg-green-500 text-white'; 
-        if (author === 'duo') return 'bg-amber-500 text-white';
-        return 'bg-gray-500 text-white';
-    };
-
-    return (
-        <div className="flex flex-col h-screen max-h-[85vh] fade-in">
-            {/* Session Header */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        {renderGameIcon(currentSession.gameId, "w-6 h-6 text-amber-600")}
-                        <div>
-                            {editingTitle ? (
-                                <input
-                                    type="text"
-                                    value={titleContent}
-                                    onChange={(e) => setTitleContent(e.target.value)}
-                                    onBlur={saveTitle}
-                                    onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
-                                    className="font-bold text-amber-900 text-lg bg-white border border-amber-300 rounded px-2 py-1"
-                                    autoFocus
-                                />
-                            ) : (
-                                <div className="flex items-center space-x-2 group cursor-pointer" onClick={startEditTitle}>
-                                    <h3 className="font-bold text-amber-900 text-lg">{currentSession.gameTitle}</h3>
-                                    <Edit className="w-4 h-4 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                        <button
-                            onClick={onBackToSessions}
-                            className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg"
-                            title="Retour aux sessions"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Messages Container */}
-            <div className="flex-1 bg-gray-50 rounded-lg border overflow-y-auto p-4 space-y-3">
-                {(!currentSession.notes || currentSession.notes.length === 0) ? (
-                    <div className="text-center py-12 text-gray-500">
-                        <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                        <p className="text-lg font-medium mb-2">Aucun message</p>
-                        <p className="text-sm">Commencez la conversation en écrivant vos souvenirs !</p>
-                    </div>
-                ) : (
-                    <>
-                        <div className="text-center py-2 border-b border-gray-200 mb-4">
-                            <div className="text-sm text-gray-600">
-                                Conversation entre <span className="font-medium text-blue-700">{USERS.tom?.name}</span> et <span className="font-medium text-green-700">{USERS.lambert?.name}</span>
-                            </div>
-                        </div>
-
-                        {(currentSession.notes || []).map((message) => {
-                            const isOwnMessage = message.author === currentUser;
-                            const isEditing = editingMessage === message.id;
-
-                            return (
-                                <div key={message.id} className={`flex ${
-                                    message.author === 'duo' ? 'justify-center' : 
-                                    isOwnMessage ? 'justify-end' : 'justify-start'
-                                }`}>
-                                    <div className={`max-w-[75%] ${
-                                        message.author === 'duo' ? '' : 
-                                        isOwnMessage ? 'order-2' : 'order-1'
-                                    }`}>
-                                        <div className={`rounded-2xl px-4 py-3 ${getBubbleStyle(message.author)} ${isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md'} relative group`}>
-                                            {isEditing ? (
-                                                <div className="space-y-2">
-                                                    <textarea
-                                                        value={editContent}
-                                                        onChange={(e) => setEditContent(e.target.value)}
-                                                        className="w-full bg-white text-gray-800 rounded p-2 text-sm resize-none"
-                                                        rows="3"
-                                                        autoFocus
-                                                    />
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => saveEditMessage(message.id)}
-                                                            className="px-3 py-1 bg-white text-green-600 rounded text-xs font-medium"
-                                                        >
-                                                            Sauver
-                                                        </button>
-                                                        <button
-                                                            onClick={cancelEdit}
-                                                            className="px-3 py-1 bg-white text-gray-600 rounded text-xs font-medium"
-                                                        >
-                                                            Annuler
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <MessageContent content={message.content} />
-                                                    {message.edited && (
-                                                        <span className="text-xs opacity-70 italic">modifié</span>
-                                                    )}
-                                                    
-                                                    {isOwnMessage && (
-                                                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button
-                                                                onClick={() => startEditMessage(message)}
-                                                                className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs"
-                                                                title="Modifier"
-                                                            >
-                                                                <Edit className="w-3 h-3" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => deleteMessage(message.id)}
-                                                                className="p-1 bg-white bg-opacity-20 hover:bg-opacity-40 rounded text-xs ml-1"
-                                                                title="Supprimer"
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                        
-                                        {/* Timestamp */}
-                                        <div className={`text-xs text-gray-500 mt-1 ${
-                                            isOwnMessage ? 'text-right' : 'text-left'
-                                        }`}>
-                                            {new Date(message.timestamp).toLocaleTimeString('fr-FR', { 
-                                                hour: '2-digit', 
-                                                minute: '2-digit' 
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        <div ref={messagesEndRef} />
-                    </>
-                )}
-            </div>
-
-            {/* Message Input */}
-            <div className="bg-white border-t p-4 flex-shrink-0">
-                <div className="flex space-x-2">
-                    <textarea
-                        value={newMessageContent}
-                        onChange={(e) => setNewMessageContent(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                sendMessage();
-                            }
-                        }}
-                        placeholder="Écrivez votre message... (Entrée pour envoyer)"
-                        className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        rows="2"
-                        disabled={isSending}
-                    />
-                    <button
-                        onClick={sendMessage}
-                        disabled={!newMessageContent.trim() || isSending}
-                        className="px-4 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        title="Envoyer"
-                    >
-                        {isSending ? (
-                            <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                        ) : (
-                            <Send className="w-6 h-6" />
-                        )}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-	
 // Page Memoire (V4.1 - CORRECTION APPELS API)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
@@ -2467,25 +721,22 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [dayPhotos, setDayPhotos] = React.useState([]);
     const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
     const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
-
+    
     const isMastodonImported = MastodonData.isImported();
     const mastodonStats = MastodonData.getStats();
     const isPhotoIndexImported = PhotoData.isImported();
     
-    // NOUVEAU: État pour les photos du post
     const [postPhotos, setPostPhotos] = React.useState([]);
     const [isLoadingPostPhotos, setIsLoadingPostPhotos] = React.useState(false);
 
     React.useEffect(() => {
         const loadDataForDay = async () => {
             let hasContent = false;
-            // Toujours charger le post, il est la base de la page
             if (isMastodonImported) {
                 const post = MastodonData.getPostByDay(currentDay);
                 setCurrentPost(post);
                 if (post) {
                     hasContent = true;
-                    // Charger les photos du post si le post existe
                     await loadPostPhotos(post);
                 } else {
                     setPostPhotos([]);
@@ -2494,7 +745,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 setCurrentPost(null);
             }
 
-            // Charger les photos du jour (pour la galerie)
             if (isPhotoIndexImported) {
                 const photosInIndex = PhotoData.getPhotosByDay(currentDay);
                 if (photosInIndex.length > 0) {
@@ -2514,7 +764,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         return url.split('=')[0];
     };
     
-    // NOUVEAU: Fonction pour charger les photos liées au post
     const loadPostPhotos = async (post) => {
         setIsLoadingPostPhotos(true);
         setPostPhotos([]);
@@ -2527,11 +776,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         let allFoundPhotos = [];
         for (const attachment of post.attachments) {
             if (attachment.url) {
-                // Pour le moment, nous avons seulement l'URL du fichier sur Mastodon.
-                // Nous avons besoin de l'ID Google Drive pour le charger.
-                // Si l'URL est de type 'https://mastodon.social/.../file.jpeg', il est difficile de retrouver
-                // l'ID Drive. Le plus simple est de s'appuyer sur l'index photos existant.
-                // On peut ajouter une logique pour trouver la photo dans l'index par nom de fichier.
                 const filename = attachment.url.split('/').pop();
                 const photoEntry = PhotoData.getIndex()?.allPhotos.find(p => p.filename === filename);
                 
@@ -2578,7 +822,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         let allFoundPhotos = [];
         const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
 
-        // CORRIGÉ : Utilisation de _findFile au lieu de _findFolderByName
         const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
         if (!mediasFolder) { setIsLoadingPhotos(false); return; }
         const photosRootFolder = await GoogleDriveAPI._findFile('Photos', mediasFolder.id, FOLDER_MIME_TYPE);
@@ -2633,7 +876,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                         photos={postPhotos}
                         isLoadingPhotos={isLoadingPostPhotos}
                         onCreateSession={() => createSessionFromPost(currentPost)}
-                        onPhotoSelect={handlePhotoSelect}
                     />
                 )}
             </div>
@@ -2641,608 +883,164 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         </div>
     );
 };
-		
-		
-// ====Pages Config réglages Settings  =====		
-const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
-    const [mastodonImportStatus, setMastodonImportStatus] = React.useState('');
-    const [isImportingMastodon, setIsImportingMastodon] = React.useState(false);
-    const mastodonFileInputRef = React.useRef(null);
 
-    // États pour l'import de l'index des photos
-    const [photoImportStatus, setPhotoImportStatus] = React.useState('');
-    const [isImportingPhotos, setIsImportingPhotos] = React.useState(false);
-    const photoFileInputRef = React.useRef(null);
-
-    const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
-
-    const mastodonStats = MastodonData.getStats();
-    const isMastodonImported = MastodonData.isImported();
-    
-    // Stats pour les photos
-    const photoStats = PhotoData.getStats();
-    const isPhotoIndexImported = PhotoData.isImported();
-
-    const handleMastodonImport = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        setIsImportingMastodon(true);
-        setMastodonImportStatus('Lecture du fichier...');
-        try {
-            const text = await file.text();
-            setMastodonImportStatus('Analyse des données...');
-            const posts = MastodonData.parseOutbox(text);
-            MastodonData.savePosts(posts);
-            setMastodonImportStatus(`Succès ! ${posts.length} posts importés`);
-            setTimeout(() => setMastodonImportStatus(''), 3000);
-        } catch (error) {
-            setMastodonImportStatus(`Erreur: ${error.message}`);
-        } finally {
-            setIsImportingMastodon(false);
-            if (mastodonFileInputRef.current) {
-                mastodonFileInputRef.current.value = '';
-            }
-        }
-    };
-
-    const handleMastodonDriveImport = async () => {
-        if (!isConnected) {
-            setMastodonImportStatus("Veuillez vous connecter à Google Drive d'abord.");
-            return;
-        }
-        setIsImportingMastodon(true);
-        setMastodonImportStatus('Recherche du fichier outbox.json sur votre Drive...');
-        try {
-            const jsonData = await GoogleDriveAPI.loadJsonFile('outbox.json');
-            if (!jsonData) {
-                throw new Error("Fichier 'outbox.json' introuvable à la racine de votre Google Drive.");
-            }
-            setMastodonImportStatus('Analyse des posts...');
-            const posts = MastodonData.parseOutbox(jsonData);
-            MastodonData.savePosts(posts);
-            setMastodonImportStatus(`Succès ! ${posts.length} posts importés.`);
-        } catch (error) {
-            setMastodonImportStatus(`Erreur: ${error.message}`);
-        } finally {
-            setIsImportingMastodon(false);
-        }
-    };
-    
-    const clearMastodonData = () => {
-        if (confirm('Supprimer toutes les données Mastodon importées ?')) {
-            Storage.remove('mastodon_posts');
-            Storage.remove('mastodon_imported_at');
-            setMastodonImportStatus('Données Mastodon supprimées');
-            setTimeout(() => setMastodonImportStatus(''), 2000);
-        }
-    };
-    
-    const handlePhotoIndexImport = async () => {
-        if (!isConnected) {
-            setPhotoImportStatus("Veuillez vous connecter à Google Drive d'abord.");
-            return;
-        }
-        setIsImportingPhotos(true);
-        setPhotoImportStatus('Recherche du fichier photos_index_clean.json sur votre Drive...');
-        try {
-            const jsonData = await GoogleDriveAPI.loadJsonFile('photos_index_clean.json');
-            if (!jsonData) {
-                throw new Error("Fichier 'photos_index_clean.json' introuvable à la racine de votre Google Drive.");
-            }
-            setPhotoImportStatus('Analyse de l\'index...');
-            const indexData = PhotoData.parsePhotoIndex(jsonData);
-            PhotoData.saveIndex(indexData);
-            setPhotoImportStatus(`Succès ! ${indexData.allPhotos.length} photos indexées.`);
-        } catch (error) {
-            setPhotoImportStatus(`Erreur: ${error.message}`);
-        } finally {
-            setIsImportingPhotos(false);
-        }
-    };
-    
-    const handlePhotoIndexLocalImport = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        setIsImportingPhotos(true);
-        setPhotoImportStatus('Lecture du fichier...');
-        try {
-            const text = await file.text();
-            setPhotoImportStatus('Analyse de l\'index...');
-            const indexData = PhotoData.parsePhotoIndex(text);
-            PhotoData.saveIndex(indexData);
-            setPhotoImportStatus(`Succès ! ${indexData.allPhotos.length} photos indexées.`);
-            setTimeout(() => setPhotoImportStatus(''), 3000);
-        } catch (error) {
-            setPhotoImportStatus(`Erreur: ${error.message}`);
-        } finally {
-            setIsImportingPhotos(false);
-            if (photoFileInputRef.current) {
-                photoFileInputRef.current.value = '';
-            }
-        }
-    };
-
-    const clearPhotoData = () => {
-        if (confirm('Supprimer l\'index des photos importées ?')) {
-            Storage.remove('photo_index');
-            Storage.remove('photo_index_imported_at');
-            setPhotoImportStatus('Index des photos supprimé');
-            setTimeout(() => setPhotoImportStatus(''), 2000);
-        }
-    };
-
-    return (
-        <div className="space-y-6 fade-in">
-            <GoogleConnection 
-                isConnected={isConnected}
-                isLoading={isLoading}
-                userInfo={userInfo}
-                onSignIn={signIn}
-                onSignOut={onGoogleDisconnect || signOut}
-            />
-
-            <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Index des Photos</h3>
-                {isPhotoIndexImported ? (
-                     <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="font-medium text-green-900">Index des photos importé</div>
-                                <div className="text-sm text-green-700">
-                                    {photoStats.totalPhotos} photos sur {photoStats.totalDays} jours
-                                </div>
-                                <div className="text-xs text-green-600 mt-1">
-                                    Importé le {new Date(photoStats.importedAt).toLocaleDateString('fr-FR')}
-                                </div>
-                            </div>
-                            <button onClick={clearPhotoData} className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm">
-                                Supprimer
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <p className="text-gray-600">
-                            Importez l'index de vos photos depuis le fichier `photos_index_clean.json`.
-                        </p>
-                         <button
-                            onClick={handlePhotoIndexImport}
-                            disabled={isImportingPhotos || !isConnected}
-                            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold shadow disabled:bg-gray-400"
-                        >
-                            {isImportingPhotos ? 
-                                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> :
-                                <Cloud className="w-5 h-5" />
-                            }
-                            <span>{isImportingPhotos ? 'Import en cours...' : 'Importer depuis Google Drive'}</span>
-                        </button>
-                         <p className="text-center text-gray-500 my-2">ou</p>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                            <input
-                                ref={photoFileInputRef}
-                                type="file"
-                                accept=".json"
-                                onChange={handlePhotoIndexLocalImport}
-                                className="hidden"
-                                id="photo-file"
-                                disabled={isImportingPhotos}
-                            />
-                            <label htmlFor="photo-file" className={`cursor-pointer flex flex-col items-center ${isImportingPhotos ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                                <div className="text-lg font-medium text-gray-700">
-                                    {isImportingPhotos ? 'Import en cours...' : 'Sélectionner photos_index_clean.json'}
-                                </div>
-                                <div className="text-sm text-gray-500 mt-1">
-                                    Cliquez pour parcourir vos fichiers
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                )}
-                 {photoImportStatus && (
-                    <div className={`p-3 rounded-lg text-sm ${
-                        photoImportStatus.includes('Erreur') ? 'bg-red-100 text-red-700' : 
-                        photoImportStatus.includes('Succès') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                        {photoImportStatus}
-                    </div>
-                )}
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
-                {isMastodonImported ? (
-                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="font-medium text-green-900">Blog importé avec succès</div>
-                                <div className="text-sm text-green-700">
-                                    {mastodonStats.totalPosts} posts • Jours {mastodonStats.dayRange?.min}-{mastodonStats.dayRange?.max}
-                                </div>
-                                <div className="text-xs text-green-600 mt-1">
-                                    Importé le {new Date(mastodonStats.importedAt).toLocaleDateString('fr-FR')}
-                                </div>
-                            </div>
-                            <button onClick={clearMastodonData} className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm">
-                                Supprimer
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <p className="text-gray-600">
-                            Importez votre fichier `outbox.json` pour explorer vos posts Mastodon.
-                        </p>
-                         <button
-                            onClick={handleMastodonDriveImport}
-                            disabled={isImportingMastodon || !isConnected}
-                            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold shadow disabled:bg-gray-400"
-                        >
-                            {isImportingMastodon ?
-                                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> :
-                                <Cloud className="w-5 h-5" />
-                            }
-                            <span>{isImportingMastodon ? 'Import en cours...' : 'Importer depuis Google Drive'}</span>
-                        </button>
-                         <p className="text-center text-gray-500 my-2">ou</p>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                            <input
-                                ref={mastodonFileInputRef}
-                                type="file"
-                                accept=".json"
-                                onChange={handleMastodonImport}
-                                className="hidden"
-                                id="mastodon-file"
-                                disabled={isImportingMastodon}
-                            />
-                            <label htmlFor="mastodon-file" className={`cursor-pointer flex flex-col items-center ${isImportingMastodon ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                                <div className="text-lg font-medium text-gray-700">
-                                    {isImportingMastodon ? 'Import en cours...' : 'Sélectionner outbox.json'}
-                                </div>
-                                <div className="text-sm text-gray-500 mt-1">
-                                    Cliquez pour parcourir vos fichiers
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                )}
-                {mastodonImportStatus && (
-                    <div className={`p-3 rounded-lg text-sm ${
-                        mastodonImportStatus.includes('Erreur') ? 'bg-red-100 text-red-700' : 
-                        mastodonImportStatus.includes('Succès') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                        {mastodonImportStatus}
-                    </div>
-                )}
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Données Générales</h3>
-                <div>
-                    <button 
-                        onClick={() => {
-                            if (confirm('Effacer toutes les données sauvegardées (sessions, utilisateur, etc.) ?')) onReset();
-                        }}
-                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium"
-                    >
-                        Reset complet de l'application
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+// Page de session de jeu
+const getGameById = (id) => {
+    return { id: id, title: "Récit d'Aventure" };
 };
-		
 
-// ===== MAIN APP - TIMING CREATION CORRIGE =====
-// ===== MAIN APP - AVEC ETAT CREATION LOCAL =====
+// Application principale
 const MemoireMekong = () => {
-    const {
-        currentPage, setCurrentPage,
-        currentUser, setCurrentUser,
-        resetApp
-    } = useAppState();
-
-    const { 
-        isConnected, isLoading, userInfo, hasEverBeenConnected, connectionMode, lastConnectionError,
-        signIn, signOut, forceDisconnect, testConnection 
-    } = useGoogleAuth();
-    
-    const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
-
-    const [currentChatSession, setCurrentChatSession] = React.useState(null);
+    const [currentPage, setCurrentPage] = React.useState('home');
+    const [currentUser, setCurrentUser] = React.useState(null);
     const [toast, setToast] = React.useState({ message: '', type: '' });
     const [isCreatingSession, setIsCreatingSession] = React.useState(false);
 
-    // Configurer le callback de détection de déconnexion
-    React.useEffect(() => {
-        CloudSessionStorage.onConnectionLost = (reason) => {
-            console.log('🔴 CloudSessionStorage détecte une déconnexion:', reason);
-            forceDisconnect(reason);
-            setToast({ 
-                message: `🔴 ${reason}`, 
-                type: 'error' 
-            });
-        };
-
-        return () => {
-            CloudSessionStorage.onConnectionLost = null;
-        };
-    }, [forceDisconnect]);
-
-    // Synchronisation automatique au chargement et lors de la connexion
-    React.useEffect(() => {
-        let isMounted = true;
-        
-        const autoSync = async () => {
-            if (isConnected && !isLoading && connectionMode === 'connected') {
-                try {
-                    console.log('🔄 Synchronisation automatique...');
-                    if (isMounted) {
-                        await syncSessions();
-                        console.log('✅ Synchronisation terminée');
-                    }
-                } catch (error) {
-                    console.warn('⚠️ Sync auto échouée:', error.message);
-                    if (isMounted) {
-                        if (connectionMode === 'connected') {
-                            setToast({ message: "Synchronisation automatique échouée", type: 'error' });
-                        }
-                    }
-                }
-            }
-        };
-
-        const timeoutId = setTimeout(autoSync, 500);
-        
-        return () => {
-            isMounted = false;
-            clearTimeout(timeoutId);
-        };
-    }, [isConnected, isLoading, connectionMode, syncSessions]);
-
-    // Test périodique de connexion
-    React.useEffect(() => {
-        if (connectionMode !== 'connected') return;
-
-        const intervalId = setInterval(async () => {
-            console.log('🔍 Test périodique de connexion...');
-            await testConnection();
-        }, 5 * 60 * 1000);
-
-        return () => clearInterval(intervalId);
-    }, [connectionMode, testConnection]);
-
-    const handleSessionSelect = (session) => {
-        setCurrentChatSession(null);
-        setTimeout(() => {
-            setCurrentChatSession(session);
-            setCurrentPage('chat');
-        }, 50);
-    };
-
-    const handleBackToSessions = () => {
-        setCurrentChatSession(null);
-        setCurrentPage('sessions');
-    };
-
-    const handleUpdateSession = async (updatedSession) => {
-        try {
-            await updateSession(updatedSession);
-            setCurrentChatSession(updatedSession);
-        } catch (error) {
-            if (error.message.includes('Connexion Google Drive perdue')) {
-                console.log('💾 Session mise à jour localement suite à déconnexion');
-            } else {
-                setToast({ message: error.message, type: 'error' });
-            }
-            
-            const localSessions = Storage.get('sessions', []);
-            setSessions(localSessions); 
-            setCurrentChatSession(updatedSession);
-        }
-    };
-
-    // Gestion des actions Google Drive
-    const handleGoogleAction = async () => {
-        if (connectionMode === 'never-connected' || connectionMode === 'disconnected') {
-            try {
-                const result = await signIn();
-                if (result === true) {
-                    setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
-                    
-                    try {
-                        await syncSessions();
-                        setToast({ message: "Reconnexion et synchronisation réussies !", type: 'success' });
-                    } catch (syncError) {
-                        setToast({ message: "Reconnecté mais synchronisation échouée", type: 'error' });
-                    }
-                } else if (result && result.error) {
-                    setToast({ message: `Erreur de connexion: ${result.error}`, type: 'error' });
-                }
-            } catch (error) {
-                setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
-            }
-        } else if (connectionMode === 'connected') {
-            setCurrentPage('settings');
-        }
-    };
-
-    const handleGameSelect = async (game) => {
-        console.log('🎮 Sélection jeu:', game.title);
-        
-        if (connectionMode === 'disconnected') {
-            setToast({ 
-                message: "⚠️ Session créée en mode local - ne sera pas synchronisée", 
-                type: 'error' 
-            });
-        }
-        
-        setIsCreatingSession(true);
-        
-        try {
-            console.log('🔄 Début création session...');
-            const newSession = await createSession(game, currentUser);
-            console.log('✅ Session créée:', newSession?.id);
-            
-            if (newSession) {
-                if (window.pendingGameSession) {
-                    delete window.pendingGameSession;
-                }
-                
-                setCurrentChatSession(newSession);
-                setCurrentPage('chat');
-            }
-        } catch (error) {
-            console.error('❌ Erreur création session:', error);
-            setToast({ message: "Erreur lors de la création de session", type: 'error' });
-        } finally {
-            setIsCreatingSession(false);
-        }
-    };
-
-    const handleCreateSessionFromMemory = async (sessionData) => {
-        if (sessionData.type === 'game') {
-            setIsCreatingSession(true);
-            
-            try {
-                if (sessionData.postContent) {
-                    window.pendingGameSession = { 
-                        game: sessionData.game, 
-                        user: currentUser, 
-                        postChapo: sessionData.postContent 
-                    };
-                }
-                
-                const newSession = await createSession(sessionData.game, currentUser);
-                
-                if (newSession) {
-                    setCurrentChatSession(newSession);
-                    setCurrentPage('chat');
-                }
-            } catch (error) {
-                setToast({ message: "Erreur lors de la création de session", type: 'error' });
-            } finally {
-                setIsCreatingSession(false);
-            }
+    const authState = useGoogleAuth();
+    const [importState, setImportState] = React.useState({
+        isImporting: false,
+        mastodon: { status: 'non importé' },
+        photos: { status: 'non importé' },
+        lastError: null,
+    });
+    
+    const handleGoogleConnect = async () => {
+        const success = await authState.signIn();
+        if (success) {
+            setToast({ message: "Connexion réussie", type: 'success' });
+            setCurrentUser(authState.userInfo);
+            setCurrentPage('home');
         } else {
-            setCurrentPage(sessionData);
+            setToast({ message: "Échec de la connexion", type: 'error' });
         }
     };
 
-    const pageRequiresConnection = (page) => {
-        return ['sessions', 'chat'].includes(page);
+    const handleGoogleDisconnect = async () => {
+        await authState.signOut();
+        setCurrentUser(null);
+        setToast({ message: "Déconnexion réussie", type: 'success' });
+        setImportState({
+            isImporting: false,
+            mastodon: { status: 'non importé' },
+            photos: { status: 'non importé' },
+            lastError: null,
+        });
+        setCurrentPage('home');
+    };
+
+    const handleImportData = async (type) => {
+        setImportState({ ...importState, isImporting: true, lastError: null });
+        try {
+            if (type === 'all' || type === 'mastodon') {
+                setImportState(prev => ({ ...prev, mastodon: { status: 'import en cours...' } }));
+                const outboxFile = await GoogleDriveAPI._findFile('outbox.json');
+                if (!outboxFile) {
+                    throw new Error('Fichier outbox.json introuvable');
+                }
+                const outboxContent = await GoogleDriveAPI.getFileContent(outboxFile.id);
+                MastodonData.parseOutbox(outboxContent);
+                setImportState(prev => ({ ...prev, mastodon: { status: 'importé' } }));
+            }
+            if (type === 'all' || type === 'photos') {
+                setImportState(prev => ({ ...prev, photos: { status: 'import en cours...' } }));
+                const photoIndexFile = await GoogleDriveAPI._findFile('photo_index.json');
+                if (!photoIndexFile) {
+                    throw new Error('Fichier photo_index.json introuvable');
+                }
+                const photoIndexContent = await GoogleDriveAPI.getFileContent(photoIndexFile.id);
+                PhotoData.parsePhotoIndex(photoIndexContent);
+                setImportState(prev => ({ ...prev, photos: { status: 'importé' } }));
+            }
+            setToast({ message: "Importation des données terminée", type: 'success' });
+            setCurrentPage('memories');
+        } catch (error) {
+            console.error('Erreur lors de l\'importation:', error);
+            setImportState(prev => ({ ...prev, lastError: error }));
+            setToast({ message: "Erreur lors de l'importation", type: 'error' });
+        } finally {
+            setImportState(prev => ({ ...prev, isImporting: false }));
+        }
+    };
+    
+    const handleCreateSession = (sessionData) => {
+        setIsCreatingSession(true);
+        // Simuler une session de jeu créée
+        setTimeout(() => {
+            console.log("Session créée:", sessionData);
+            setIsCreatingSession(false);
+            setToast({ message: "Session de jeu créée!", type: 'success' });
+            setCurrentPage('home');
+        }, 1500);
     };
 
     React.useEffect(() => {
-        if (connectionMode === 'disconnected' && pageRequiresConnection(currentPage)) {
-            setToast({ 
-                message: "Fonctionnalité limitée en mode déconnecté. Reconnectez-vous pour une synchronisation complète.", 
-                type: 'error' 
-            });
+        if (authState.connectionMode === 'connected' && !currentUser) {
+            setCurrentUser(authState.userInfo);
         }
-    }, [connectionMode, currentPage]);
-
-    React.useEffect(() => {
-        if (lastConnectionError && connectionMode === 'disconnected') {
-            setToast({ 
-                message: `Problème de connexion: ${lastConnectionError}`, 
-                type: 'error' 
-            });
+        if (authState.connectionMode === 'disconnected' && currentUser) {
+            setCurrentUser(null);
         }
-    }, [lastConnectionError, connectionMode]);
-
+    }, [authState, currentUser]);
+    
     return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-            
-            <TopBar
-                currentPage={currentPage}
-                currentUser={currentUser}
-                onUserChange={setCurrentUser}
-                onPageChange={setCurrentPage}
-                connectionMode={connectionMode}
-                googleAuth={{ isConnected, isLoading, userInfo, signIn, signOut }}
-                onGoogleAction={handleGoogleAction}
-            />
-
-            <main className="p-4 pb-24">
-                <div className="max-w-6xl mx-auto">
-                    <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
-                        {currentPage === 'home' && (
-                            <HomePage 
-                                currentUser={currentUser}
-                                onUserChange={setCurrentUser}
-                                onPageChange={setCurrentPage}
-                                connectionMode={connectionMode}
-                                googleAuth={{ isConnected, isLoading, userInfo, signIn, signOut }}
-                            />
+        <div className="min-h-screen bg-gray-100 font-sans antialiased text-gray-800 pb-20">
+            <Header onMenuClick={() => {}} />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+                    <div className="p-4 sm:p-6 lg:p-8">
+                        {authState.isLoading && <LoadingSpinner message="Connexion en cours..." />}
+                        {authState.lastConnectionError && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                <strong className="font-bold">Erreur de connexion:</strong>
+                                <span className="block sm:inline ml-2">{authState.lastConnectionError}</span>
+                            </div>
                         )}
-                        {currentPage === 'games' && (
-                            <GamesPage 
-                                currentUser={currentUser}
-                                onPageChange={setCurrentPage}
-                                onGameSelect={handleGameSelect}
-                                isCreatingSession={isCreatingSession}
-                            />
+                        {authState.connectionMode === 'disconnected' && !authState.isLoading && (
+                            <div className="flex flex-col items-center justify-center p-8 text-center">
+                                <Cloud className="w-16 h-16 text-gray-400 mb-4" />
+                                <h2 className="text-xl font-semibold mb-2">Connectez-vous pour commencer</h2>
+                                <p className="text-sm text-gray-500 mb-4">
+                                    Veuillez vous connecter à votre compte Google pour accéder à vos données.
+                                </p>
+                                <button onClick={handleGoogleConnect} className="px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold shadow-lg hover:bg-amber-600 transition-colors duration-200">
+                                    Se connecter avec Google
+                                </button>
+                            </div>
                         )}
-                        {currentPage === 'sessions' && (
-                            <SessionsPage 
-                                currentUser={currentUser} 
-                                onPageChange={setCurrentPage}
-                                onSessionSelect={handleSessionSelect}
-                            />
-                        )}
-                        {currentPage === 'chat' && (
-                            <ChatPage 
-                                currentUser={currentUser}
-                                currentSession={currentChatSession}
-                                onUpdateSession={handleUpdateSession}
-                                onBackToSessions={handleBackToSessions}
-                            />
-                        )}
-                        {currentPage === 'memories' && (
-    <MemoriesPage 
-        currentUser={currentUser}
-        onCreateSession={handleCreateSessionFromMemory}
-        isCreatingSession={isCreatingSession}
-    />
-)}
-                        {currentPage === 'settings' && (
-                            <SettingsPage 
-                                onReset={resetApp}
-                                googleAuth={{
-                                    isConnected: isConnected,
-                                    isLoading: isLoading,
-                                    userInfo: userInfo,
-                                    signIn: signIn,
-                                    signOut: signOut
-                                }}
-                                onGoogleDisconnect={async () => {
-                                    await signOut();
-                                    setToast({ message: "Déconnexion réussie", type: 'success' });
-                                }}
-                            />
-                        )}
-                        {currentPage === 'users' && (
-                            <UsersPage 
-                                currentUser={currentUser}
-                                onUserChange={setCurrentUser}
-                                onPageChange={setCurrentPage}
-                            />
+                        {authState.connectionMode === 'connected' && !authState.isLoading && (
+                            <React.Fragment>
+                                {currentPage === 'home' && (
+                                    <HomePage 
+                                        onImport={handleImportData} 
+                                        importState={importState}
+                                        authState={authState}
+                                        onGoogleDisconnect={handleGoogleDisconnect}
+                                    />
+                                )}
+                                {currentPage === 'memories' && (
+                                    <MemoriesPage
+                                        currentUser={currentUser}
+                                        onCreateSession={handleCreateSession}
+                                        isCreatingSession={isCreatingSession}
+                                    />
+                                )}
+                                {currentPage === 'users' && (
+                                    <UsersPage 
+                                        currentUser={currentUser}
+                                        onUserChange={setCurrentUser}
+                                        onPageChange={setCurrentPage}
+                                    />
+                                )}
+                            </React.Fragment>
                         )}
                     </div>
                 </div>
             </main>
-            
             <BottomNavBar
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
                 currentUser={currentUser}
             />
-
             <Toast 
                 message={toast.message} 
                 type={toast.type} 
@@ -3251,7 +1049,7 @@ const MemoireMekong = () => {
         </div>
     );
 };
-		
+        
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
