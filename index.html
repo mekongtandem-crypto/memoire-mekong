@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.7e : revision affichage des post (réecriture bis)</title>
+    <title>🐘 Mémoire du Mékong V0.5.7b : revision affichage des post </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -36,35 +36,35 @@
 
     <script type="text/babel">
         // ===== ICONS LUCIDE =====
-const Home = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>;
-const Users = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-2-2"/></svg>;
-const User = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-const Play = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>;
-const Camera = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
-const Cloud = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
-const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25.17-.5.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
-const ChevronLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>;
-const ChevronRight = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>;
-const Clock = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>;
-const Mic = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/><line x1="8" x2="16" y1="22" y2="22"/></svg>;
-const Zap = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>;
-const MapPin = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
-const BookOpen = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
-const Edit = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/></svg>;
-const Plus = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
-const Shuffle = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polyline points="16,3 21,3 21,8"/><line x1="4" x2="21" y1="20" y2="3"/><polyline points="21,16 21,21 16,21"/><line x1="15" x2="21" y1="15" y2="21"/><line x1="4" x2="9" y1="4" y2="9"/></svg>;
-const Pause = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>;
-const ArrowLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>;
-const Send = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
-const Trash2 = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
-const Search = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
-const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
-const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
-const CloudOff = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg>;
+        const Home = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>;
+        const Users = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-2-2"/></svg>;
+        const User = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+        const Play = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>;
+        const Camera = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
+        const Cloud = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>;
+        const Settings = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2.18l.2 1.81c-.26.06-.51.14-.76.23l-1.5-1.16a2 2 0 0 0-2.83.32l-.22.38a2 2 0 0 0 .32 2.83l1.16 1.5c-.09.25-.17.5-.23.76l-1.81.2a2 2 0 0 0-2.18 2v.44a2 2 0 0 0 2.18 2l1.81.2c.06.26.14.51.23.76l-1.16 1.5a2 2 0 0 0-.32 2.83l.38.22a2 2 0 0 0 2.83-.32l1.5-1.16c.25.09.5.17.76.23l.2 1.81a2 2 0 0 0 2 2.18h.44a2 2 0 0 0 2-2.18l.2-1.81c.26-.06.51-.14.76-.23l1.5 1.16a2 2 0 0 0 2.83-.32l.22-.38a2 2 0 0 0-.32-2.83l-1.16-1.5c.09-.25.17-.5.23-.76l1.81-.2a2 2 0 0 0 2.18-2v-.44a2 2 0 0 0-2.18-2l-1.81-.2c-.06-.26-.14-.51-.23-.76l1.16-1.5a2 2 0 0 0 .32-2.83l-.38-.22a2 2 0 0 0-2.83.32l-1.5 1.16c-.25-.09-.5-.17-.76-.23l-.2-1.81a2 2 0 0 0-2-2.18Z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const ChevronLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>;
+        const ChevronRight = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>;
+        const Clock = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>;
+        const Mic = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/><line x1="8" x2="16" y1="22" y2="22"/></svg>;
+        const Zap = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>;
+        const MapPin = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+        const BookOpen = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+        const Edit = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5Z"/></svg>;
+        const Plus = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
+        const Shuffle = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><polyline points="16,3 21,3 21,8"/><line x1="4" x2="21" y1="20" y2="3"/><polyline points="21,16 21,21 16,21"/><line x1="15" x2="21" y1="15" y2="21"/><line x1="4" x2="9" y1="4" y2="9"/></svg>;
+        const Pause = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>;
+        const ArrowLeft = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>;
+        const Send = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
+        const Trash2 = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="m8 6V4c0-1 1-2 2-2h4c0-1-1-2-2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
+        const Search = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
+        const Upload = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,5 17,10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>;
+        const FileText = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
+		const CloudOff = ({ className = "" }) => <svg className={`lucide ${className}`} viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg>;
 
 
-// ===== COMPOSANT TOAST - POSITION ET DISMISSABLE FIXES =====
-const Toast = ({ message, type, onDismiss }) => {
+		// ===== COMPOSANT TOAST - POSITION ET DISMISSABLE FIXES =====
+	const Toast = ({ message, type, onDismiss }) => {
     if (!message) return null;
 
     const styles = {
@@ -73,6 +73,7 @@ const Toast = ({ message, type, onDismiss }) => {
     };
     const style = styles[type] || styles.error;
 
+    // Auto-dismiss après 5 secondes
     React.useEffect(() => {
         const timer = setTimeout(() => {
             onDismiss();
@@ -96,8 +97,8 @@ const Toast = ({ message, type, onDismiss }) => {
     );
 };
 
-// ===== COMPOSANT LOADING =====
-const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
+		// ===== COMPOSANT LOADING =====
+	const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
     const sizeClasses = {
         small: "w-4 h-4 border-2",
         normal: "w-8 h-8 border-2", 
@@ -112,7 +113,7 @@ const LoadingSpinner = ({ message = "Chargement...", size = "normal" }) => {
     );
 };
 
-// ===== COMPOSANT TIMELINE (FRISE CHRONOLOGIQUE) =====
+		// ===== COMPOSANT TIMELINE (FRISE CHRONOLOGIQUE) =====
 const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
     const timelineRef = React.useRef(null);
     const dayRef = React.useRef(null);
@@ -239,8 +240,9 @@ const MastodonPostViewer = ({ post, photos, isLoadingPhotos, onCreateSession }) 
             
         </div>
     );
-};
+};		
 
+// COMPOSANT: PhotoViewer avec base64 pour grand format
 // COMPOSANT: PhotoViewer avec base64 pour grand format
 const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSession }) => {
     const [fullImageSrc, setFullImageSrc] = React.useState('');
@@ -499,77 +501,10 @@ const allPosts = orderedItems
             throw error;
         }
     },
-    // Sauvegarder les posts
-    savePosts: (posts) => {
-        Storage.set('mastodon_posts', posts);
-        Storage.set('mastodon_imported_at', new Date().toISOString());
-    },
-
-    // Récupérer les posts
-    getPosts: () => {
-        return Storage.get('mastodon_posts', []);
-    },
-
-    // Rechercher dans les posts
-    searchPosts: (query) => {
-        const posts = MastodonData.getPosts();
-        if (!query.trim()) return posts;
-        
-        const searchTerms = query.toLowerCase().trim().split(/\s+/);
-        return posts.filter(post => 
-            searchTerms.every(term => 
-                post.content.toLowerCase().includes(term)
-            )
-        );
-    },
-
-    // Obtenir un post par numéro de jour
-    getPostByDay: (dayNumber) => {
-        const posts = MastodonData.getPosts();
-        return posts.find(post => post.dayNumber === dayNumber);
-    },
-
-    // Obtenir un post aléatoire
-    getRandomPost: () => {
-        const posts = MastodonData.getPosts();
-        if (posts.length === 0) return null;
-        return posts[Math.floor(Math.random() * posts.length)];
-    },
-
-    // Vérifier si les données sont importées
-    isImported: () => {
-        const posts = MastodonData.getPosts();
-        return posts.length > 0;
-    },
-
-    // Obtenir les stats
-    getStats: () => {
-        const posts = MastodonData.getPosts();
-        const importedAt = Storage.get('mastodon_imported_at');
-        const extraPosts = posts.filter(p => p.isExtraPost);
-        
-        return {
-            totalPosts: posts.length,
-            regularPosts: posts.length - extraPosts.length,
-            extraPosts: extraPosts.length,
-            dayRange: posts.length > 0 ? {
-                min: Math.min(...posts.map(p => p.dayNumber)),
-                max: Math.max(...posts.map(p => p.dayNumber))
-            } : null,
-            importedAt
-        };
-    }
-};
 
 // ===== PHOTO DATA MANAGEMENT - GESTION DE L'INDEX DES PHOTOS =====
 const PhotoData = {
-    _index: null,
-    isImported: () => PhotoData._index !== null,
-    getIndex: () => PhotoData._index,
-    getPhotosByDay: (dayNumber) => {
-        if (!PhotoData._index || !PhotoData._index.photos) return [];
-        return PhotoData._index.photos.filter(p => p.day === dayNumber);
-    },
+    // Parser l'index des photos et le normaliser
     parsePhotoIndex: (jsonData) => {
         try {
             const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
@@ -614,6 +549,7 @@ const PhotoData = {
             throw error;
         }
     },
+
     // Sauvegarder l'index
     saveIndex: (indexData) => {
         Storage.set('photo_index', indexData);
@@ -2642,6 +2578,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         let allFoundPhotos = [];
         const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
 
+        // CORRIGÉ : Utilisation de _findFile au lieu de _findFolderByName
         const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
         if (!mediasFolder) { setIsLoadingPhotos(false); return; }
         const photosRootFolder = await GoogleDriveAPI._findFile('Photos', mediasFolder.id, FOLDER_MIME_TYPE);
@@ -2705,163 +2642,640 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     );
 };
 
-// Page de session de jeu
-const getGameById = (id) => {
-    return { id: id, title: "Récit d'Aventure" };
+    const handleDaySelect = (day) => setCurrentDay(day);
+    const createSessionFromPost = (post) => { const game = getGameById(7); const postPreview = post.content.slice(0, 200) + '...'; onCreateSession({ type: 'game', game: { ...game, title: `Jour ${post.dayNumber} - ${post.title || 'Souvenir'}` }, postContent: postPreview }); };
+    const createSessionFromPhoto = (photo) => { const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` }; const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`; onCreateSession({ type: 'game', game: game, postContent: initialNoteContent }); };
+    const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
+	const handlePhotoNavigate = (direction) => { if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedPhotoIndex - 1); else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1); };
+    
+    if (isCreatingSession) return <LoadingSpinner message="Création de session..." size="large" />;
+    
+    return (
+        <div className="space-y-6 fade-in">
+            <Timeline currentDay={currentDay} maxDay={mastodonStats?.dayRange?.max || 275} onDaySelect={handleDaySelect} />
+            <div className="flex justify-center border-b border-gray-200">
+                <button onClick={() => setActiveTab('blog')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isMastodonImported}><BookOpen className="w-5 h-5 inline mr-2"/>Blog</button>
+                <button onClick={() => setActiveTab('photos')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isPhotoIndexImported}><Camera className="w-5 h-5 inline mr-2"/>Photos</button>
+            </div>
+            <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
+                {activeTab === 'photos' ? (
+                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
+                ) : (
+                    <MastodonPostViewer 
+                        post={currentPost} 
+                        photos={postPhotos}
+                        isLoadingPhotos={isLoadingPostPhotos}
+                        onCreateSession={() => createSessionFromPost(currentPost)}
+                        onPhotoSelect={handlePhotoSelect}
+                    />
+                )}
+            </div>
+            {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={handlePhotoNavigate} onCreateSession={createSessionFromPhoto} />}
+        </div>
+    );
 };
+		
+		
+// ====Pages Config réglages Settings  =====		
+const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
+    const [mastodonImportStatus, setMastodonImportStatus] = React.useState('');
+    const [isImportingMastodon, setIsImportingMastodon] = React.useState(false);
+    const mastodonFileInputRef = React.useRef(null);
 
-// Application principale
+    // États pour l'import de l'index des photos
+    const [photoImportStatus, setPhotoImportStatus] = React.useState('');
+    const [isImportingPhotos, setIsImportingPhotos] = React.useState(false);
+    const photoFileInputRef = React.useRef(null);
+
+    const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
+
+    const mastodonStats = MastodonData.getStats();
+    const isMastodonImported = MastodonData.isImported();
+    
+    // Stats pour les photos
+    const photoStats = PhotoData.getStats();
+    const isPhotoIndexImported = PhotoData.isImported();
+
+    const handleMastodonImport = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        setIsImportingMastodon(true);
+        setMastodonImportStatus('Lecture du fichier...');
+        try {
+            const text = await file.text();
+            setMastodonImportStatus('Analyse des données...');
+            const posts = MastodonData.parseOutbox(text);
+            MastodonData.savePosts(posts);
+            setMastodonImportStatus(`Succès ! ${posts.length} posts importés`);
+            setTimeout(() => setMastodonImportStatus(''), 3000);
+        } catch (error) {
+            setMastodonImportStatus(`Erreur: ${error.message}`);
+        } finally {
+            setIsImportingMastodon(false);
+            if (mastodonFileInputRef.current) {
+                mastodonFileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const handleMastodonDriveImport = async () => {
+        if (!isConnected) {
+            setMastodonImportStatus("Veuillez vous connecter à Google Drive d'abord.");
+            return;
+        }
+        setIsImportingMastodon(true);
+        setMastodonImportStatus('Recherche du fichier outbox.json sur votre Drive...');
+        try {
+            const jsonData = await GoogleDriveAPI.loadJsonFile('outbox.json');
+            if (!jsonData) {
+                throw new Error("Fichier 'outbox.json' introuvable à la racine de votre Google Drive.");
+            }
+            setMastodonImportStatus('Analyse des posts...');
+            const posts = MastodonData.parseOutbox(jsonData);
+            MastodonData.savePosts(posts);
+            setMastodonImportStatus(`Succès ! ${posts.length} posts importés.`);
+        } catch (error) {
+            setMastodonImportStatus(`Erreur: ${error.message}`);
+        } finally {
+            setIsImportingMastodon(false);
+        }
+    };
+    
+    const clearMastodonData = () => {
+        if (confirm('Supprimer toutes les données Mastodon importées ?')) {
+            Storage.remove('mastodon_posts');
+            Storage.remove('mastodon_imported_at');
+            setMastodonImportStatus('Données Mastodon supprimées');
+            setTimeout(() => setMastodonImportStatus(''), 2000);
+        }
+    };
+    
+    const handlePhotoIndexImport = async () => {
+        if (!isConnected) {
+            setPhotoImportStatus("Veuillez vous connecter à Google Drive d'abord.");
+            return;
+        }
+        setIsImportingPhotos(true);
+        setPhotoImportStatus('Recherche du fichier photos_index_clean.json sur votre Drive...');
+        try {
+            const jsonData = await GoogleDriveAPI.loadJsonFile('photos_index_clean.json');
+            if (!jsonData) {
+                throw new Error("Fichier 'photos_index_clean.json' introuvable à la racine de votre Google Drive.");
+            }
+            setPhotoImportStatus('Analyse de l\'index...');
+            const indexData = PhotoData.parsePhotoIndex(jsonData);
+            PhotoData.saveIndex(indexData);
+            setPhotoImportStatus(`Succès ! ${indexData.allPhotos.length} photos indexées.`);
+        } catch (error) {
+            setPhotoImportStatus(`Erreur: ${error.message}`);
+        } finally {
+            setIsImportingPhotos(false);
+        }
+    };
+    
+    const handlePhotoIndexLocalImport = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        setIsImportingPhotos(true);
+        setPhotoImportStatus('Lecture du fichier...');
+        try {
+            const text = await file.text();
+            setPhotoImportStatus('Analyse de l\'index...');
+            const indexData = PhotoData.parsePhotoIndex(text);
+            PhotoData.saveIndex(indexData);
+            setPhotoImportStatus(`Succès ! ${indexData.allPhotos.length} photos indexées.`);
+            setTimeout(() => setPhotoImportStatus(''), 3000);
+        } catch (error) {
+            setPhotoImportStatus(`Erreur: ${error.message}`);
+        } finally {
+            setIsImportingPhotos(false);
+            if (photoFileInputRef.current) {
+                photoFileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const clearPhotoData = () => {
+        if (confirm('Supprimer l\'index des photos importées ?')) {
+            Storage.remove('photo_index');
+            Storage.remove('photo_index_imported_at');
+            setPhotoImportStatus('Index des photos supprimé');
+            setTimeout(() => setPhotoImportStatus(''), 2000);
+        }
+    };
+
+    return (
+        <div className="space-y-6 fade-in">
+            <GoogleConnection 
+                isConnected={isConnected}
+                isLoading={isLoading}
+                userInfo={userInfo}
+                onSignIn={signIn}
+                onSignOut={onGoogleDisconnect || signOut}
+            />
+
+            <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Index des Photos</h3>
+                {isPhotoIndexImported ? (
+                     <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="font-medium text-green-900">Index des photos importé</div>
+                                <div className="text-sm text-green-700">
+                                    {photoStats.totalPhotos} photos sur {photoStats.totalDays} jours
+                                </div>
+                                <div className="text-xs text-green-600 mt-1">
+                                    Importé le {new Date(photoStats.importedAt).toLocaleDateString('fr-FR')}
+                                </div>
+                            </div>
+                            <button onClick={clearPhotoData} className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm">
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-gray-600">
+                            Importez l'index de vos photos depuis le fichier `photos_index_clean.json`.
+                        </p>
+                         <button
+                            onClick={handlePhotoIndexImport}
+                            disabled={isImportingPhotos || !isConnected}
+                            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold shadow disabled:bg-gray-400"
+                        >
+                            {isImportingPhotos ? 
+                                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> :
+                                <Cloud className="w-5 h-5" />
+                            }
+                            <span>{isImportingPhotos ? 'Import en cours...' : 'Importer depuis Google Drive'}</span>
+                        </button>
+                         <p className="text-center text-gray-500 my-2">ou</p>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input
+                                ref={photoFileInputRef}
+                                type="file"
+                                accept=".json"
+                                onChange={handlePhotoIndexLocalImport}
+                                className="hidden"
+                                id="photo-file"
+                                disabled={isImportingPhotos}
+                            />
+                            <label htmlFor="photo-file" className={`cursor-pointer flex flex-col items-center ${isImportingPhotos ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                                <div className="text-lg font-medium text-gray-700">
+                                    {isImportingPhotos ? 'Import en cours...' : 'Sélectionner photos_index_clean.json'}
+                                </div>
+                                <div className="text-sm text-gray-500 mt-1">
+                                    Cliquez pour parcourir vos fichiers
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                )}
+                 {photoImportStatus && (
+                    <div className={`p-3 rounded-lg text-sm ${
+                        photoImportStatus.includes('Erreur') ? 'bg-red-100 text-red-700' : 
+                        photoImportStatus.includes('Succès') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                        {photoImportStatus}
+                    </div>
+                )}
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
+                {isMastodonImported ? (
+                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="font-medium text-green-900">Blog importé avec succès</div>
+                                <div className="text-sm text-green-700">
+                                    {mastodonStats.totalPosts} posts • Jours {mastodonStats.dayRange?.min}-{mastodonStats.dayRange?.max}
+                                </div>
+                                <div className="text-xs text-green-600 mt-1">
+                                    Importé le {new Date(mastodonStats.importedAt).toLocaleDateString('fr-FR')}
+                                </div>
+                            </div>
+                            <button onClick={clearMastodonData} className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm">
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-gray-600">
+                            Importez votre fichier `outbox.json` pour explorer vos posts Mastodon.
+                        </p>
+                         <button
+                            onClick={handleMastodonDriveImport}
+                            disabled={isImportingMastodon || !isConnected}
+                            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold shadow disabled:bg-gray-400"
+                        >
+                            {isImportingMastodon ?
+                                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> :
+                                <Cloud className="w-5 h-5" />
+                            }
+                            <span>{isImportingMastodon ? 'Import en cours...' : 'Importer depuis Google Drive'}</span>
+                        </button>
+                         <p className="text-center text-gray-500 my-2">ou</p>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input
+                                ref={mastodonFileInputRef}
+                                type="file"
+                                accept=".json"
+                                onChange={handleMastodonImport}
+                                className="hidden"
+                                id="mastodon-file"
+                                disabled={isImportingMastodon}
+                            />
+                            <label htmlFor="mastodon-file" className={`cursor-pointer flex flex-col items-center ${isImportingMastodon ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                                <div className="text-lg font-medium text-gray-700">
+                                    {isImportingMastodon ? 'Import en cours...' : 'Sélectionner outbox.json'}
+                                </div>
+                                <div className="text-sm text-gray-500 mt-1">
+                                    Cliquez pour parcourir vos fichiers
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                )}
+                {mastodonImportStatus && (
+                    <div className={`p-3 rounded-lg text-sm ${
+                        mastodonImportStatus.includes('Erreur') ? 'bg-red-100 text-red-700' : 
+                        mastodonImportStatus.includes('Succès') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                        {mastodonImportStatus}
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Données Générales</h3>
+                <div>
+                    <button 
+                        onClick={() => {
+                            if (confirm('Effacer toutes les données sauvegardées (sessions, utilisateur, etc.) ?')) onReset();
+                        }}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium"
+                    >
+                        Reset complet de l'application
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+		
+
+// ===== MAIN APP - TIMING CREATION CORRIGE =====
+// ===== MAIN APP - AVEC ETAT CREATION LOCAL =====
 const MemoireMekong = () => {
-    const [currentPage, setCurrentPage] = React.useState('home');
-    const [currentUser, setCurrentUser] = React.useState(null);
+    const {
+        currentPage, setCurrentPage,
+        currentUser, setCurrentUser,
+        resetApp
+    } = useAppState();
+
+    const { 
+        isConnected, isLoading, userInfo, hasEverBeenConnected, connectionMode, lastConnectionError,
+        signIn, signOut, forceDisconnect, testConnection 
+    } = useGoogleAuth();
+    
+    const { sessions, setSessions, updateSession, createSession, syncSessions } = useSessionState();
+
+    const [currentChatSession, setCurrentChatSession] = React.useState(null);
     const [toast, setToast] = React.useState({ message: '', type: '' });
     const [isCreatingSession, setIsCreatingSession] = React.useState(false);
 
-    const authState = useGoogleAuth();
-    const [importState, setImportState] = React.useState({
-        isImporting: false,
-        mastodon: { status: 'non importé' },
-        photos: { status: 'non importé' },
-        lastError: null,
-    });
-    
-    const handleGoogleConnect = async () => {
-        const success = await authState.signIn();
-        if (success) {
-            setToast({ message: "Connexion réussie", type: 'success' });
-            setCurrentUser(authState.userInfo);
-            setCurrentPage('home');
-        } else {
-            setToast({ message: "Échec de la connexion", type: 'error' });
-        }
-    };
+    // Configurer le callback de détection de déconnexion
+    React.useEffect(() => {
+        CloudSessionStorage.onConnectionLost = (reason) => {
+            console.log('🔴 CloudSessionStorage détecte une déconnexion:', reason);
+            forceDisconnect(reason);
+            setToast({ 
+                message: `🔴 ${reason}`, 
+                type: 'error' 
+            });
+        };
 
-    const handleGoogleDisconnect = async () => {
-        await authState.signOut();
-        setCurrentUser(null);
-        setToast({ message: "Déconnexion réussie", type: 'success' });
-        setImportState({
-            isImporting: false,
-            mastodon: { status: 'non importé' },
-            photos: { status: 'non importé' },
-            lastError: null,
-        });
-        setCurrentPage('home');
-    };
+        return () => {
+            CloudSessionStorage.onConnectionLost = null;
+        };
+    }, [forceDisconnect]);
 
-    const handleImportData = async (type) => {
-        setImportState({ ...importState, isImporting: true, lastError: null });
-        try {
-            if (type === 'all' || type === 'mastodon') {
-                setImportState(prev => ({ ...prev, mastodon: { status: 'import en cours...' } }));
-                const outboxFile = await GoogleDriveAPI._findFile('outbox.json');
-                if (!outboxFile) {
-                    throw new Error('Fichier outbox.json introuvable');
+    // Synchronisation automatique au chargement et lors de la connexion
+    React.useEffect(() => {
+        let isMounted = true;
+        
+        const autoSync = async () => {
+            if (isConnected && !isLoading && connectionMode === 'connected') {
+                try {
+                    console.log('🔄 Synchronisation automatique...');
+                    if (isMounted) {
+                        await syncSessions();
+                        console.log('✅ Synchronisation terminée');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Sync auto échouée:', error.message);
+                    if (isMounted) {
+                        if (connectionMode === 'connected') {
+                            setToast({ message: "Synchronisation automatique échouée", type: 'error' });
+                        }
+                    }
                 }
-                const outboxContent = await GoogleDriveAPI.getFileContent(outboxFile.id);
-                MastodonData.parseOutbox(outboxContent);
-                setImportState(prev => ({ ...prev, mastodon: { status: 'importé' } }));
             }
-            if (type === 'all' || type === 'photos') {
-                setImportState(prev => ({ ...prev, photos: { status: 'import en cours...' } }));
-                const photoIndexFile = await GoogleDriveAPI._findFile('photo_index.json');
-                if (!photoIndexFile) {
-                    throw new Error('Fichier photo_index.json introuvable');
-                }
-                const photoIndexContent = await GoogleDriveAPI.getFileContent(photoIndexFile.id);
-                PhotoData.parsePhotoIndex(photoIndexContent);
-                setImportState(prev => ({ ...prev, photos: { status: 'importé' } }));
-            }
-            setToast({ message: "Importation des données terminée", type: 'success' });
-            setCurrentPage('memories');
-        } catch (error) {
-            console.error('Erreur lors de l\'importation:', error);
-            setImportState(prev => ({ ...prev, lastError: error }));
-            setToast({ message: "Erreur lors de l'importation", type: 'error' });
-        } finally {
-            setImportState(prev => ({ ...prev, isImporting: false }));
-        }
-    };
-    
-    const handleCreateSession = (sessionData) => {
-        setIsCreatingSession(true);
-        // Simuler une session de jeu créée
+        };
+
+        const timeoutId = setTimeout(autoSync, 500);
+        
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
+        };
+    }, [isConnected, isLoading, connectionMode, syncSessions]);
+
+    // Test périodique de connexion
+    React.useEffect(() => {
+        if (connectionMode !== 'connected') return;
+
+        const intervalId = setInterval(async () => {
+            console.log('🔍 Test périodique de connexion...');
+            await testConnection();
+        }, 5 * 60 * 1000);
+
+        return () => clearInterval(intervalId);
+    }, [connectionMode, testConnection]);
+
+    const handleSessionSelect = (session) => {
+        setCurrentChatSession(null);
         setTimeout(() => {
-            console.log("Session créée:", sessionData);
+            setCurrentChatSession(session);
+            setCurrentPage('chat');
+        }, 50);
+    };
+
+    const handleBackToSessions = () => {
+        setCurrentChatSession(null);
+        setCurrentPage('sessions');
+    };
+
+    const handleUpdateSession = async (updatedSession) => {
+        try {
+            await updateSession(updatedSession);
+            setCurrentChatSession(updatedSession);
+        } catch (error) {
+            if (error.message.includes('Connexion Google Drive perdue')) {
+                console.log('💾 Session mise à jour localement suite à déconnexion');
+            } else {
+                setToast({ message: error.message, type: 'error' });
+            }
+            
+            const localSessions = Storage.get('sessions', []);
+            setSessions(localSessions); 
+            setCurrentChatSession(updatedSession);
+        }
+    };
+
+    // Gestion des actions Google Drive
+    const handleGoogleAction = async () => {
+        if (connectionMode === 'never-connected' || connectionMode === 'disconnected') {
+            try {
+                const result = await signIn();
+                if (result === true) {
+                    setToast({ message: "Connexion Google Drive réussie !", type: 'success' });
+                    
+                    try {
+                        await syncSessions();
+                        setToast({ message: "Reconnexion et synchronisation réussies !", type: 'success' });
+                    } catch (syncError) {
+                        setToast({ message: "Reconnecté mais synchronisation échouée", type: 'error' });
+                    }
+                } else if (result && result.error) {
+                    setToast({ message: `Erreur de connexion: ${result.error}`, type: 'error' });
+                }
+            } catch (error) {
+                setToast({ message: "Erreur de connexion Google Drive", type: 'error' });
+            }
+        } else if (connectionMode === 'connected') {
+            setCurrentPage('settings');
+        }
+    };
+
+    const handleGameSelect = async (game) => {
+        console.log('🎮 Sélection jeu:', game.title);
+        
+        if (connectionMode === 'disconnected') {
+            setToast({ 
+                message: "⚠️ Session créée en mode local - ne sera pas synchronisée", 
+                type: 'error' 
+            });
+        }
+        
+        setIsCreatingSession(true);
+        
+        try {
+            console.log('🔄 Début création session...');
+            const newSession = await createSession(game, currentUser);
+            console.log('✅ Session créée:', newSession?.id);
+            
+            if (newSession) {
+                if (window.pendingGameSession) {
+                    delete window.pendingGameSession;
+                }
+                
+                setCurrentChatSession(newSession);
+                setCurrentPage('chat');
+            }
+        } catch (error) {
+            console.error('❌ Erreur création session:', error);
+            setToast({ message: "Erreur lors de la création de session", type: 'error' });
+        } finally {
             setIsCreatingSession(false);
-            setToast({ message: "Session de jeu créée!", type: 'success' });
-            setCurrentPage('home');
-        }, 1500);
+        }
+    };
+
+    const handleCreateSessionFromMemory = async (sessionData) => {
+        if (sessionData.type === 'game') {
+            setIsCreatingSession(true);
+            
+            try {
+                if (sessionData.postContent) {
+                    window.pendingGameSession = { 
+                        game: sessionData.game, 
+                        user: currentUser, 
+                        postChapo: sessionData.postContent 
+                    };
+                }
+                
+                const newSession = await createSession(sessionData.game, currentUser);
+                
+                if (newSession) {
+                    setCurrentChatSession(newSession);
+                    setCurrentPage('chat');
+                }
+            } catch (error) {
+                setToast({ message: "Erreur lors de la création de session", type: 'error' });
+            } finally {
+                setIsCreatingSession(false);
+            }
+        } else {
+            setCurrentPage(sessionData);
+        }
+    };
+
+    const pageRequiresConnection = (page) => {
+        return ['sessions', 'chat'].includes(page);
     };
 
     React.useEffect(() => {
-        if (authState.connectionMode === 'connected' && !currentUser) {
-            setCurrentUser(authState.userInfo);
+        if (connectionMode === 'disconnected' && pageRequiresConnection(currentPage)) {
+            setToast({ 
+                message: "Fonctionnalité limitée en mode déconnecté. Reconnectez-vous pour une synchronisation complète.", 
+                type: 'error' 
+            });
         }
-        if (authState.connectionMode === 'disconnected' && currentUser) {
-            setCurrentUser(null);
+    }, [connectionMode, currentPage]);
+
+    React.useEffect(() => {
+        if (lastConnectionError && connectionMode === 'disconnected') {
+            setToast({ 
+                message: `Problème de connexion: ${lastConnectionError}`, 
+                type: 'error' 
+            });
         }
-    }, [authState, currentUser]);
-    
+    }, [lastConnectionError, connectionMode]);
+
     return (
-        <div className="min-h-screen bg-gray-100 font-sans antialiased text-gray-800 pb-20">
-            <Header onMenuClick={() => {}} />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-                    <div className="p-4 sm:p-6 lg:p-8">
-                        {authState.isLoading && <LoadingSpinner message="Connexion en cours..." />}
-                        {authState.lastConnectionError && (
-                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                                <strong className="font-bold">Erreur de connexion:</strong>
-                                <span className="block sm:inline ml-2">{authState.lastConnectionError}</span>
-                            </div>
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
+            
+            <TopBar
+                currentPage={currentPage}
+                currentUser={currentUser}
+                onUserChange={setCurrentUser}
+                onPageChange={setCurrentPage}
+                connectionMode={connectionMode}
+                googleAuth={{ isConnected, isLoading, userInfo, signIn, signOut }}
+                onGoogleAction={handleGoogleAction}
+            />
+
+            <main className="p-4 pb-24">
+                <div className="max-w-6xl mx-auto">
+                    <div className="bg-white/80 backdrop-blur rounded-xl shadow-lg p-6">
+                        {currentPage === 'home' && (
+                            <HomePage 
+                                currentUser={currentUser}
+                                onUserChange={setCurrentUser}
+                                onPageChange={setCurrentPage}
+                                connectionMode={connectionMode}
+                                googleAuth={{ isConnected, isLoading, userInfo, signIn, signOut }}
+                            />
                         )}
-                        {authState.connectionMode === 'disconnected' && !authState.isLoading && (
-                            <div className="flex flex-col items-center justify-center p-8 text-center">
-                                <Cloud className="w-16 h-16 text-gray-400 mb-4" />
-                                <h2 className="text-xl font-semibold mb-2">Connectez-vous pour commencer</h2>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Veuillez vous connecter à votre compte Google pour accéder à vos données.
-                                </p>
-                                <button onClick={handleGoogleConnect} className="px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold shadow-lg hover:bg-amber-600 transition-colors duration-200">
-                                    Se connecter avec Google
-                                </button>
-                            </div>
+                        {currentPage === 'games' && (
+                            <GamesPage 
+                                currentUser={currentUser}
+                                onPageChange={setCurrentPage}
+                                onGameSelect={handleGameSelect}
+                                isCreatingSession={isCreatingSession}
+                            />
                         )}
-                        {authState.connectionMode === 'connected' && !authState.isLoading && (
-                            <React.Fragment>
-                                {currentPage === 'home' && (
-                                    <HomePage 
-                                        onImport={handleImportData} 
-                                        importState={importState}
-                                        authState={authState}
-                                        onGoogleDisconnect={handleGoogleDisconnect}
-                                    />
-                                )}
-                                {currentPage === 'memories' && (
-                                    <MemoriesPage
-                                        currentUser={currentUser}
-                                        onCreateSession={handleCreateSession}
-                                        isCreatingSession={isCreatingSession}
-                                    />
-                                )}
-                                {currentPage === 'users' && (
-                                    <UsersPage 
-                                        currentUser={currentUser}
-                                        onUserChange={setCurrentUser}
-                                        onPageChange={setCurrentPage}
-                                    />
-                                )}
-                            </React.Fragment>
+                        {currentPage === 'sessions' && (
+                            <SessionsPage 
+                                currentUser={currentUser} 
+                                onPageChange={setCurrentPage}
+                                onSessionSelect={handleSessionSelect}
+                            />
+                        )}
+                        {currentPage === 'chat' && (
+                            <ChatPage 
+                                currentUser={currentUser}
+                                currentSession={currentChatSession}
+                                onUpdateSession={handleUpdateSession}
+                                onBackToSessions={handleBackToSessions}
+                            />
+                        )}
+                        {currentPage === 'memories' && (
+    <MemoriesPage 
+        currentUser={currentUser}
+        onCreateSession={handleCreateSessionFromMemory}
+        isCreatingSession={isCreatingSession}
+    />
+)}
+                        {currentPage === 'settings' && (
+                            <SettingsPage 
+                                onReset={resetApp}
+                                googleAuth={{
+                                    isConnected: isConnected,
+                                    isLoading: isLoading,
+                                    userInfo: userInfo,
+                                    signIn: signIn,
+                                    signOut: signOut
+                                }}
+                                onGoogleDisconnect={async () => {
+                                    await signOut();
+                                    setToast({ message: "Déconnexion réussie", type: 'success' });
+                                }}
+                            />
+                        )}
+                        {currentPage === 'users' && (
+                            <UsersPage 
+                                currentUser={currentUser}
+                                onUserChange={setCurrentUser}
+                                onPageChange={setCurrentPage}
+                            />
                         )}
                     </div>
                 </div>
             </main>
+            
             <BottomNavBar
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
                 currentUser={currentUser}
             />
+
             <Toast 
                 message={toast.message} 
                 type={toast.type} 
@@ -2870,7 +3284,7 @@ const MemoireMekong = () => {
         </div>
     );
 };
-        
+		
         // ===== RENDER =====
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MemoireMekong));
