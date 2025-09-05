@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9c : revision affichage blog (ligne debug et Memories réécrit) </title>
+    <title>🐘 Mémoire du Mékong V0.5.9c : revision affichage blog (test Log "Post du jour X: ...") </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2474,24 +2474,26 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
     React.useEffect(() => {
         const loadDataForDay = async () => {
-            let hasContent = false;
-            // Charger les données du blog
-            if (isMastodonImported) {
-                const post = MastodonData.getPostByDay(currentDay);
-                setCurrentPost(post);
-                // Le tableau blogPhotos est créé à partir des media_attachments du post
-                setBlogPhotos(post && post.media_attachments ? post.media_attachments.map(att => ({
-                    id: att.id,
-                    filename: att.description,
-                    webContentLink: att.url,
-                    thumbnailLink: att.preview_url,
-                    mimeType: 'image/jpeg' // Type générique, à ajuster si besoin
-                })) : []);
-                if (post) hasContent = true;
-            } else {
-                setCurrentPost(null);
-                setBlogPhotos([]);
-            }
+    let hasContent = false;
+    // Charger les données du blog
+    if (isMastodonImported) {
+        const post = MastodonData.getPostByDay(currentDay);
+        // Ligne à ajouter pour le débogage
+        console.log('Post du jour', currentDay, ':', post); 
+        setCurrentPost(post);
+        // Le tableau blogPhotos est créé à partir des media_attachments du post
+        setBlogPhotos(post && post.media_attachments ? post.media_attachments.map(att => ({
+            id: att.id,
+            filename: att.description,
+            webContentLink: att.url,
+            thumbnailLink: att.preview_url,
+            mimeType: 'image/jpeg' // Type générique, à ajuster si besoin
+        })) : []);
+        if (post) hasContent = true;
+    } else {
+        setCurrentPost(null);
+        setBlogPhotos([]);
+    }
 
             // Charger les photos de l'index
             if (isPhotoIndexImported) {
