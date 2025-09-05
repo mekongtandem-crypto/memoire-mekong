@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.11d : Revision de Memoire/blog (Memories page revu car perte de photo)  </title>
+    <title>🐘 Mémoire du Mékong V0.5.9g : reprise 0.5.9g par Claude pour correction Mastodon/blog </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2520,14 +2520,16 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V0.5.9g CORRIGÉE - Restauration logique Photos qui fonctionnait)
+// Page Memoire (V4.5 - Recherche des photos dans l'arborescence d'origine du blog)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
     const [currentPost, setCurrentPost] = React.useState(null);
     const [dayPhotos, setDayPhotos] = React.useState([]);
+    const [blogPhotos, setBlogPhotos] = React.useState([]);
     const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
     const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
+    const [photoSource, setPhotoSource] = React.useState('day'); // 'day' ou 'blog'
 
     const isMastodonImported = MastodonData.isImported();
     const mastodonStats = MastodonData.getStats();
@@ -2542,11 +2544,13 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 setCurrentPost(post);
                 if (post) {
                     hasContent = true;
-                    // Résoudre les URLs des attachments vers Google Drive
-                    await resolveAttachmentUrls(post);
+                    await loadBlogPhotos(post);
+                } else {
+                    setBlogPhotos([]);
                 }
             } else {
                 setCurrentPost(null);
+                setBlogPhotos([]);
             }
 
             // Charger les photos de l'index pour le jour en cours, quel que soit l'onglet
@@ -2566,61 +2570,18 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
-    // Fonction pour résoudre les URLs des attachments
-    const resolveAttachmentUrls = async (post) => {
-        if (!post || !post.attachments || !GoogleDriveAPI.isSignedIn) {
-            return;
-        }
-
-        const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
-        
-        try {
-            // 1. Trouver le dossier racine de l'archive Mastodon
-            const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
-            if (!mediasFolder) return;
-            
-            const mastodonFolder = await GoogleDriveAPI._findFile('Mastodon', mediasFolder.id, FOLDER_MIME_TYPE);
-            if (!mastodonFolder) return;
-            
-            const mediaAttachmentsFolder = await GoogleDriveAPI._findFile('media_attachments', mastodonFolder.id, FOLDER_MIME_TYPE);
-            if (!mediaAttachmentsFolder) return;
-            
-            // 2. Lister tous les fichiers de l'arborescence `media_attachments`
-            const allBlogFiles = await GoogleDriveAPI.listAllFiles(mediaAttachmentsFolder.id);
-            const driveFilesMap = new Map(allBlogFiles.map(file => [file.name, file]));
-            
-            // 3. Résoudre les URLs pour chaque attachment
-            post.attachments.forEach(attachment => {
-                if (attachment.url) {
-                    const filename = attachment.url.split('/').pop();
-                    const driveFile = driveFilesMap.get(filename);
-                    
-                    if (driveFile) {
-                        // Ajouter l'URL Google Drive à l'attachment
-                        attachment.resolvedUrl = driveFile.webContentLink;
-                        attachment.thumbnailUrl = cleanThumbnailLink(driveFile.thumbnailLink);
-                    }
-                }
-            });
-            
-            // Forcer le re-render en mettant à jour l'état
-            setCurrentPost({...post});
-            
-        } catch (error) {
-            console.error('Erreur lors de la résolution des URLs d\'attachments:', error);
-        }
-    };
-
     const cleanThumbnailLink = (url) => {
         if (!url) return null;
         return url.split('=')[0];
     };
 
-    // RESTAURÉ : Logique EXACTE de la v0.5.5.2 qui fonctionnait (SANS vérification isSignedIn)
     const loadPhotosForDay = async (day) => {
         setIsLoadingPhotos(true);
         setDayPhotos([]);
-        
+        if (!GoogleDriveAPI.isSignedIn) {
+            setIsLoadingPhotos(false);
+            return;
+        }
         const photoIndexEntries = PhotoData.getPhotosByDay(day);
         if (photoIndexEntries.length === 0) {
             setIsLoadingPhotos(false);
@@ -2635,8 +2596,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
         let allFoundPhotos = [];
         const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
-
-        // Utilisation de _findFile comme dans la version qui fonctionnait
         const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
         if (!mediasFolder) { setIsLoadingPhotos(false); return; }
         const photosRootFolder = await GoogleDriveAPI._findFile('Photos', mediasFolder.id, FOLDER_MIME_TYPE);
@@ -2647,7 +2606,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             if (dayFolder) {
                 const filesInDrive = await GoogleDriveAPI.listPhotoFiles(dayFolder.id);
                 const driveFilesMap = new Map(filesInDrive.map(file => [file.name, file]));
-                
                 const photosInThisFolder = foldersToQuery[folderName];
                 for (const filename of photosInThisFolder) {
                     if (driveFilesMap.has(filename)) {
@@ -2667,6 +2625,98 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         setIsLoadingPhotos(false);
     };
 
+    const loadBlogPhotos = async (post) => {
+    console.log('🔍 === DEBUG loadBlogPhotos ===');
+    console.log('📝 Post reçu:', post);
+    console.log('📎 Attachments dans le post:', post.attachments);
+    
+    if (!post || !GoogleDriveAPI.isSignedIn) {
+        console.log('❌ Condition d\'arrêt: post vide ou non connecté à Drive');
+        setBlogPhotos([]);
+        return;
+    }
+    
+    const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+    
+    // 1. Recherche du dossier racine
+    console.log('🔍 Recherche du dossier Medias...');
+    const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
+    console.log('📁 Medias folder:', mediasFolder);
+    
+    if (!mediasFolder) { 
+        console.log('❌ Dossier Medias non trouvé');
+        setBlogPhotos([]); 
+        return; 
+    }
+    
+    console.log('🔍 Recherche du dossier Mastodon...');
+    const mastodonFolder = await GoogleDriveAPI._findFile('Mastodon', mediasFolder.id, FOLDER_MIME_TYPE);
+    console.log('📁 Mastodon folder:', mastodonFolder);
+    
+    if (!mastodonFolder) { 
+        console.log('❌ Dossier Mastodon non trouvé');
+        setBlogPhotos([]); 
+        return; 
+    }
+    
+    console.log('🔍 Recherche du dossier media_attachments...');
+    const mediaAttachmentsFolder = await GoogleDriveAPI._findFile('media_attachments', mastodonFolder.id, FOLDER_MIME_TYPE);
+    console.log('📁 media_attachments folder:', mediaAttachmentsFolder);
+    
+    if (!mediaAttachmentsFolder) { 
+        console.log('❌ Dossier media_attachments non trouvé');
+        setBlogPhotos([]); 
+        return; 
+    }
+    
+    // 2. Lister tous les fichiers
+    console.log('🔍 Listing de tous les fichiers dans media_attachments...');
+    const allBlogFiles = await GoogleDriveAPI.listAllFiles(mediaAttachmentsFolder.id);
+    console.log('📄 Tous les fichiers trouvés:', allBlogFiles);
+    console.log('📊 Nombre total de fichiers:', allBlogFiles.length);
+    
+    const driveFilesMap = new Map(allBlogFiles.map(file => [file.name, file]));
+    console.log('🗺️ Map des fichiers créée, taille:', driveFilesMap.size);
+    
+    // 3. Processing des attachments
+    console.log('⚙️ Processing des attachments du post...');
+    const photosForPost = post.attachments.map((att, index) => {
+        console.log(`📎 Attachment ${index}:`, att);
+        
+        if (!att.url) {
+            console.log(`❌ Attachment ${index}: pas d'URL`);
+            return null;
+        }
+        
+        const filename = att.url.split('/').pop();
+        console.log(`📄 Filename extrait: "${filename}"`);
+        
+        const driveFile = driveFilesMap.get(filename);
+        console.log(`🔍 Fichier trouvé sur Drive:`, driveFile);
+        
+        if (driveFile) {
+            const photoData = {
+                id: driveFile.id,
+                filename: filename,
+                webContentLink: driveFile.webContentLink,
+                thumbnailLink: cleanThumbnailLink(driveFile.thumbnailLink),
+                mimeType: driveFile.mimeType || 'image/jpeg'
+            };
+            console.log(`✅ Photo créée:`, photoData);
+            return photoData;
+        } else {
+            console.log(`❌ Fichier "${filename}" non trouvé sur Drive`);
+            return null;
+        }
+    }).filter(Boolean);
+    
+    console.log('📸 Photos finales pour le post:', photosForPost);
+    console.log('📊 Nombre de photos trouvées:', photosForPost.length);
+    
+    setBlogPhotos(photosForPost);
+    console.log('✅ === FIN DEBUG loadBlogPhotos ===');
+};
+
     const handleDaySelect = (day) => setCurrentDay(day);
     const createSessionFromPost = (post) => {
         const game = getGameById(7);
@@ -2678,12 +2728,14 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`;
         onCreateSession({ type: 'game', game: game, postContent: initialNoteContent });
     };
-    
-    // RESTAURÉ : Logique simple comme dans v0.5.9g
-    const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
+    const handlePhotoSelect = (index, source) => {
+        setSelectedPhotoIndex(index);
+        setPhotoSource(source);
+    };
     const handlePhotoNavigate = (direction) => {
+        const photos = photoSource === 'blog' ? blogPhotos : dayPhotos;
         if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedPhotoIndex - 1);
-        else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1);
+        else if (direction === 'next' && selectedPhotoIndex < photos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1);
     };
 
     if (isCreatingSession) return <LoadingSpinner message="Création de session..." size="large" />;
@@ -2692,88 +2744,58 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         <div className="space-y-6 fade-in">
             <Timeline currentDay={currentDay} maxDay={mastodonStats?.dayRange?.max || 275} onDaySelect={handleDaySelect} />
             <div className="flex justify-center border-b border-gray-200">
-                <button onClick={() => setActiveTab('blog')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isMastodonImported}>
-                    <BookOpen className="w-5 h-5 inline mr-2" />Blog
-                </button>
-                <button onClick={() => setActiveTab('photos')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isPhotoIndexImported}>
-                    <Camera className="w-5 h-5 inline mr-2" />Photos
-                </button>
+                <button onClick={() => setActiveTab('blog')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isMastodonImported}><BookOpen className="w-5 h-5 inline mr-2" />Blog</button>
+                <button onClick={() => setActiveTab('photos')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isPhotoIndexImported}><Camera className="w-5 h-5 inline mr-2" />Photos</button>
             </div>
             <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
                 {activeTab === 'photos' ? (
-                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
+                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={(index) => handlePhotoSelect(index, 'day')} />
                 ) : (
                     currentPost ? (
                         <div>
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex flex-col">
                                     <h3 className="text-xl font-bold text-amber-900">{currentPost.title || `Jour ${currentPost.dayNumber}`}</h3>
-                                    {currentPost.attachments && currentPost.attachments.length > 0 && (
+                                    {blogPhotos.length > 0 && (
                                         <span className="text-sm text-gray-500 mt-1">
                                             <Camera className="w-4 h-4 inline mr-1" />
-                                            {currentPost.attachments.length} photo{currentPost.attachments.length > 1 ? 's' : ''} associée{currentPost.attachments.length > 1 ? 's' : ''}
+                                            {blogPhotos.length} photo{blogPhotos.length > 1 ? 's' : ''} associée{blogPhotos.length > 1 ? 's' : ''}
                                         </span>
                                     )}
                                 </div>
-                                <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm">
-                                    <Plus className="w-4 h-4" /><span>Session</span>
-                                </button>
+                                <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><Plus className="w-4 h-4" /><span>Session</span></button>
                             </div>
                             <div className="prose max-w-none mb-6">
-                                <p className="whitespace-pre-line">{currentPost.content}</p>
+                                <p>{currentPost.content}</p>
                             </div>
 
-                            {/* Section pour l'affichage des photos du post */}
-                            {currentPost.attachments && currentPost.attachments.length > 0 && (
-                                <div className="mt-6">
-                                    <h4 className="text-sm font-medium text-gray-700 mb-3">Photos associées :</h4>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        {currentPost.attachments.map((attachment, index) => (
-                                            <div 
-                                                key={attachment.id || index} 
-                                                className="relative group cursor-pointer"
-                                            >
-                                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border hover:shadow-md transition-shadow duration-200">
-                                                    {attachment.resolvedUrl ? (
-                                                        <img
-                                                            src={attachment.resolvedUrl}
-                                                            alt={`Photo ${index + 1} du post`}
-                                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                                                            onError={(e) => {
-                                                                e.target.src = `https://via.placeholder.com/300x200/e5e7eb/6b7280?text=Photo+${index + 1}`;
-                                                                e.target.alt = `Photo ${index + 1} (non trouvée sur Drive)`;
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                                                            <Camera className="w-8 h-8 mb-2" />
-                                                            <span className="text-xs text-center">Photo {index + 1}<br/>Non trouvée sur Drive</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
-                                                    <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        Photo {index + 1}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                            {/* Section pour les miniatures du blog */}
+                            {blogPhotos.length > 0 && (
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-4">
+                                    {blogPhotos.map((photo, index) => (
+                                        <button
+                                            key={photo.filename}
+                                            onClick={() => handlePhotoSelect(index, 'blog')}
+                                            className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                        >
+                                            <img
+                                                src={photo.thumbnailLink}
+                                                alt={`Thumbnail of ${photo.filename}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <div className="text-center py-12 text-gray-500">
-                            <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                            <p>Aucun post de blog pour ce jour.</p>
-                        </div>
+                        <div className="text-center py-12 text-gray-500"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Aucun post de blog pour ce jour.</p></div>
                     )
                 )}
             </div>
-            {/* RESTAURÉ : PhotoViewer simple comme dans v0.5.9g */}
             {selectedPhotoIndex !== null && (
                 <PhotoViewer
-                    photos={dayPhotos}
+                    photos={photoSource === 'blog' ? blogPhotos : dayPhotos}
                     selectedIndex={selectedPhotoIndex}
                     onClose={() => setSelectedPhotoIndex(null)}
                     onNavigate={handlePhotoNavigate}
