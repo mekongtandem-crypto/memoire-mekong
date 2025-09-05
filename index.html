@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9c : revision affichage blog (test Log "Post du jour X: ...") </title>
+    <title>🐘 Mémoire du Mékong V0.5.9e : revision affichage blog (Mastodon data) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -387,7 +387,8 @@ const allPosts = orderedItems
             title: title || 'Post sans titre', // NOUVEAU
             content: decodedContent,
             published: note.published || item.published,
-            attachments: note.attachment || [],
+            // ATTENTION : Correction ici, on utilise 'attachments' au lieu de 'media_attachments'
+            attachments: note.attachments || [],
             url: note.url,
             originalIndex: index
         };
@@ -415,6 +416,16 @@ const allPosts = orderedItems
                 delete post.hasJourNumber;
                 delete post.originalIndex;
             });
+            
+            // Log de débogage pour vérifier le parsing
+            console.log('--- TEST PARSING ATTACHMENTS ---');
+            const postWithAttachments = finalPosts.find(p => p.attachments && p.attachments.length > 0);
+            if (postWithAttachments) {
+                 console.log(`✅ Exemple de post avec attachments (Jour ${postWithAttachments.dayNumber}):`, postWithAttachments);
+            } else {
+                 console.log('❌ Aucun post avec attachments trouvé. Le fichier outbox.json pourrait ne pas en contenir.');
+            }
+            console.log('---------------------------------');
 
             console.log(`✅ ${finalPosts.length} posts Mastodon importés`);
             console.log(`   - ${postsWithDay.length} posts avec numéro de jour (J1 à J${maxDayNumber})`);
