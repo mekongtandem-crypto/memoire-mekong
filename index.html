@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.11 : Revision de Memoire/blog par Claude depuis 0.5.9g (Memories page)  </title>
+    <title>🐘 Mémoire du Mékong V0.5.11b : Revision de Memoire/blog par Claude depuis 0.5.9g (Memories page)  </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2520,7 +2520,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V0.5.9g CORRIGÉE - Affichage direct des photos Mastodon)
+// Page Memoire (V0.5.9g CORRIGÉE - Résolution URLs attachments Google Drive)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
@@ -2543,6 +2543,8 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 setCurrentPost(post);
                 if (post) {
                     hasContent = true;
+                    // Résoudre les URLs des attachments vers Google Drive
+                    await resolveAttachmentUrls(post);
                 }
             } else {
                 setCurrentPost(null);
@@ -2564,6 +2566,51 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         };
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
+
+    // Nouvelle fonction pour résoudre les URLs des attachments
+    const resolveAttachmentUrls = async (post) => {
+        if (!post || !post.attachments || !GoogleDriveAPI.isSignedIn) {
+            return;
+        }
+
+        const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+        
+        try {
+            // 1. Trouver le dossier racine de l'archive Mastodon
+            const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
+            if (!mediasFolder) return;
+            
+            const mastodonFolder = await GoogleDriveAPI._findFile('Mastodon', mediasFolder.id, FOLDER_MIME_TYPE);
+            if (!mastodonFolder) return;
+            
+            const mediaAttachmentsFolder = await GoogleDriveAPI._findFile('media_attachments', mastodonFolder.id, FOLDER_MIME_TYPE);
+            if (!mediaAttachmentsFolder) return;
+            
+            // 2. Lister tous les fichiers de l'arborescence `media_attachments`
+            const allBlogFiles = await GoogleDriveAPI.listAllFiles(mediaAttachmentsFolder.id);
+            const driveFilesMap = new Map(allBlogFiles.map(file => [file.name, file]));
+            
+            // 3. Résoudre les URLs pour chaque attachment
+            post.attachments.forEach(attachment => {
+                if (attachment.url) {
+                    const filename = attachment.url.split('/').pop();
+                    const driveFile = driveFilesMap.get(filename);
+                    
+                    if (driveFile) {
+                        // Ajouter l'URL Google Drive à l'attachment
+                        attachment.resolvedUrl = driveFile.webContentLink;
+                        attachment.thumbnailUrl = cleanThumbnailLink(driveFile.thumbnailLink);
+                    }
+                }
+            });
+            
+            // Forcer le re-render en mettant à jour l'état
+            setCurrentPost({...post});
+            
+        } catch (error) {
+            console.error('Erreur lors de la résolution des URLs d\'attachments:', error);
+        }
+    };
 
     const cleanThumbnailLink = (url) => {
         if (!url) return null;
@@ -2690,19 +2737,20 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                                                 onClick={() => handlePhotoSelect(index, 'blog')}
                                             >
                                                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border hover:shadow-md transition-shadow duration-200">
-                                                    {attachment.url ? (
+                                                    {attachment.resolvedUrl ? (
                                                         <img
-                                                            src={attachment.url}
+                                                            src={attachment.resolvedUrl}
                                                             alt={`Photo ${index + 1} du post`}
                                                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                                                             onError={(e) => {
                                                                 e.target.src = `https://via.placeholder.com/300x200/e5e7eb/6b7280?text=Photo+${index + 1}`;
+                                                                e.target.alt = `Photo ${index + 1} (non trouvée sur Drive)`;
                                                             }}
                                                         />
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                                            <Camera className="w-8 h-8" />
-                                                            <span className="ml-2">Photo {index + 1}</span>
+                                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                                            <Camera className="w-8 h-8 mb-2" />
+                                                            <span className="text-xs text-center">Photo {index + 1}<br/>Non trouvée sur Drive</span>
                                                         </div>
                                                     )}
                                                 </div>
