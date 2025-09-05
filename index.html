@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9g : revision parsing outbox - Debug (google drive API) </title>
+    <title>🐘 Mémoire du Mékong V0.5.9f : revision parsing outbox (mastodon date) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -622,7 +622,7 @@ const PhotoData = {
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.readonly'
+    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
 
 const GoogleDriveAPI = {
@@ -657,35 +657,6 @@ const GoogleDriveAPI = {
             });
             return response.result.files || [];
         } catch (e) { console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e); return []; }
-    },
-
-    // NOUVELLE FONCTION: listAllFiles pour trouver tous les fichiers dans un dossier et ses sous-dossiers
-    async listAllFiles(folderId, allFiles = []) {
-        let pageToken = null;
-        try {
-            do {
-                const response = await gapi.client.drive.files.list({
-                    q: `'${folderId}' in parents and trashed=false`,
-                    fields: 'nextPageToken, files(id, name, webContentLink, thumbnailLink, mimeType, mimeType)',
-                    pageToken: pageToken
-                });
-                
-                const files = response.result.files || [];
-                for (const file of files) {
-                    if (file.mimeType === 'application/vnd.google-apps.folder') {
-                        // C'est un dossier, on recherche récursivement
-                        await this.listAllFiles(file.id, allFiles);
-                    } else {
-                        // C'est un fichier, on l'ajoute
-                        allFiles.push(file);
-                    }
-                }
-                pageToken = response.result.nextPageToken;
-            } while (pageToken);
-        } catch (e) {
-            console.error('❌ Erreur listAllFiles:', e);
-        }
-        return allFiles;
     },
 
     // NOUVEAU: Fonction pour charger une photo en base64 (utilisée seulement à la demande)
