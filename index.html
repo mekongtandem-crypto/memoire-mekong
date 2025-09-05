@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.11b : Revision de Memoire/blog par Claude depuis 0.5.9g (Memories page)  </title>
+    <title>🐘 Mémoire du Mékong V0.5.11c : Revision de Memoire/blog (Memories page revu car perte de photo)  </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2520,7 +2520,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V0.5.9g CORRIGÉE - Résolution URLs attachments Google Drive)
+// Page Memoire (V0.5.9g CORRIGÉE - Restauration onglet Photos + Résolution URLs blog)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
@@ -2528,7 +2528,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [dayPhotos, setDayPhotos] = React.useState([]);
     const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
     const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
-    const [photoSource, setPhotoSource] = React.useState('day'); // 'day' ou 'blog'
 
     const isMastodonImported = MastodonData.isImported();
     const mastodonStats = MastodonData.getStats();
@@ -2567,7 +2566,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
-    // Nouvelle fonction pour résoudre les URLs des attachments
+    // Fonction pour résoudre les URLs des attachments
     const resolveAttachmentUrls = async (post) => {
         if (!post || !post.attachments || !GoogleDriveAPI.isSignedIn) {
             return;
@@ -2678,14 +2677,12 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`;
         onCreateSession({ type: 'game', game: game, postContent: initialNoteContent });
     };
-    const handlePhotoSelect = (index, source) => {
-        setSelectedPhotoIndex(index);
-        setPhotoSource(source);
-    };
+    
+    // RESTAURÉ : Logique simple comme dans v0.5.9g
+    const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
     const handlePhotoNavigate = (direction) => {
-        const photos = photoSource === 'blog' ? (currentPost?.attachments || []) : dayPhotos;
         if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedPhotoIndex - 1);
-        else if (direction === 'next' && selectedPhotoIndex < photos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1);
+        else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1);
     };
 
     if (isCreatingSession) return <LoadingSpinner message="Création de session..." size="large" />;
@@ -2703,7 +2700,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             </div>
             <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
                 {activeTab === 'photos' ? (
-                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={(index) => handlePhotoSelect(index, 'day')} />
+                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
                 ) : (
                     currentPost ? (
                         <div>
@@ -2734,7 +2731,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                                             <div 
                                                 key={attachment.id || index} 
                                                 className="relative group cursor-pointer"
-                                                onClick={() => handlePhotoSelect(index, 'blog')}
                                             >
                                                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border hover:shadow-md transition-shadow duration-200">
                                                     {attachment.resolvedUrl ? (
@@ -2756,7 +2752,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                                                 </div>
                                                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
                                                     <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        Cliquer pour agrandir
+                                                        Photo {index + 1}
                                                     </span>
                                                 </div>
                                             </div>
@@ -2773,9 +2769,10 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                     )
                 )}
             </div>
+            {/* RESTAURÉ : PhotoViewer simple comme dans v0.5.9g */}
             {selectedPhotoIndex !== null && (
                 <PhotoViewer
-                    photos={photoSource === 'blog' ? (currentPost?.attachments || []) : dayPhotos}
+                    photos={dayPhotos}
                     selectedIndex={selectedPhotoIndex}
                     onClose={() => setSelectedPhotoIndex(null)}
                     onNavigate={handlePhotoNavigate}
