@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9g : revision parsing outbox - Debug (google drive API) </title>
+    <title>🐘 Mémoire du Mékong V0.5.9a : ammélioration visionneuse (PhotoViewer) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -334,6 +334,7 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
         try {
             const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
             
+            // Gérer la structure ActivityPub complète avec @context
             let orderedItems;
             if (data.orderedItems) {
                 orderedItems = data.orderedItems;
@@ -348,75 +349,49 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
             }
 
             // ÉTAPE 1 : Traiter tous les posts et identifier ceux avec/sans numéro de jour
-            const allPosts = orderedItems
-                .filter(item => item.type === 'Create' && item.object?.type === 'Note')
-                .map((item, index) => {
-                    const note = item.object;
-                    const content = note.content || '';
-                    
-                    // Nettoyer le HTML et décoder les entités HTML
-                    const cleanContent = content.replace(/<[^>]*>/g, '');
-                    const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
-                    
-                    // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
-                    const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
-                    const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-                    const hasJourNumber = dayNumber !== null;
-                    
-                    // NOUVEAU : Extraire le titre
-                    let title;
-                    if (hasJourNumber) {
-                        const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
-                        title = afterJour.split('\n')[0].slice(0, 60).trim();
-                        if (title.length === 60) title += '...';
-                    } else {
-                        title = decodedContent.split('\n')[0].slice(0, 60).trim();
-                        if (title.length === 60) title += '...';
-                    }
-                    
-                    title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
-                    
-                    // --- CORRECTION MAJEURE ICI ---
-                    // Logique pour trouver les "media_attachments" qui sont parfois imbriqués
-                    let foundAttachments = [];
-                    // Cherche dans le tableau `attachments` de l'objet Note
-                    if (note.attachments && Array.isArray(note.attachments)) {
-                        foundAttachments = note.attachments;
-                    } 
-                    // Si ce n'est pas trouvé là, cherche dans l'objet lui-même (certains exports les placent au même niveau que l'objet Note)
-                    else if (note.attachment && Array.isArray(note.attachment)) {
-                        foundAttachments = note.attachment;
-                    }
-                    // Finalement, si une "pièce jointe de media" est trouvée, on l'utilise
-                    if (item.object.media_attachments && Array.isArray(item.object.media_attachments)) {
-                        foundAttachments = item.object.media_attachments;
-                    }
-
-                    // On filtre pour ne garder que les images et on les transforme
-                    const photos = foundAttachments.filter(att => att.type === 'Image' && att.url);
-                    
-                    // Si aucune photo n'est trouvée avec le type 'Image', on essaie de trouver un objet plus générique
-                    // C'est une correction pour le cas où le type serait différent
-                    if (photos.length === 0) {
-                        const genericPhotos = foundAttachments.filter(att => att.url);
-                        if (genericPhotos.length > 0) {
-                             console.warn('⚠️ Found generic attachments, assuming they are photos:', genericPhotos);
-                             photos.push(...genericPhotos);
-                        }
-                    }
-
-                    return {
-                        id: note.id || `post-${index}`,
-                        dayNumber,
-                        hasJourNumber,
-                        title: title || 'Post sans titre',
-                        content: decodedContent,
-                        published: note.published || item.published,
-                        attachments: photos, // On s'assure que c'est bien le tableau d'images
-                        url: note.url,
-                        originalIndex: index
-                    };
-                });
+const allPosts = orderedItems
+    .filter(item => item.type === 'Create' && item.object?.type === 'Note')
+    .map((item, index) => {
+        const note = item.object;
+        const content = note.content || '';
+        
+        // Nettoyer le HTML et décoder les entités HTML
+        const cleanContent = content.replace(/<[^>]*>/g, '');
+        const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+        
+        // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
+        const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+        const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+        const hasJourNumber = dayNumber !== null;
+        
+        // NOUVEAU : Extraire le titre
+        let title;
+        if (hasJourNumber) {
+            // Pour les posts avec Jnnn: extraire le titre après
+            const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
+            title = afterJour.split('\n')[0].slice(0, 60).trim();
+            if (title.length === 60) title += '...';
+        } else {
+            // Pour les posts sans Jnnn: utiliser le début comme titre
+            title = decodedContent.split('\n')[0].slice(0, 60).trim();
+            if (title.length === 60) title += '...';
+        }
+        
+        // Nettoyer le titre des emojis excessifs et caractères spéciaux
+        title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
+        
+        return {
+            id: note.id || `post-${index}`,
+            dayNumber,
+            hasJourNumber,
+            title: title || 'Post sans titre', // NOUVEAU
+            content: decodedContent,
+            published: note.published || item.published,
+            attachments: note.attachment || [],
+            url: note.url,
+            originalIndex: index
+        };
+    });
 
             // ÉTAPE 2 : Séparer les posts avec et sans numéro de jour
             const postsWithDay = allPosts.filter(post => post.hasJourNumber);
@@ -429,7 +404,7 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
             const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
             postsWithoutDay.forEach((post, index) => {
                 post.dayNumber = maxDayNumber + index + 1;
-                post.isExtraPost = true;
+                post.isExtraPost = true; // Marquer comme post additionnel
             });
 
             // ÉTAPE 5 : Combiner tous les posts
@@ -440,16 +415,6 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
                 delete post.hasJourNumber;
                 delete post.originalIndex;
             });
-            
-            // Log de débogage pour vérifier le parsing
-            console.log('--- TEST PARSING ATTACHMENTS ---');
-            const postWithAttachments = finalPosts.find(p => p.attachments && p.attachments.length > 0);
-            if (postWithAttachments) {
-                 console.log(`✅ Exemple de post avec attachments (Jour ${postWithAttachments.dayNumber}):`, postWithAttachments);
-            } else {
-                 console.log('❌ Aucun post avec attachments trouvé. Le fichier outbox.json pourrait ne pas en contenir.');
-            }
-            console.log('---------------------------------');
 
             console.log(`✅ ${finalPosts.length} posts Mastodon importés`);
             console.log(`   - ${postsWithDay.length} posts avec numéro de jour (J1 à J${maxDayNumber})`);
@@ -622,7 +587,7 @@ const PhotoData = {
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
-    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.readonly'
+    SCOPES: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 };
 
 const GoogleDriveAPI = {
@@ -657,35 +622,6 @@ const GoogleDriveAPI = {
             });
             return response.result.files || [];
         } catch (e) { console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e); return []; }
-    },
-
-    // NOUVELLE FONCTION: listAllFiles pour trouver tous les fichiers dans un dossier et ses sous-dossiers
-    async listAllFiles(folderId, allFiles = []) {
-        let pageToken = null;
-        try {
-            do {
-                const response = await gapi.client.drive.files.list({
-                    q: `'${folderId}' in parents and trashed=false`,
-                    fields: 'nextPageToken, files(id, name, webContentLink, thumbnailLink, mimeType, mimeType)',
-                    pageToken: pageToken
-                });
-                
-                const files = response.result.files || [];
-                for (const file of files) {
-                    if (file.mimeType === 'application/vnd.google-apps.folder') {
-                        // C'est un dossier, on recherche récursivement
-                        await this.listAllFiles(file.id, allFiles);
-                    } else {
-                        // C'est un fichier, on l'ajoute
-                        allFiles.push(file);
-                    }
-                }
-                pageToken = response.result.nextPageToken;
-            } while (pageToken);
-        } catch (e) {
-            console.error('❌ Erreur listAllFiles:', e);
-        }
-        return allFiles;
     },
 
     // NOUVEAU: Fonction pour charger une photo en base64 (utilisée seulement à la demande)
@@ -2520,16 +2456,14 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V4.5 - Recherche des photos dans l'arborescence d'origine du blog)
+// Page Memoire (V4.1 - CORRECTION APPELS API)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
     const [currentPost, setCurrentPost] = React.useState(null);
     const [dayPhotos, setDayPhotos] = React.useState([]);
-    const [blogPhotos, setBlogPhotos] = React.useState([]);
     const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
     const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
-    const [photoSource, setPhotoSource] = React.useState('day'); // 'day' ou 'blog'
 
     const isMastodonImported = MastodonData.isImported();
     const mastodonStats = MastodonData.getStats();
@@ -2538,22 +2472,13 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     React.useEffect(() => {
         const loadDataForDay = async () => {
             let hasContent = false;
-            // Charger les données du blog
             if (isMastodonImported) {
                 const post = MastodonData.getPostByDay(currentDay);
                 setCurrentPost(post);
-                if (post) {
-                    hasContent = true;
-                    await loadBlogPhotos(post);
-                } else {
-                    setBlogPhotos([]);
-                }
+                if (post) hasContent = true;
             } else {
                 setCurrentPost(null);
-                setBlogPhotos([]);
             }
-
-            // Charger les photos de l'index pour le jour en cours, quel que soit l'onglet
             if (isPhotoIndexImported) {
                 const photosInIndex = PhotoData.getPhotosByDay(currentDay);
                 if (photosInIndex.length > 0) {
@@ -2578,10 +2503,12 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const loadPhotosForDay = async (day) => {
         setIsLoadingPhotos(true);
         setDayPhotos([]);
+
         if (!GoogleDriveAPI.isSignedIn) {
             setIsLoadingPhotos(false);
             return;
         }
+
         const photoIndexEntries = PhotoData.getPhotosByDay(day);
         if (photoIndexEntries.length === 0) {
             setIsLoadingPhotos(false);
@@ -2596,6 +2523,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
         let allFoundPhotos = [];
         const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+
         const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
         if (!mediasFolder) { setIsLoadingPhotos(false); return; }
         const photosRootFolder = await GoogleDriveAPI._findFile('Photos', mediasFolder.id, FOLDER_MIME_TYPE);
@@ -2606,6 +2534,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             if (dayFolder) {
                 const filesInDrive = await GoogleDriveAPI.listPhotoFiles(dayFolder.id);
                 const driveFilesMap = new Map(filesInDrive.map(file => [file.name, file]));
+
                 const photosInThisFolder = foldersToQuery[folderName];
                 for (const filename of photosInThisFolder) {
                     if (driveFilesMap.has(filename)) {
@@ -2625,48 +2554,6 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         setIsLoadingPhotos(false);
     };
 
-    const loadBlogPhotos = async (post) => {
-        if (!post || !GoogleDriveAPI.isSignedIn) {
-            setBlogPhotos([]);
-            return;
-        }
-        
-        // --- NOUVELLE LOGIQUE POUR TROUVER LES PHOTOS DU BLOG ---
-        const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
-        
-        // 1. Trouver le dossier racine de l'archive Mastodon
-        const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
-        if (!mediasFolder) { setBlogPhotos([]); return; }
-        const mastodonFolder = await GoogleDriveAPI._findFile('Mastodon', mediasFolder.id, FOLDER_MIME_TYPE);
-        if (!mastodonFolder) { setBlogPhotos([]); return; }
-        const mediaAttachmentsFolder = await GoogleDriveAPI._findFile('media_attachments', mastodonFolder.id, FOLDER_MIME_TYPE);
-        if (!mediaAttachmentsFolder) { setBlogPhotos([]); return; }
-        
-        // 2. Lister tous les fichiers de l'arborescence `media_attachments`
-        const allBlogFiles = await GoogleDriveAPI.listAllFiles(mediaAttachmentsFolder.id);
-        const driveFilesMap = new Map(allBlogFiles.map(file => [file.name, file]));
-        
-        // 3. Associer les photos du post avec les fichiers trouvés sur Drive
-        const photosForPost = post.attachments.map(att => {
-            // Le chemin relatif est stocké dans l'objet 'attachments'
-            const filename = att.url.split('/').pop();
-            const driveFile = driveFilesMap.get(filename);
-            
-            if (driveFile) {
-                return {
-                    id: driveFile.id,
-                    filename: filename,
-                    webContentLink: driveFile.webContentLink,
-                    thumbnailLink: cleanThumbnailLink(driveFile.thumbnailLink),
-                    mimeType: driveFile.mimeType || 'image/jpeg'
-                };
-            }
-            return null;
-        }).filter(Boolean);
-
-        setBlogPhotos(photosForPost);
-    };
-
     const handleDaySelect = (day) => setCurrentDay(day);
     const createSessionFromPost = (post) => {
         const game = getGameById(7);
@@ -2674,18 +2561,14 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         onCreateSession({ type: 'game', game: { ...game, title: post.title || `Jour ${post.dayNumber} - Souvenir` }, postContent: postPreview });
     };
     const createSessionFromPhoto = (photo) => {
-        const game = { id: 1, title: `Souvenir photo du jour ${photo.day || 'inconnu'}` };
+        const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` };
         const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`;
         onCreateSession({ type: 'game', game: game, postContent: initialNoteContent });
     };
-    const handlePhotoSelect = (index, source) => {
-        setSelectedPhotoIndex(index);
-        setPhotoSource(source);
-    };
+    const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
     const handlePhotoNavigate = (direction) => {
-        const photos = photoSource === 'blog' ? blogPhotos : dayPhotos;
         if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedPhotoIndex - 1);
-        else if (direction === 'next' && selectedPhotoIndex < photos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1);
+        else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1);
     };
 
     if (isCreatingSession) return <LoadingSpinner message="Création de session..." size="large" />;
@@ -2699,17 +2582,17 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             </div>
             <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
                 {activeTab === 'photos' ? (
-                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={(index) => handlePhotoSelect(index, 'day')} />
+                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
                 ) : (
                     currentPost ? (
                         <div>
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex flex-col">
                                     <h3 className="text-xl font-bold text-amber-900">{currentPost.title || `Jour ${currentPost.dayNumber}`}</h3>
-                                    {blogPhotos.length > 0 && (
+                                    {dayPhotos.length > 0 && (
                                         <span className="text-sm text-gray-500 mt-1">
                                             <Camera className="w-4 h-4 inline mr-1" />
-                                            {blogPhotos.length} photo{blogPhotos.length > 1 ? 's' : ''} associée{blogPhotos.length > 1 ? 's' : ''}
+                                            {dayPhotos.length} photo{dayPhotos.length > 1 ? 's' : ''} associée{dayPhotos.length > 1 ? 's' : ''}
                                         </span>
                                     )}
                                 </div>
@@ -2719,13 +2602,16 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                                 <p>{currentPost.content}</p>
                             </div>
 
-                            {/* Section pour les miniatures du blog */}
-                            {blogPhotos.length > 0 && (
+                            {/* Nouvelle section pour les miniatures */}
+                            {dayPhotos.length > 0 && (
                                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-4">
-                                    {blogPhotos.map((photo, index) => (
+                                    {dayPhotos.map((photo, index) => (
                                         <button
                                             key={photo.filename}
-                                            onClick={() => handlePhotoSelect(index, 'blog')}
+                                            onClick={() => {
+                                                handlePhotoSelect(index);
+                                                setActiveTab('photos');
+                                            }}
                                             className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500"
                                         >
                                             <img
@@ -2743,15 +2629,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                     )
                 )}
             </div>
-            {selectedPhotoIndex !== null && (
-                <PhotoViewer
-                    photos={photoSource === 'blog' ? blogPhotos : dayPhotos}
-                    selectedIndex={selectedPhotoIndex}
-                    onClose={() => setSelectedPhotoIndex(null)}
-                    onNavigate={handlePhotoNavigate}
-                    onCreateSession={createSessionFromPhoto}
-                />
-            )}
+            {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={handlePhotoNavigate} onCreateSession={createSessionFromPhoto} />}
         </div>
     );
 };
