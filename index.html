@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9a : ammélioration visionneuse (PhotoViewer) </title>
+    <title>🐘 Mémoire du Mékong V0.5.10a : grosses modifications by Claude pour Blog/photo </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -192,7 +192,7 @@ const PhotoGrid = ({ photos, onPhotoSelect }) => {
 };
 
 
-// COMPOSANT: PhotoViewer avec base64 pour grand format
+// MODIFIÉ: PhotoViewer pour supporter les différentes sources
 const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSession }) => {
     const [fullImageSrc, setFullImageSrc] = React.useState('');
     const [isLoadingFullImage, setIsLoadingFullImage] = React.useState(false);
@@ -207,20 +207,22 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
             setIsLoadingFullImage(true);
             setFullImageSrc('');
 
-            const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType || 'image/jpeg');
-            if (base64Src) {
-                setFullImageSrc(base64Src);
+            // Vérifier si c'est une photo avec ID Google Drive
+            if (photo.id && photo.mimeType && GoogleDriveAPI.isSignedIn) {
+                const base64Src = await GoogleDriveAPI.getPhotoAsBase64(photo.id, photo.mimeType);
+                if (base64Src) {
+                    setFullImageSrc(base64Src);
+                } else {
+                    setFullImageSrc(photo.webContentLink);
+                }
             } else {
+                // Fallback sur l'URL directe
                 setFullImageSrc(photo.webContentLink);
             }
             setIsLoadingFullImage(false);
         };
 
-        if (photo.id && photo.mimeType) {
-            loadFullImage();
-        } else {
-            setFullImageSrc(photo.webContentLink);
-        }
+        loadFullImage();
     }, [photo]);
 
     React.useEffect(() => {
@@ -258,7 +260,7 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
                     <img
                         ref={photoRef}
                         src={fullImageSrc}
-                        alt="Photo du voyage"
+                        alt={photo.name || photo.filename || "Photo du voyage"}
                         className="max-w-[90vw] max-h-[85vh] object-contain"
                     />
                 )}
@@ -294,6 +296,21 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
                     <span>Créer une Session</span>
                 </button>
             </div>
+
+            {/* NOUVEAU: Informations sur la photo */}
+            <div className="absolute bottom-6 left-6 z-10 bg-black/50 text-white p-3 rounded-lg max-w-sm">
+                <div className="text-sm">
+                    <div className="font-semibold">{photo.name || photo.filename}</div>
+                    {photo.source && (
+                        <div className="text-xs opacity-75 mt-1">
+                            Source: {photo.source === 'mastodon' ? '📷 Post Mastodon' : '📸 Photos du jour'}
+                        </div>
+                    )}
+                    <div className="text-xs opacity-75 mt-1">
+                        Photo {selectedIndex + 1} sur {photos.length}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
@@ -320,8 +337,8 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
     }
 };
 		
-// ===== MASTODON DATA MANAGEMENT - IMPORT TOUS LES POSTS =====
-	const MastodonData = {
+// ===== MASTODON DATA MANAGEMENT - VERSION COMPLÈTE AVEC PHOTOS =====
+const MastodonData = {
     // Décoder les entités HTML
     decodeHtmlEntities: (text) => {
         const textArea = document.createElement('textarea');
@@ -329,7 +346,27 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
         return textArea.value;
     },
 
-    // Parser le fichier outbox.json - MODIFIÉ POUR IMPORTER TOUS LES POSTS
+    // NOUVEAU: Extraire les attachments image d'un post
+    extractImageAttachments: (attachments) => {
+        if (!Array.isArray(attachments)) return [];
+        
+        return attachments
+            .filter(attachment => 
+                attachment.type === 'Document' && 
+                attachment.mediaType && 
+                attachment.mediaType.startsWith('image/')
+            )
+            .map(attachment => ({
+                url: attachment.url, // URL relative comme "/media_attachments/files/109/209/955/353/491/012/original/0d7b9e9a1db36c97.jpg"
+                name: attachment.name || 'Photo',
+                mediaType: attachment.mediaType,
+                width: attachment.width,
+                height: attachment.height,
+                blurhash: attachment.blurhash
+            }));
+    },
+
+    // Parser le fichier outbox.json - MODIFIÉ POUR INCLURE LES PHOTOS
     parseOutbox: (jsonData) => {
         try {
             const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
@@ -349,49 +386,54 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
             }
 
             // ÉTAPE 1 : Traiter tous les posts et identifier ceux avec/sans numéro de jour
-const allPosts = orderedItems
-    .filter(item => item.type === 'Create' && item.object?.type === 'Note')
-    .map((item, index) => {
-        const note = item.object;
-        const content = note.content || '';
-        
-        // Nettoyer le HTML et décoder les entités HTML
-        const cleanContent = content.replace(/<[^>]*>/g, '');
-        const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
-        
-        // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
-        const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
-        const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-        const hasJourNumber = dayNumber !== null;
-        
-        // NOUVEAU : Extraire le titre
-        let title;
-        if (hasJourNumber) {
-            // Pour les posts avec Jnnn: extraire le titre après
-            const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
-            title = afterJour.split('\n')[0].slice(0, 60).trim();
-            if (title.length === 60) title += '...';
-        } else {
-            // Pour les posts sans Jnnn: utiliser le début comme titre
-            title = decodedContent.split('\n')[0].slice(0, 60).trim();
-            if (title.length === 60) title += '...';
-        }
-        
-        // Nettoyer le titre des emojis excessifs et caractères spéciaux
-        title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
-        
-        return {
-            id: note.id || `post-${index}`,
-            dayNumber,
-            hasJourNumber,
-            title: title || 'Post sans titre', // NOUVEAU
-            content: decodedContent,
-            published: note.published || item.published,
-            attachments: note.attachment || [],
-            url: note.url,
-            originalIndex: index
-        };
-    });
+            const allPosts = orderedItems
+                .filter(item => item.type === 'Create' && item.object?.type === 'Note')
+                .map((item, index) => {
+                    const note = item.object;
+                    const content = note.content || '';
+                    
+                    // Nettoyer le HTML et décoder les entités HTML
+                    const cleanContent = content.replace(/<[^>]*>/g, '');
+                    const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+                    
+                    // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
+                    const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+                    const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+                    const hasJourNumber = dayNumber !== null;
+                    
+                    // Extraire le titre
+                    let title;
+                    if (hasJourNumber) {
+                        // Pour les posts avec Jnnn: extraire le titre après
+                        const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
+                        title = afterJour.split('\n')[0].slice(0, 60).trim();
+                        if (title.length === 60) title += '...';
+                    } else {
+                        // Pour les posts sans Jnnn: utiliser le début comme titre
+                        title = decodedContent.split('\n')[0].slice(0, 60).trim();
+                        if (title.length === 60) title += '...';
+                    }
+                    
+                    // Nettoyer le titre des emojis excessifs et caractères spéciaux
+                    title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
+                    
+                    // NOUVEAU: Extraire les photos du post
+                    const imageAttachments = MastodonData.extractImageAttachments(note.attachment || []);
+                    
+                    return {
+                        id: note.id || `post-${index}`,
+                        dayNumber,
+                        hasJourNumber,
+                        title: title || 'Post sans titre',
+                        content: decodedContent,
+                        published: note.published || item.published,
+                        attachments: note.attachment || [],
+                        imageAttachments, // NOUVEAU: Photos du post
+                        photoCount: imageAttachments.length, // NOUVEAU: Nombre de photos
+                        url: note.url,
+                        originalIndex: index
+                    };
+                });
 
             // ÉTAPE 2 : Séparer les posts avec et sans numéro de jour
             const postsWithDay = allPosts.filter(post => post.hasJourNumber);
@@ -419,6 +461,12 @@ const allPosts = orderedItems
             console.log(`✅ ${finalPosts.length} posts Mastodon importés`);
             console.log(`   - ${postsWithDay.length} posts avec numéro de jour (J1 à J${maxDayNumber})`);
             console.log(`   - ${postsWithoutDay.length} posts additionnels (J${maxDayNumber + 1} à J${maxDayNumber + postsWithoutDay.length})`);
+            
+            // NOUVEAU: Statistiques photos
+            const postsWithPhotos = finalPosts.filter(p => p.photoCount > 0);
+            const totalPhotos = finalPosts.reduce((sum, p) => sum + p.photoCount, 0);
+            console.log(`📷 ${postsWithPhotos.length} posts avec photos`);
+            console.log(`📊 Total photos Mastodon: ${totalPhotos}`);
             
             if (postsWithoutDay.length > 0) {
                 console.log('📋 Posts sans numéro de jour ajoutés :');
@@ -480,16 +528,20 @@ const allPosts = orderedItems
         return posts.length > 0;
     },
 
-    // Obtenir les stats
+    // Obtenir les stats - MODIFIÉ POUR INCLURE LES PHOTOS
     getStats: () => {
         const posts = MastodonData.getPosts();
         const importedAt = Storage.get('mastodon_imported_at');
         const extraPosts = posts.filter(p => p.isExtraPost);
+        const postsWithPhotos = posts.filter(p => p.photoCount > 0);
+        const totalPhotos = posts.reduce((sum, p) => sum + p.photoCount, 0);
         
         return {
             totalPosts: posts.length,
             regularPosts: posts.length - extraPosts.length,
             extraPosts: extraPosts.length,
+            postsWithPhotos: postsWithPhotos.length, // NOUVEAU
+            totalMastodonPhotos: totalPhotos, // NOUVEAU
             dayRange: posts.length > 0 ? {
                 min: Math.min(...posts.map(p => p.dayNumber)),
                 max: Math.max(...posts.map(p => p.dayNumber))
@@ -583,7 +635,7 @@ const PhotoData = {
     }
 };       
 
-// ===== GOOGLE DRIVE API - VERSION STABLE ET CORRIGÉE =====
+// ===== GOOGLE DRIVE API - VERSION COMPLÈTE AVEC PHOTOS MASTODON =====
 const GOOGLE_CONFIG = {
     API_KEY: 'AIzaSyDiyLLN4EsyVREGxF4TzqbuKyugaq4TUXw',
     CLIENT_ID: '82966045106-hso0nr386agcuojllnud0dr41vcsh45a.apps.googleusercontent.com',
@@ -596,21 +648,158 @@ const GoogleDriveAPI = {
     tokenClient: null,
     _folderCache: new Map(),
 
-    async init() { if (this.isInitialized) return; try { console.log('🔄 Initialisation...'); await new Promise(r => gapi.load('client', r)); await gapi.client.init({ apiKey: GOOGLE_CONFIG.API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] }); this.tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CONFIG.CLIENT_ID, scope: GOOGLE_CONFIG.SCOPES, callback: '' }); this.isInitialized = true; console.log('✅ API initialisée'); } catch (e) { console.error('❌ Erreur init API:', e); throw e; } },
-    async signIn() { if (!this.isInitialized) await this.init(); return new Promise((resolve, reject) => { if (!this.tokenClient) return reject(new Error('Token client non initialisé')); this.tokenClient.callback = async (res) => { if (res.error) { this.isSignedIn = false; return reject(new Error(`Erreur OAuth: ${res.error}`)); } try { await gapi.client.drive.files.list({ pageSize: 1 }); this.isSignedIn = true; resolve(true); } catch (e) { this.isSignedIn = false; reject(new Error('Accès API Drive impossible')); } }; const token = gapi.client.getToken(); if (token) { this.isSignedIn = true; resolve(true); } else { this.tokenClient.requestAccessToken({ prompt: 'consent' }); } }); },
-    async signOut() { const token = gapi.client.getToken(); if (token) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); } this.isSignedIn = false; },
-    async getUserInfo() { if (!this.isSignedIn) throw new Error('Non connecté'); try { const response = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v2/userinfo' }); return response.result; } catch (e) { console.error('❌ Erreur getUserInfo:', e); throw e; } },
-    async _findFile(name, parentId, mimeType) { try { const q = `'${parentId}' in parents and name='${name}' and trashed=false` + (mimeType ? ` and mimeType='${mimeType}'` : ''); const response = await gapi.client.drive.files.list({ q, fields: 'files(id, name)', pageSize: 1 }); return response.result.files?.[0] || null; } catch (e) { console.error(`❌ Erreur _findFile ${name}:`, e); return null; } },
-    async _loadJSONFromDrive(fileName) { const fileId = await this._findFileByName(fileName); if (!fileId) throw new Error(`Fichier ${fileName} non trouvé`); try { const response = await gapi.client.drive.files.get({ fileId, alt: 'media' }); return JSON.parse(response.body); } catch (e) { console.error(`❌ Erreur chargement JSON '${fileName}':`, e); throw e; } },
-    async _findFileByName(fileName) { try { const response = await gapi.client.drive.files.list({ q: `name='${fileName}' and trashed=false`, fields: 'files(id)', pageSize: 1 }); return response.result.files?.[0]?.id || null; } catch (e) { console.error(`❌ Erreur recherche ${fileName}:`, e); return null; } },
+    async init() { 
+        if (this.isInitialized) return; 
+        try { 
+            console.log('🔄 Initialisation...'); 
+            await new Promise(r => gapi.load('client', r)); 
+            await gapi.client.init({ 
+                apiKey: GOOGLE_CONFIG.API_KEY, 
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] 
+            }); 
+            this.tokenClient = google.accounts.oauth2.initTokenClient({ 
+                client_id: GOOGLE_CONFIG.CLIENT_ID, 
+                scope: GOOGLE_CONFIG.SCOPES, 
+                callback: '' 
+            }); 
+            this.isInitialized = true; 
+            console.log('✅ API initialisée'); 
+        } catch (e) { 
+            console.error('❌ Erreur init API:', e); 
+            throw e; 
+        } 
+    },
+
+    async signIn() { 
+        if (!this.isInitialized) await this.init(); 
+        return new Promise((resolve, reject) => { 
+            if (!this.tokenClient) return reject(new Error('Token client non initialisé')); 
+            this.tokenClient.callback = async (res) => { 
+                if (res.error) { 
+                    this.isSignedIn = false; 
+                    return reject(new Error(`Erreur OAuth: ${res.error}`)); 
+                } 
+                try { 
+                    await gapi.client.drive.files.list({ pageSize: 1 }); 
+                    this.isSignedIn = true; 
+                    resolve(true); 
+                } catch (e) { 
+                    this.isSignedIn = false; 
+                    reject(new Error('Accès API Drive impossible')); 
+                } 
+            }; 
+            const token = gapi.client.getToken(); 
+            if (token) { 
+                this.isSignedIn = true; 
+                resolve(true); 
+            } else { 
+                this.tokenClient.requestAccessToken({ prompt: 'consent' }); 
+            } 
+        }); 
+    },
+
+    async signOut() { 
+        const token = gapi.client.getToken(); 
+        if (token) { 
+            google.accounts.oauth2.revoke(token.access_token); 
+            gapi.client.setToken(''); 
+        } 
+        this.isSignedIn = false; 
+    },
+
+    async getUserInfo() { 
+        if (!this.isSignedIn) throw new Error('Non connecté'); 
+        try { 
+            const response = await gapi.client.request({ 
+                path: 'https://www.googleapis.com/oauth2/v2/userinfo' 
+            }); 
+            return response.result; 
+        } catch (e) { 
+            console.error('❌ Erreur getUserInfo:', e); 
+            throw e; 
+        } 
+    },
+
+    async _findFile(name, parentId, mimeType) { 
+        try { 
+            const q = `'${parentId}' in parents and name='${name}' and trashed=false` + (mimeType ? ` and mimeType='${mimeType}'` : ''); 
+            const response = await gapi.client.drive.files.list({ 
+                q, 
+                fields: 'files(id, name)', 
+                pageSize: 1 
+            }); 
+            return response.result.files?.[0] || null; 
+        } catch (e) { 
+            console.error(`❌ Erreur _findFile ${name}:`, e); 
+            return null; 
+        } 
+    },
+
+    async _loadJSONFromDrive(fileName) { 
+        const fileId = await this._findFileByName(fileName); 
+        if (!fileId) throw new Error(`Fichier ${fileName} non trouvé`); 
+        try { 
+            const response = await gapi.client.drive.files.get({ 
+                fileId, 
+                alt: 'media' 
+            }); 
+            return JSON.parse(response.body); 
+        } catch (e) { 
+            console.error(`❌ Erreur chargement JSON '${fileName}':`, e); 
+            throw e; 
+        } 
+    },
+
+    async _findFileByName(fileName) { 
+        try { 
+            const response = await gapi.client.drive.files.list({ 
+                q: `name='${fileName}' and trashed=false`, 
+                fields: 'files(id)', 
+                pageSize: 1 
+            }); 
+            return response.result.files?.[0]?.id || null; 
+        } catch (e) { 
+            console.error(`❌ Erreur recherche ${fileName}:`, e); 
+            return null; 
+        } 
+    },
     
-    // CORRECTION: Fonction manquante pour l'import de l'index photos
+    // Fonction pour l'import de l'index photos
     async loadJsonFile(fileName) {
         return await this._loadJSONFromDrive(fileName);
     },
     
-    async loadSessions() { try { return await this._loadJSONFromDrive('mekong_sessions.json'); } catch (e) { console.error('❌ Erreur chargement sessions:', e); return null; } },
-    async saveSessions(sessions) { if (!this.isSignedIn) throw new Error('Pas connecté'); try { const fileName = 'mekong_sessions.json'; let fileId = await this._findFileByName(fileName); const fileMetadata = { name: fileName }; const form = new FormData(); form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' })); form.append('file', new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' })); const url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart` : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'; const response = await fetch(url, { method: fileId ? 'PATCH' : 'POST', headers: { Authorization: `Bearer ${gapi.client.getToken().access_token}` }, body: form }); if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`); return await response.json(); } catch (e) { console.error(`❌ Erreur sauvegarde sessions:`, e); throw e; } },
+    async loadSessions() { 
+        try { 
+            return await this._loadJSONFromDrive('mekong_sessions.json'); 
+        } catch (e) { 
+            console.error('❌ Erreur chargement sessions:', e); 
+            return null; 
+        } 
+    },
+
+    async saveSessions(sessions) { 
+        if (!this.isSignedIn) throw new Error('Pas connecté'); 
+        try { 
+            const fileName = 'mekong_sessions.json'; 
+            let fileId = await this._findFileByName(fileName); 
+            const fileMetadata = { name: fileName }; 
+            const form = new FormData(); 
+            form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' })); 
+            form.append('file', new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' })); 
+            const url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart` : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'; 
+            const response = await fetch(url, { 
+                method: fileId ? 'PATCH' : 'POST', 
+                headers: { Authorization: `Bearer ${gapi.client.getToken().access_token}` }, 
+                body: form 
+            }); 
+            if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`); 
+            return await response.json(); 
+        } catch (e) { 
+            console.error(`❌ Erreur sauvegarde sessions:`, e); 
+            throw e; 
+        } 
+    },
 
     async listPhotoFiles(folderId) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
@@ -621,10 +810,104 @@ const GoogleDriveAPI = {
                 pageSize: 500
             });
             return response.result.files || [];
-        } catch (e) { console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e); return []; }
+        } catch (e) { 
+            console.error(`❌ Erreur listing photos du dossier ${folderId}:`, e); 
+            return []; 
+        }
     },
 
-    // NOUVEAU: Fonction pour charger une photo en base64 (utilisée seulement à la demande)
+    // NOUVEAU: Charger les photos Mastodon pour un post
+    async loadMastodonPhotosForPost(post) {
+        if (!this.isSignedIn) throw new Error('Pas connecté');
+        if (!post.imageAttachments || post.imageAttachments.length === 0) return [];
+
+        try {
+            console.log(`🔄 Chargement ${post.imageAttachments.length} photos Mastodon pour le post J${post.dayNumber}`);
+            
+            // Trouver le dossier Mastodon media_attachments
+            const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+            const mediasFolder = await this._findFile('Medias', 'root', FOLDER_MIME_TYPE);
+            if (!mediasFolder) throw new Error('Dossier Medias non trouvé');
+            
+            const mastodonFolder = await this._findFile('Mastodon', mediasFolder.id, FOLDER_MIME_TYPE);
+            if (!mastodonFolder) throw new Error('Dossier Mastodon non trouvé');
+            
+            const mediaAttachmentsFolder = await this._findFile('media_attachments', mastodonFolder.id, FOLDER_MIME_TYPE);
+            if (!mediaAttachmentsFolder) throw new Error('Dossier media_attachments non trouvé');
+
+            // Charger chaque photo
+            const loadedPhotos = [];
+            for (const attachment of post.imageAttachments) {
+                try {
+                    // L'URL est comme "/media_attachments/files/109/209/955/353/491/012/original/0d7b9e9a1db36c97.jpg"
+                    // On enlève le préfixe "/media_attachments/"
+                    const relativePath = attachment.url.replace(/^\/media_attachments\//, '');
+                    const pathParts = relativePath.split('/');
+                    
+                    console.log(`  🔍 Recherche: ${relativePath}`);
+                    
+                    // Navigation dans l'arborescence Google Drive
+                    let currentFolderId = mediaAttachmentsFolder.id;
+                    
+                    // Pour tous les dossiers (tous sauf le dernier qui est le fichier)
+                    for (let i = 0; i < pathParts.length - 1; i++) {
+                        const folderName = pathParts[i];
+                        const folder = await this._findFile(folderName, currentFolderId, FOLDER_MIME_TYPE);
+                        if (!folder) {
+                            console.warn(`  ⚠️ Dossier ${folderName} non trouvé dans le chemin ${relativePath}`);
+                            break;
+                        }
+                        currentFolderId = folder.id;
+                    }
+                    
+                    // Chercher le fichier image
+                    const fileName = pathParts[pathParts.length - 1];
+                    const imageFile = await this._findFile(fileName, currentFolderId);
+                    
+                    if (imageFile) {
+                        // Récupérer les métadonnées complètes du fichier
+                        const fileDetails = await gapi.client.drive.files.get({
+                            fileId: imageFile.id,
+                            fields: 'id, name, webContentLink, thumbnailLink, mimeType'
+                        });
+                        
+                        loadedPhotos.push({
+                            id: imageFile.id,
+                            filename: fileName,
+                            name: attachment.name || fileName,
+                            webContentLink: fileDetails.result.webContentLink,
+                            thumbnailLink: this.cleanThumbnailLink(fileDetails.result.thumbnailLink),
+                            mimeType: attachment.mediaType || fileDetails.result.mimeType,
+                            width: attachment.width,
+                            height: attachment.height,
+                            originalUrl: attachment.url,
+                            source: 'mastodon' // Identifier la source
+                        });
+                        console.log(`  ✅ Photo trouvée: ${fileName}`);
+                    } else {
+                        console.warn(`  ❌ Fichier image non trouvé: ${fileName} dans ${relativePath}`);
+                    }
+                } catch (error) {
+                    console.error(`  ❌ Erreur chargement photo ${attachment.url}:`, error);
+                }
+            }
+            
+            console.log(`📷 ${loadedPhotos.length}/${post.imageAttachments.length} photos Mastodon chargées pour le post J${post.dayNumber}`);
+            return loadedPhotos;
+            
+        } catch (error) {
+            console.error('❌ Erreur chargement photos Mastodon:', error);
+            return [];
+        }
+    },
+
+    // NOUVEAU: Fonction utilitaire pour nettoyer les liens thumbnail
+    cleanThumbnailLink: (url) => {
+        if (!url) return null;
+        return url.split('=')[0];
+    },
+
+    // Fonction pour charger une photo en base64 (utilisée seulement à la demande)
     async getPhotoAsBase64(fileId, mimeType) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
         try {
@@ -839,6 +1122,11 @@ const GoogleDriveAPI = {
                 description: "Discussion autour d'un post spécifique du blog Mastodon" 
             }
         ];
+
+// AJOUTEZ cette nouvelle fonction après la définition de GAMES
+const getGameById = (gameId) => {
+    return GAMES.find(g => g.id === gameId);
+};		
 
 // ===== CLOUD SESSION STORAGE - VERSION STABLE ET CORRIGÉE =====
 const CloudSessionStorage = {
@@ -2456,14 +2744,17 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V4.1 - CORRECTION APPELS API)
+// ===== MEMORIES PAGE - VERSION COMPLÈTE AVEC PHOTOS MASTODON =====
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
     const [currentPost, setCurrentPost] = React.useState(null);
-    const [dayPhotos, setDayPhotos] = React.useState([]);
+    const [dayPhotos, setDayPhotos] = React.useState([]); // Photos du jour (Photos/)
+    const [mastodonPhotos, setMastodonPhotos] = React.useState([]); // NOUVEAU: Photos du post Mastodon
     const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
+    const [isLoadingMastodonPhotos, setIsLoadingMastodonPhotos] = React.useState(false); // NOUVEAU
     const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
+    const [photoSource, setPhotoSource] = React.useState('day'); // NOUVEAU: 'day' ou 'mastodon'
 
     const isMastodonImported = MastodonData.isImported();
     const mastodonStats = MastodonData.getStats();
@@ -2472,13 +2763,28 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     React.useEffect(() => {
         const loadDataForDay = async () => {
             let hasContent = false;
+            
+            // Charger le post Mastodon pour ce jour
             if (isMastodonImported) {
                 const post = MastodonData.getPostByDay(currentDay);
                 setCurrentPost(post);
-                if (post) hasContent = true;
+                if (post) {
+                    hasContent = true;
+                    // NOUVEAU: Charger les photos Mastodon si le post en a
+                    if (post.photoCount > 0) {
+                        await loadMastodonPhotosForPost(post);
+                    } else {
+                        setMastodonPhotos([]);
+                    }
+                } else {
+                    setMastodonPhotos([]);
+                }
             } else {
                 setCurrentPost(null);
+                setMastodonPhotos([]);
             }
+            
+            // Charger les photos du jour (dossier Photos/)
             if (isPhotoIndexImported) {
                 const photosInIndex = PhotoData.getPhotosByDay(currentDay);
                 if (photosInIndex.length > 0) {
@@ -2490,11 +2796,42 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             } else {
                 setDayPhotos([]);
             }
-            if (!hasContent) setDayPhotos([]);
+            
+            if (!hasContent) {
+                setDayPhotos([]);
+            }
         };
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
+    // NOUVEAU: Charger les photos Mastodon pour un post
+    const loadMastodonPhotosForPost = async (post) => {
+        if (!post || post.photoCount === 0) {
+            setMastodonPhotos([]);
+            return;
+        }
+
+        setIsLoadingMastodonPhotos(true);
+        setMastodonPhotos([]);
+
+        if (!GoogleDriveAPI.isSignedIn) {
+            console.warn('Non connecté à Google Drive - photos Mastodon non disponibles');
+            setIsLoadingMastodonPhotos(false);
+            return;
+        }
+
+        try {
+            const loadedPhotos = await GoogleDriveAPI.loadMastodonPhotosForPost(post);
+            setMastodonPhotos(loadedPhotos);
+        } catch (error) {
+            console.error('Erreur chargement photos Mastodon:', error);
+            setMastodonPhotos([]);
+        } finally {
+            setIsLoadingMastodonPhotos(false);
+        }
+    };
+
+    // Fonction existante pour charger les photos du jour
     const cleanThumbnailLink = (url) => {
         if (!url) return null;
         return url.split('=')[0];
@@ -2544,7 +2881,8 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                             filename: filename,
                             webContentLink: fileData.webContentLink,
                             thumbnailLink: cleanThumbnailLink(fileData.thumbnailLink),
-                            mimeType: fileData.mimeType || 'image/jpeg'
+                            mimeType: fileData.mimeType || 'image/jpeg',
+                            source: 'day' // Identifier la source
                         });
                     }
                 }
@@ -2555,87 +2893,214 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     };
 
     const handleDaySelect = (day) => setCurrentDay(day);
+    
     const createSessionFromPost = (post) => {
         const game = getGameById(7);
         const postPreview = post.content.slice(0, 200) + '...';
-        onCreateSession({ type: 'game', game: { ...game, title: post.title || `Jour ${post.dayNumber} - Souvenir` }, postContent: postPreview });
+        onCreateSession({ 
+            type: 'game', 
+            game: { ...game, title: post.title || `Jour ${post.dayNumber} - Souvenir` }, 
+            postContent: postPreview 
+        });
     };
+    
     const createSessionFromPhoto = (photo) => {
-        const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` };
-        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`;
+        const isFromMastodon = photo.source === 'mastodon';
+        const game = { 
+            id: 1, 
+            title: `Souvenir photo ${isFromMastodon ? 'du post' : 'du jour'} ${currentDay}` 
+        };
+        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.name || photo.filename}`;
         onCreateSession({ type: 'game', game: game, postContent: initialNoteContent });
     };
-    const handlePhotoSelect = (index) => setSelectedPhotoIndex(index);
+    
+    // MODIFIÉ: Gestion de la sélection de photos avec source
+    const handlePhotoSelect = (index, source = 'day') => {
+        setSelectedPhotoIndex(index);
+        setPhotoSource(source);
+    };
+    
     const handlePhotoNavigate = (direction) => {
-        if (direction === 'prev' && selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedPhotoIndex - 1);
-        else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) setSelectedPhotoIndex(selectedPhotoIndex + 1);
+        const currentPhotos = photoSource === 'mastodon' ? mastodonPhotos : dayPhotos;
+        if (direction === 'prev' && selectedPhotoIndex > 0) {
+            setSelectedPhotoIndex(selectedPhotoIndex - 1);
+        } else if (direction === 'next' && selectedPhotoIndex < currentPhotos.length - 1) {
+            setSelectedPhotoIndex(selectedPhotoIndex + 1);
+        }
     };
 
     if (isCreatingSession) return <LoadingSpinner message="Création de session..." size="large" />;
 
     return (
         <div className="space-y-6 fade-in">
-            <Timeline currentDay={currentDay} maxDay={mastodonStats?.dayRange?.max || 275} onDaySelect={handleDaySelect} />
+            {/* Timeline existante */}
+            <Timeline 
+                currentDay={currentDay} 
+                maxDay={mastodonStats?.dayRange?.max || 275} 
+                onDaySelect={handleDaySelect} 
+            />
+            
+            {/* Tabs existants */}
             <div className="flex justify-center border-b border-gray-200">
-                <button onClick={() => setActiveTab('blog')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isMastodonImported}><BookOpen className="w-5 h-5 inline mr-2" />Blog</button>
-                <button onClick={() => setActiveTab('photos')} className={`px-6 py-3 text-sm font-semibold ${activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`} disabled={!isPhotoIndexImported}><Camera className="w-5 h-5 inline mr-2" />Photos</button>
+                <button 
+                    onClick={() => setActiveTab('blog')} 
+                    className={`px-6 py-3 text-sm font-semibold ${
+                        activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'
+                    }`} 
+                    disabled={!isMastodonImported}
+                >
+                    <BookOpen className="w-5 h-5 inline mr-2" />
+                    Blog
+                </button>
+                <button 
+                    onClick={() => setActiveTab('photos')} 
+                    className={`px-6 py-3 text-sm font-semibold ${
+                        activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'
+                    }`} 
+                    disabled={!isPhotoIndexImported}
+                >
+                    <Camera className="w-5 h-5 inline mr-2" />
+                    Photos
+                </button>
             </div>
+            
+            {/* Contenu principal */}
             <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
                 {activeTab === 'photos' ? (
-                    isLoadingPhotos ? <LoadingSpinner message="Chargement des photos..." /> : <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
+                    // Onglet Photos (existant)
+                    isLoadingPhotos ? (
+                        <LoadingSpinner message="Chargement des photos..." />
+                    ) : (
+                        <PhotoGrid photos={dayPhotos} onPhotoSelect={(index) => handlePhotoSelect(index, 'day')} />
+                    )
                 ) : (
+                    // Onglet Blog (modifié pour inclure les photos Mastodon)
                     currentPost ? (
                         <div>
+                            {/* En-tête du post avec compteurs */}
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex flex-col">
-                                    <h3 className="text-xl font-bold text-amber-900">{currentPost.title || `Jour ${currentPost.dayNumber}`}</h3>
-                                    {dayPhotos.length > 0 && (
-                                        <span className="text-sm text-gray-500 mt-1">
-                                            <Camera className="w-4 h-4 inline mr-1" />
-                                            {dayPhotos.length} photo{dayPhotos.length > 1 ? 's' : ''} associée{dayPhotos.length > 1 ? 's' : ''}
-                                        </span>
-                                    )}
+                                    <h3 className="text-xl font-bold text-amber-900">
+                                        {currentPost.title || `Jour ${currentPost.dayNumber}`}
+                                    </h3>
+                                    
+                                    {/* NOUVEAU: Affichage du nombre de photos avec icônes distinctes */}
+                                    <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
+                                        {currentPost.photoCount > 0 && (
+                                            <span className="flex items-center">
+                                                📷 {currentPost.photoCount} photo{currentPost.photoCount > 1 ? 's' : ''} du post
+                                            </span>
+                                        )}
+                                        {dayPhotos.length > 0 && (
+                                            <span className="flex items-center">
+                                                📸 {dayPhotos.length} photo{dayPhotos.length > 1 ? 's' : ''} du jour
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <button onClick={() => createSessionFromPost(currentPost)} className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><Plus className="w-4 h-4" /><span>Session</span></button>
+                                <button 
+                                    onClick={() => createSessionFromPost(currentPost)} 
+                                    className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>Session</span>
+                                </button>
                             </div>
+                            
+                            {/* Contenu du post */}
                             <div className="prose max-w-none mb-6">
                                 <p>{currentPost.content}</p>
                             </div>
 
-                            {/* Nouvelle section pour les miniatures */}
+                            {/* NOUVEAU: Section photos du post Mastodon */}
+                            {currentPost.photoCount > 0 && (
+                                <div className="mb-6">
+                                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                        📷 Photos du post
+                                    </h4>
+                                    {isLoadingMastodonPhotos ? (
+                                        <LoadingSpinner message="Chargement des photos du post..." />
+                                    ) : mastodonPhotos.length > 0 ? (
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                            {mastodonPhotos.map((photo, index) => (
+                                                <button
+                                                    key={photo.id || index}
+                                                    onClick={() => handlePhotoSelect(index, 'mastodon')}
+                                                    className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500 group"
+                                                    title={photo.name}
+                                                >
+                                                    <img
+                                                        src={photo.thumbnailLink || photo.webContentLink}
+                                                        alt={photo.name}
+                                                        loading="lazy"
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-6 bg-gray-50 rounded-lg">
+                                            <Camera className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                            <p className="text-gray-500 text-sm">
+                                                Photos du post non disponibles
+                                                {!GoogleDriveAPI.isSignedIn && ' (connexion Google Drive requise)'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Section photos du jour (existante, modifiée) */}
                             {dayPhotos.length > 0 && (
-                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-4">
-                                    {dayPhotos.map((photo, index) => (
-                                        <button
-                                            key={photo.filename}
-                                            onClick={() => {
-                                                handlePhotoSelect(index);
-                                                setActiveTab('photos');
-                                            }}
-                                            className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                        >
-                                            <img
-                                                src={photo.thumbnailLink}
-                                                alt={`Thumbnail of ${photo.filename}`}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </button>
-                                    ))}
+                                <div>
+                                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                        📸 Photos du jour
+                                    </h4>
+                                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                                        {dayPhotos.map((photo, index) => (
+                                            <button
+                                                key={photo.filename}
+                                                onClick={() => handlePhotoSelect(index, 'day')}
+                                                className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500 group"
+                                            >
+                                                <img
+                                                    src={photo.thumbnailLink}
+                                                    alt={photo.filename}
+                                                    loading="lazy"
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <div className="text-center py-12 text-gray-500"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Aucun post de blog pour ce jour.</p></div>
+                        // Pas de post pour ce jour
+                        <div className="text-center py-12 text-gray-500">
+                            <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                            <p>Aucun post de blog pour ce jour.</p>
+                        </div>
                     )
                 )}
             </div>
-            {selectedPhotoIndex !== null && <PhotoViewer photos={dayPhotos} selectedIndex={selectedPhotoIndex} onClose={() => setSelectedPhotoIndex(null)} onNavigate={handlePhotoNavigate} onCreateSession={createSessionFromPhoto} />}
+            
+            {/* MODIFIÉ: PhotoViewer avec source dynamique */}
+            {selectedPhotoIndex !== null && (
+                <PhotoViewer 
+                    photos={photoSource === 'mastodon' ? mastodonPhotos : dayPhotos} 
+                    selectedIndex={selectedPhotoIndex} 
+                    onClose={() => setSelectedPhotoIndex(null)} 
+                    onNavigate={handlePhotoNavigate} 
+                    onCreateSession={createSessionFromPhoto} 
+                />
+            )}
         </div>
     );
 };
 		
 		
-// ====Pages Config réglages Settings  =====		
+// ===== SETTINGS PAGE - MISE À JOUR AVEC STATS PHOTOS MASTODON =====
 const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
     const [mastodonImportStatus, setMastodonImportStatus] = React.useState('');
     const [isImportingMastodon, setIsImportingMastodon] = React.useState(false);
@@ -2648,6 +3113,7 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
 
     const { isConnected, isLoading, userInfo, signIn, signOut } = googleAuth;
 
+    // MODIFIÉ: Stats enrichies avec photos Mastodon
     const mastodonStats = MastodonData.getStats();
     const isMastodonImported = MastodonData.isImported();
     
@@ -2775,6 +3241,7 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                 onSignOut={onGoogleDisconnect || signOut}
             />
 
+            {/* Section Index des Photos (inchangée) */}
             <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Index des Photos</h3>
                 {isPhotoIndexImported ? (
@@ -2843,6 +3310,7 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                 )}
             </div>
             
+            {/* MODIFIÉ: Section Blog Mastodon avec stats photos */}
             <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Blog Mastodon</h3>
                 {isMastodonImported ? (
@@ -2853,6 +3321,12 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                                 <div className="text-sm text-green-700">
                                     {mastodonStats.totalPosts} posts • Jours {mastodonStats.dayRange?.min}-{mastodonStats.dayRange?.max}
                                 </div>
+                                {/* NOUVEAU: Affichage des stats photos Mastodon */}
+                                {mastodonStats.totalMastodonPhotos > 0 && (
+                                    <div className="text-sm text-green-700">
+                                        📷 {mastodonStats.totalMastodonPhotos} photos dans {mastodonStats.postsWithPhotos} posts
+                                    </div>
+                                )}
                                 <div className="text-xs text-green-600 mt-1">
                                     Importé le {new Date(mastodonStats.importedAt).toLocaleDateString('fr-FR')}
                                 </div>
@@ -2911,6 +3385,7 @@ const SettingsPage = ({ onReset, googleAuth, onGoogleDisconnect }) => {
                 )}
             </div>
 
+            {/* Section Données Générales (inchangée) */}
             <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Données Générales</h3>
                 <div>
