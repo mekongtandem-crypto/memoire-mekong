@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.9e : revision affichage blog (Mastodon data) </title>
+    <title>🐘 Mémoire du Mékong V0.5.9e : revision parsing outbox (mastodon date) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -334,7 +334,6 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
         try {
             const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
             
-            // Gérer la structure ActivityPub complète avec @context
             let orderedItems;
             if (data.orderedItems) {
                 orderedItems = data.orderedItems;
@@ -349,50 +348,75 @@ const PhotoViewer = ({ photos, selectedIndex, onClose, onNavigate, onCreateSessi
             }
 
             // ÉTAPE 1 : Traiter tous les posts et identifier ceux avec/sans numéro de jour
-const allPosts = orderedItems
-    .filter(item => item.type === 'Create' && item.object?.type === 'Note')
-    .map((item, index) => {
-        const note = item.object;
-        const content = note.content || '';
-        
-        // Nettoyer le HTML et décoder les entités HTML
-        const cleanContent = content.replace(/<[^>]*>/g, '');
-        const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
-        
-        // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
-        const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
-        const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
-        const hasJourNumber = dayNumber !== null;
-        
-        // NOUVEAU : Extraire le titre
-        let title;
-        if (hasJourNumber) {
-            // Pour les posts avec Jnnn: extraire le titre après
-            const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
-            title = afterJour.split('\n')[0].slice(0, 60).trim();
-            if (title.length === 60) title += '...';
-        } else {
-            // Pour les posts sans Jnnn: utiliser le début comme titre
-            title = decodedContent.split('\n')[0].slice(0, 60).trim();
-            if (title.length === 60) title += '...';
-        }
-        
-        // Nettoyer le titre des emojis excessifs et caractères spéciaux
-        title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
-        
-        return {
-            id: note.id || `post-${index}`,
-            dayNumber,
-            hasJourNumber,
-            title: title || 'Post sans titre', // NOUVEAU
-            content: decodedContent,
-            published: note.published || item.published,
-            // ATTENTION : Correction ici, on utilise 'attachments' au lieu de 'media_attachments'
-            attachments: note.attachments || [],
-            url: note.url,
-            originalIndex: index
-        };
-    });
+            const allPosts = orderedItems
+                .filter(item => item.type === 'Create' && item.object?.type === 'Note')
+                .map((item, index) => {
+                    const note = item.object;
+                    const content = note.content || '';
+                    
+                    // Nettoyer le HTML et décoder les entités HTML
+                    const cleanContent = content.replace(/<[^>]*>/g, '');
+                    const decodedContent = MastodonData.decodeHtmlEntities(cleanContent);
+                    
+                    // Extraire le numéro de jour - format "Jnnn:" ou "Jnnn "
+                    const dayMatch = decodedContent.match(/^J(\d{1,3})[\s:]/);
+                    const dayNumber = dayMatch ? parseInt(dayMatch[1]) : null;
+                    const hasJourNumber = dayNumber !== null;
+                    
+                    // NOUVEAU : Extraire le titre
+                    let title;
+                    if (hasJourNumber) {
+                        const afterJour = decodedContent.replace(/^J\d{1,3}[\s:]+/, '');
+                        title = afterJour.split('\n')[0].slice(0, 60).trim();
+                        if (title.length === 60) title += '...';
+                    } else {
+                        title = decodedContent.split('\n')[0].slice(0, 60).trim();
+                        if (title.length === 60) title += '...';
+                    }
+                    
+                    title = title.replace(/[⛩️🦩✈️🇨🇵🔥⚡🌟🎯💪🚀✨🎉🎊🎈🎁🎀🎇🎆]/g, '').replace(/\s+/g, ' ').trim();
+                    
+                    // --- CORRECTION MAJEURE ICI ---
+                    // Logique pour trouver les "media_attachments" qui sont parfois imbriqués
+                    let foundAttachments = [];
+                    // Cherche dans le tableau `attachments` de l'objet Note
+                    if (note.attachments && Array.isArray(note.attachments)) {
+                        foundAttachments = note.attachments;
+                    } 
+                    // Si ce n'est pas trouvé là, cherche dans l'objet lui-même (certains exports les placent au même niveau que l'objet Note)
+                    else if (note.attachment && Array.isArray(note.attachment)) {
+                        foundAttachments = note.attachment;
+                    }
+                    // Finalement, si une "pièce jointe de media" est trouvée, on l'utilise
+                    if (item.object.media_attachments && Array.isArray(item.object.media_attachments)) {
+                        foundAttachments = item.object.media_attachments;
+                    }
+
+                    // On filtre pour ne garder que les images et on les transforme
+                    const photos = foundAttachments.filter(att => att.type === 'Image' && att.url);
+                    
+                    // Si aucune photo n'est trouvée avec le type 'Image', on essaie de trouver un objet plus générique
+                    // C'est une correction pour le cas où le type serait différent
+                    if (photos.length === 0) {
+                        const genericPhotos = foundAttachments.filter(att => att.url);
+                        if (genericPhotos.length > 0) {
+                             console.warn('⚠️ Found generic attachments, assuming they are photos:', genericPhotos);
+                             photos.push(...genericPhotos);
+                        }
+                    }
+
+                    return {
+                        id: note.id || `post-${index}`,
+                        dayNumber,
+                        hasJourNumber,
+                        title: title || 'Post sans titre',
+                        content: decodedContent,
+                        published: note.published || item.published,
+                        attachments: photos, // On s'assure que c'est bien le tableau d'images
+                        url: note.url,
+                        originalIndex: index
+                    };
+                });
 
             // ÉTAPE 2 : Séparer les posts avec et sans numéro de jour
             const postsWithDay = allPosts.filter(post => post.hasJourNumber);
@@ -405,7 +429,7 @@ const allPosts = orderedItems
             const maxDayNumber = postsWithDay.length > 0 ? Math.max(...postsWithDay.map(p => p.dayNumber)) : 0;
             postsWithoutDay.forEach((post, index) => {
                 post.dayNumber = maxDayNumber + index + 1;
-                post.isExtraPost = true; // Marquer comme post additionnel
+                post.isExtraPost = true;
             });
 
             // ÉTAPE 5 : Combiner tous les posts
