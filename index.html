@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.11c : Revision de Memoire/blog (Memories page revu car perte de photo)  </title>
+    <title>🐘 Mémoire du Mékong V0.5.11d : Revision de Memoire/blog (Memories page revu car perte de photo)  </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2520,7 +2520,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V0.5.9g CORRIGÉE - Restauration onglet Photos + Résolution URLs blog)
+// Page Memoire (V0.5.9g CORRIGÉE - Restauration logique Photos qui fonctionnait)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [currentDay, setCurrentDay] = React.useState(1);
     const [activeTab, setActiveTab] = React.useState('blog');
@@ -2616,13 +2616,11 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         return url.split('=')[0];
     };
 
+    // RESTAURÉ : Logique EXACTE de la v0.5.5.2 qui fonctionnait (SANS vérification isSignedIn)
     const loadPhotosForDay = async (day) => {
         setIsLoadingPhotos(true);
         setDayPhotos([]);
-        if (!GoogleDriveAPI.isSignedIn) {
-            setIsLoadingPhotos(false);
-            return;
-        }
+        
         const photoIndexEntries = PhotoData.getPhotosByDay(day);
         if (photoIndexEntries.length === 0) {
             setIsLoadingPhotos(false);
@@ -2637,6 +2635,8 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
         let allFoundPhotos = [];
         const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+
+        // Utilisation de _findFile comme dans la version qui fonctionnait
         const mediasFolder = await GoogleDriveAPI._findFile('Medias', 'root', FOLDER_MIME_TYPE);
         if (!mediasFolder) { setIsLoadingPhotos(false); return; }
         const photosRootFolder = await GoogleDriveAPI._findFile('Photos', mediasFolder.id, FOLDER_MIME_TYPE);
@@ -2647,6 +2647,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             if (dayFolder) {
                 const filesInDrive = await GoogleDriveAPI.listPhotoFiles(dayFolder.id);
                 const driveFilesMap = new Map(filesInDrive.map(file => [file.name, file]));
+                
                 const photosInThisFolder = foldersToQuery[folderName];
                 for (const filename of photosInThisFolder) {
                     if (driveFilesMap.has(filename)) {
