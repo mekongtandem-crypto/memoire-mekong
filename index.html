@@ -214,15 +214,15 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
                     return (
                         <div key={day} className="flex flex-col items-center h-16">
                             {/* NOUVEAU: Titre alterné - en haut pour jours impairs */}
-                            <div className="h-4 flex items-center justify-center">
+                            <div className="h-4 flex items-center justify-center overflow-visible">
                                 {title && titleAtTop && (
-                                    <div className="text-xs text-gray-600 font-medium">
+                                    <div className="text-xs text-gray-600 font-medium whitespace-nowrap">
                                         {title}
                                     </div>
                                 )}
                             </div>
                             
-                            {/* Bouton du jour - RÉDUIT */}
+                            {/* Bouton du jour - COMPACT AVEC ICÔNES */}
                             <button
                                 ref={isCurrent ? dayRef : null}
                                 onClick={() => onDaySelect(day)}
@@ -243,18 +243,18 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
                                     {isDecade || day === 1 || day === maxDay ? day : ''}
                                 </span>
                                 
-                                {/* NOUVEAU: Indicateurs visuels compacts */}
+                                {/* NOUVEAU: Indicateurs visuels intégrés */}
                                 {indicators && (
-                                    <div className="text-xs leading-none">
+                                    <span className="text-xs leading-none -mt-0.5">
                                         {indicators}
-                                    </div>
+                                    </span>
                                 )}
                             </button>
 
                             {/* NOUVEAU: Titre alterné - en bas pour jours pairs */}
-                            <div className="h-4 flex items-center justify-center">
+                            <div className="h-4 flex items-center justify-center overflow-visible">
                                 {title && !titleAtTop && (
-                                    <div className="text-xs text-gray-600 font-medium">
+                                    <div className="text-xs text-gray-600 font-medium whitespace-nowrap">
                                         {title}
                                     </div>
                                 )}
