@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.3 : refonte Memorie page (étape 3) </title>
+    <title>🐘 Mémoire du Mékong V0.6.3c : refonte Memorie page (étape 3) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2989,12 +2989,32 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         }
     };
 
-    // Obtenir le titre du jour (priorité : nom du dossier photo, sinon titre du post)
+    // Nettoyer le nom du dossier photo pour affichage
+    const cleanFolderName = (folderName) => {
+        if (!folderName) return '';
+        
+        // Extraire le numéro au début (ex: "057.Marionettes sur l_eau")
+        const match = folderName.match(/^(\d+)\.(.+)$/);
+        if (match) {
+            const dayNum = parseInt(match[1], 10); // Convertir 057 -> 57
+            const title = match[2]
+                .replace(/_/g, ' ') // Remplacer _ par espaces
+                .replace(/\s+/g, ' ') // Espaces multiples
+                .trim();
+            
+            return `Jour ${dayNum} : ${title}`;
+        }
+        
+        // Si le format ne correspond pas, retourner tel quel
+        return folderName;
+    };
+
+    // Obtenir le titre du jour (priorité : nom du dossier photo nettoyé, sinon titre du post)
     const getDayTitle = () => {
         // D'abord, chercher le nom du dossier photo
         const photosInIndex = PhotoData.getPhotosByDay(currentDay);
         if (photosInIndex.length > 0) {
-            return photosInIndex[0].folderName;
+            return cleanFolderName(photosInIndex[0].folderName);
         }
         
         // Sinon, utiliser le titre du post s'il existe
