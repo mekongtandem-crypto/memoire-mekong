@@ -1961,26 +1961,27 @@ const ForceGoogleConnection = ({ onSignIn }) => (
 
 // =========== MAIN PAGES =====
 		
-		// ===== BANDEAU DE CONNEXION DISCRET =====
+		// ===== BANDEAU DE CONNEXION COMPACT =====
 const ConnectionBanner = ({ connectionMode, googleAuth }) => {
+    // Logique simplifiée : bandeau seulement si jamais connecté OU déconnecté
     if (connectionMode === 'connected' || connectionMode === 'checking') {
-        return null; // Pas de bandeau si connecté ou en cours de vérification
+        return null;
     }
 
     const getBannerContent = () => {
         if (connectionMode === 'never-connected') {
             return {
                 icon: '☁️',
-                title: 'Connexion Google Drive recommandée',
-                message: 'Connectez-vous pour synchroniser vos sessions entre appareils et avec Tom/Lambert',
-                buttonText: 'Se connecter'
+                message: 'Connexion Google Drive recommandée pour synchroniser vos sessions',
+                buttonText: 'Se connecter',
+                style: 'bg-blue-50 border-blue-200 text-blue-800'
             };
         } else if (connectionMode === 'disconnected') {
             return {
                 icon: '⚠️',
-                title: 'Connexion Google Drive perdue',
-                message: 'Reconnectez-vous pour synchroniser vos nouvelles sessions',
-                buttonText: 'Reconnecter'
+                message: 'Connexion Google Drive perdue - Reconnectez-vous pour synchroniser',
+                buttonText: 'Reconnecter',
+                style: 'bg-amber-50 border-amber-200 text-amber-800'
             };
         }
         return null;
@@ -1990,19 +1991,16 @@ const ConnectionBanner = ({ connectionMode, googleAuth }) => {
     if (!content) return null;
 
     return (
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
+        <div className={`${content.style} border rounded-lg px-4 py-2 mb-4`}>
             <div className="flex items-center justify-between">
-                <div className="flex items-start space-x-3">
-                    <span className="text-2xl">{content.icon}</span>
-                    <div className="flex-1">
-                        <h3 className="text-amber-800 font-semibold text-sm">{content.title}</h3>
-                        <p className="text-amber-700 text-sm mt-1">{content.message}</p>
-                    </div>
+                <div className="flex items-center space-x-2">
+                    <span className="text-lg">{content.icon}</span>
+                    <span className="text-sm font-medium">{content.message}</span>
                 </div>
                 <button
                     onClick={googleAuth.signIn}
                     disabled={googleAuth.isLoading}
-                    className="flex-shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg text-sm font-medium transition-colors"
+                    className="flex-shrink-0 px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded text-sm font-medium transition-colors"
                 >
                     {googleAuth.isLoading ? 'Connexion...' : content.buttonText}
                 </button>
@@ -2010,8 +2008,7 @@ const ConnectionBanner = ({ connectionMode, googleAuth }) => {
         </div>
     );
 };
-
-    
+  
 		
         // ===== HOME PAGE - CONNECTION-FIRST =====
 	const HomePage = ({ currentUser, onUserChange, onPageChange, connectionMode, googleAuth }) => {
