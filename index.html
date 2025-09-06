@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.11 : CHargement parrallèle des photos Mastodon </title>
+    <title>🐘 Mémoire du Mékong V0.5.11a : chargement parallèle des photos blog </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -816,15 +816,15 @@ const GoogleDriveAPI = {
         }
     },
 
-    // NOUVEAU: Charger les photos Mastodon pour un post
+    // NOUVEAU: Charger les photos Mastodon pour un post - VERSION PARALLÈLE
     async loadMastodonPhotosForPost(post) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
         if (!post.imageAttachments || post.imageAttachments.length === 0) return [];
 
         try {
-            console.log(`🔄 Chargement ${post.imageAttachments.length} photos Mastodon pour le post J${post.dayNumber}`);
+            console.log(`🔄 Chargement parallèle de ${post.imageAttachments.length} photos Mastodon pour J${post.dayNumber}`);
             
-            // Trouver le dossier Mastodon media_attachments
+            // Trouver le dossier Mastodon media_attachments (une seule fois)
             const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
             const mediasFolder = await this._findFile('Medias', 'root', FOLDER_MIME_TYPE);
             if (!mediasFolder) throw new Error('Dossier Medias non trouvé');
@@ -835,64 +835,20 @@ const GoogleDriveAPI = {
             const mediaAttachmentsFolder = await this._findFile('media_attachments', mastodonFolder.id, FOLDER_MIME_TYPE);
             if (!mediaAttachmentsFolder) throw new Error('Dossier media_attachments non trouvé');
 
-            // Charger chaque photo
-            const loadedPhotos = [];
-            for (const attachment of post.imageAttachments) {
-                try {
-                    // L'URL est comme "/media_attachments/files/109/209/955/353/491/012/original/0d7b9e9a1db36c97.jpg"
-                    // On enlève le préfixe "/media_attachments/"
-                    const relativePath = attachment.url.replace(/^\/media_attachments\//, '');
-                    const pathParts = relativePath.split('/');
-                    
-                    console.log(`  🔍 Recherche: ${relativePath}`);
-                    
-                    // Navigation dans l'arborescence Google Drive
-                    let currentFolderId = mediaAttachmentsFolder.id;
-                    
-                    // Pour tous les dossiers (tous sauf le dernier qui est le fichier)
-                    for (let i = 0; i < pathParts.length - 1; i++) {
-                        const folderName = pathParts[i];
-                        const folder = await this._findFile(folderName, currentFolderId, FOLDER_MIME_TYPE);
-                        if (!folder) {
-                            console.warn(`  ⚠️ Dossier ${folderName} non trouvé dans le chemin ${relativePath}`);
-                            break;
-                        }
-                        currentFolderId = folder.id;
-                    }
-                    
-                    // Chercher le fichier image
-                    const fileName = pathParts[pathParts.length - 1];
-                    const imageFile = await this._findFile(fileName, currentFolderId);
-                    
-                    if (imageFile) {
-                        // Récupérer les métadonnées complètes du fichier
-                        const fileDetails = await gapi.client.drive.files.get({
-                            fileId: imageFile.id,
-                            fields: 'id, name, webContentLink, thumbnailLink, mimeType'
-                        });
-                        
-                        loadedPhotos.push({
-                            id: imageFile.id,
-                            filename: fileName,
-                            name: attachment.name || fileName,
-                            webContentLink: fileDetails.result.webContentLink,
-                            thumbnailLink: this.cleanThumbnailLink(fileDetails.result.thumbnailLink),
-                            mimeType: attachment.mediaType || fileDetails.result.mimeType,
-                            width: attachment.width,
-                            height: attachment.height,
-                            originalUrl: attachment.url,
-                            source: 'mastodon' // Identifier la source
-                        });
-                        console.log(`  ✅ Photo trouvée: ${fileName}`);
-                    } else {
-                        console.warn(`  ❌ Fichier image non trouvé: ${fileName} dans ${relativePath}`);
-                    }
-                } catch (error) {
-                    console.error(`  ❌ Erreur chargement photo ${attachment.url}:`, error);
-                }
-            }
+            // NOUVEAU: Charger toutes les photos EN PARALLÈLE
+            const photoPromises = post.imageAttachments.map(attachment => 
+                this._loadSingleMastodonPhoto(attachment, mediaAttachmentsFolder.id)
+            );
             
-            console.log(`📷 ${loadedPhotos.length}/${post.imageAttachments.length} photos Mastodon chargées pour le post J${post.dayNumber}`);
+            // Attendre toutes les photos en même temps
+            const photoResults = await Promise.allSettled(photoPromises);
+            
+            // Filtrer les succès
+            const loadedPhotos = photoResults
+                .filter(result => result.status === 'fulfilled' && result.value)
+                .map(result => result.value);
+            
+            console.log(`📷 ${loadedPhotos.length}/${post.imageAttachments.length} photos Mastodon chargées en parallèle pour J${post.dayNumber}`);
             return loadedPhotos;
             
         } catch (error) {
@@ -906,7 +862,62 @@ const GoogleDriveAPI = {
         if (!url) return null;
         return url.split('=')[0];
     },
-
+	// NOUVEAU: Charger une seule photo Mastodon (fonction helper)
+    async _loadSingleMastodonPhoto(attachment, mediaAttachmentsFolderId) {
+        try {
+            // L'URL est comme "/media_attachments/files/109/209/955/353/491/012/original/0d7b9e9a1db36c97.jpg"
+            const relativePath = attachment.url.replace(/^\/media_attachments\//, '');
+            const pathParts = relativePath.split('/');
+            
+            const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+            
+            // Navigation dans l'arborescence Google Drive
+            let currentFolderId = mediaAttachmentsFolderId;
+            
+            // Pour tous les dossiers (tous sauf le dernier qui est le fichier)
+            for (let i = 0; i < pathParts.length - 1; i++) {
+                const folderName = pathParts[i];
+                const folder = await this._findFile(folderName, currentFolderId, FOLDER_MIME_TYPE);
+                if (!folder) {
+                    console.warn(`  ⚠️ Dossier ${folderName} non trouvé dans ${relativePath}`);
+                    return null;
+                }
+                currentFolderId = folder.id;
+            }
+            
+            // Chercher le fichier image
+            const fileName = pathParts[pathParts.length - 1];
+            const imageFile = await this._findFile(fileName, currentFolderId);
+            
+            if (imageFile) {
+                // Récupérer les métadonnées complètes du fichier
+                const fileDetails = await gapi.client.drive.files.get({
+                    fileId: imageFile.id,
+                    fields: 'id, name, webContentLink, thumbnailLink, mimeType'
+                });
+                
+                return {
+                    id: imageFile.id,
+                    filename: fileName,
+                    name: attachment.name || fileName,
+                    webContentLink: fileDetails.result.webContentLink,
+                    thumbnailLink: this.cleanThumbnailLink(fileDetails.result.thumbnailLink),
+                    mimeType: attachment.mediaType || fileDetails.result.mimeType,
+                    width: attachment.width,
+                    height: attachment.height,
+                    originalUrl: attachment.url,
+                    source: 'mastodon'
+                };
+            } else {
+                console.warn(`  ❌ Image non trouvée: ${fileName} dans ${relativePath}`);
+                return null;
+            }
+        } catch (error) {
+            console.error(`  ❌ Erreur chargement photo ${attachment.url}:`, error);
+            return null;
+        }
+    },
+	
     // Fonction pour charger une photo en base64 (utilisée seulement à la demande)
     async getPhotoAsBase64(fileId, mimeType) {
         if (!this.isSignedIn) throw new Error('Pas connecté');
@@ -2802,103 +2813,33 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
-    // NOUVEAU: Charger les photos Mastodon en parallèle (REMPLACE la fonction existante)
-async loadMastodonPhotosForPost(post) {
-    if (!this.isSignedIn) throw new Error('Pas connecté');
-    if (!post.imageAttachments || post.imageAttachments.length === 0) return [];
-
-    try {
-        console.log(`🔄 Chargement parallèle de ${post.imageAttachments.length} photos Mastodon pour J${post.dayNumber}`);
-        
-        // Trouver le dossier Mastodon media_attachments (une seule fois)
-        const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
-        const mediasFolder = await this._findFile('Medias', 'root', FOLDER_MIME_TYPE);
-        if (!mediasFolder) throw new Error('Dossier Medias non trouvé');
-        
-        const mastodonFolder = await this._findFile('Mastodon', mediasFolder.id, FOLDER_MIME_TYPE);
-        if (!mastodonFolder) throw new Error('Dossier Mastodon non trouvé');
-        
-        const mediaAttachmentsFolder = await this._findFile('media_attachments', mastodonFolder.id, FOLDER_MIME_TYPE);
-        if (!mediaAttachmentsFolder) throw new Error('Dossier media_attachments non trouvé');
-
-        // NOUVEAU: Charger toutes les photos EN PARALLÈLE
-        const photoPromises = post.imageAttachments.map(attachment => 
-            this._loadSingleMastodonPhoto(attachment, mediaAttachmentsFolder.id)
-        );
-        
-        // Attendre toutes les photos en même temps
-        const photoResults = await Promise.allSettled(photoPromises);
-        
-        // Filtrer les succès
-        const loadedPhotos = photoResults
-            .filter(result => result.status === 'fulfilled' && result.value)
-            .map(result => result.value);
-        
-        console.log(`📷 ${loadedPhotos.length}/${post.imageAttachments.length} photos Mastodon chargées en parallèle pour J${post.dayNumber}`);
-        return loadedPhotos;
-        
-    } catch (error) {
-        console.error('❌ Erreur chargement photos Mastodon:', error);
-        return [];
-    }
-},
-
-// NOUVEAU: Charger une seule photo Mastodon (fonction helper)
-async _loadSingleMastodonPhoto(attachment, mediaAttachmentsFolderId) {
-    try {
-        // L'URL est comme "/media_attachments/files/109/209/955/353/491/012/original/0d7b9e9a1db36c97.jpg"
-        const relativePath = attachment.url.replace(/^\/media_attachments\//, '');
-        const pathParts = relativePath.split('/');
-        
-        const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
-        
-        // Navigation dans l'arborescence Google Drive
-        let currentFolderId = mediaAttachmentsFolderId;
-        
-        // Pour tous les dossiers (tous sauf le dernier qui est le fichier)
-        for (let i = 0; i < pathParts.length - 1; i++) {
-            const folderName = pathParts[i];
-            const folder = await this._findFile(folderName, currentFolderId, FOLDER_MIME_TYPE);
-            if (!folder) {
-                console.warn(`  ⚠️ Dossier ${folderName} non trouvé dans ${relativePath}`);
-                return null;
-            }
-            currentFolderId = folder.id;
+    // NOUVEAU: Charger les photos Mastodon pour un post
+    const loadMastodonPhotosForPost = async (post) => {
+        if (!post || post.photoCount === 0) {
+            setMastodonPhotos([]);
+            return;
         }
-        
-        // Chercher le fichier image
-        const fileName = pathParts[pathParts.length - 1];
-        const imageFile = await this._findFile(fileName, currentFolderId);
-        
-        if (imageFile) {
-            // Récupérer les métadonnées complètes du fichier
-            const fileDetails = await gapi.client.drive.files.get({
-                fileId: imageFile.id,
-                fields: 'id, name, webContentLink, thumbnailLink, mimeType'
-            });
-            
-            return {
-                id: imageFile.id,
-                filename: fileName,
-                name: attachment.name || fileName,
-                webContentLink: fileDetails.result.webContentLink,
-                thumbnailLink: this.cleanThumbnailLink(fileDetails.result.thumbnailLink),
-                mimeType: attachment.mediaType || fileDetails.result.mimeType,
-                width: attachment.width,
-                height: attachment.height,
-                originalUrl: attachment.url,
-                source: 'mastodon'
-            };
-        } else {
-            console.warn(`  ❌ Image non trouvée: ${fileName} dans ${relativePath}`);
-            return null;
+
+        setIsLoadingMastodonPhotos(true);
+        setMastodonPhotos([]);
+
+        if (!GoogleDriveAPI.isSignedIn) {
+            console.warn('Non connecté à Google Drive - photos Mastodon non disponibles');
+            setIsLoadingMastodonPhotos(false);
+            return;
         }
-    } catch (error) {
-        console.error(`  ❌ Erreur chargement photo ${attachment.url}:`, error);
-        return null;
-    }
-}
-	
+
+        try {
+            const loadedPhotos = await GoogleDriveAPI.loadMastodonPhotosForPost(post);
+            setMastodonPhotos(loadedPhotos);
+        } catch (error) {
+            console.error('Erreur chargement photos Mastodon:', error);
+            setMastodonPhotos([]);
+        } finally {
+            setIsLoadingMastodonPhotos(false);
+        }
+    };
+
     // Fonction existante pour charger les photos du jour
     const cleanThumbnailLink = (url) => {
         if (!url) return null;
@@ -3793,4 +3734,3 @@ const MemoireMekong = () => {
     </script>
 </body>
 </html>
-e
