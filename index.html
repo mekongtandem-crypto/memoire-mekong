@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.12d : UX Nouvelle TimeLine (titres alternés) </title>
+    <title>🐘 Mémoire du Mékong V0.5.13 : Bouton hasard </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -3012,6 +3012,58 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
 
     const handleDaySelect = (day) => setCurrentDay(day);
     
+    // NOUVEAU: Fonction de sélection aléatoire
+    const handleRandomSelection = () => {
+        // Obtenir tous les jours avec du contenu
+        const daysWithContent = [];
+        const mastodonPosts = MastodonData.getPosts();
+        
+        // Jours avec posts blog
+        mastodonPosts.forEach(post => {
+            if (!daysWithContent.includes(post.dayNumber)) {
+                daysWithContent.push(post.dayNumber);
+            }
+        });
+        
+        // Jours avec photos (si index importé)
+        if (isPhotoIndexImported) {
+            for (let day = 1; day <= (mastodonStats?.dayRange?.max || 275); day++) {
+                const dayPhotos = PhotoData.getPhotosByDay(day);
+                if (dayPhotos.length > 0 && !daysWithContent.includes(day)) {
+                    daysWithContent.push(day);
+                }
+            }
+        }
+        
+        if (daysWithContent.length === 0) {
+            console.log('🎲 Aucun contenu disponible pour le hasard');
+            return;
+        }
+        
+        // Tirer au sort un jour
+        const randomDay = daysWithContent[Math.floor(Math.random() * daysWithContent.length)];
+        
+        // Vérifier quel contenu est disponible pour ce jour
+        const post = MastodonData.getPostByDay(randomDay);
+        const dayPhotos = isPhotoIndexImported ? PhotoData.getPhotosByDay(randomDay) : [];
+        
+        const hasBlog = !!post;
+        const hasPhotos = dayPhotos.length > 0;
+        
+        // Tirer au sort le type de contenu parmi ceux disponibles
+        const availableTypes = [];
+        if (hasBlog && isMastodonImported) availableTypes.push('blog');
+        if (hasPhotos && isPhotoIndexImported) availableTypes.push('photos');
+        
+        const randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+        
+        // Appliquer la sélection
+        console.log(`🎲 Hasard: Jour ${randomDay} → ${randomType} (blog: ${hasBlog}, photos: ${hasPhotos})`);
+        
+        setCurrentDay(randomDay);
+        setActiveTab(randomType);
+    };
+    
     const createSessionFromPost = (post) => {
         const game = getGameById(7);
         const postPreview = post.content.slice(0, 200) + '...';
@@ -3057,7 +3109,18 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 maxDay={mastodonStats?.dayRange?.max || 275} 
                 onDaySelect={handleDaySelect} 
             />
-            
+            {/* NOUVEAU: Bouton Hasard */}
+            <div className="flex justify-center">
+                <button
+                    onClick={handleRandomSelection}
+                    className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium shadow-md transition-all hover:shadow-lg"
+                    title="Découvrir un souvenir au hasard"
+                >
+                    <Shuffle className="w-5 h-5" />
+                    <span>🎲 Souvenir au hasard</span>
+                </button>
+            </div>
+			
             {/* Tabs existants */}
             <div className="flex justify-center border-b border-gray-200">
                 <button 
