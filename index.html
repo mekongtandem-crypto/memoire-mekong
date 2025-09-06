@@ -202,28 +202,31 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
 
     return (
         <div className="bg-gray-100 p-2 rounded-lg border border-gray-200">
-            <div ref={timelineRef} className="flex overflow-x-auto space-x-1 py-2 scrollbar-thin scrollbar-thumb-amber-400 scrollbar-track-gray-200">
+            <div ref={timelineRef} className="flex overflow-x-auto space-x-1 py-1 scrollbar-thin scrollbar-thumb-amber-400 scrollbar-track-gray-200">
                 {days.map(day => {
                     const isCurrent = day === currentDay;
                     const isDecade = day % 10 === 0;
                     const dayHasContent = hasContent(day);
                     const indicators = getDayIndicators(day);
                     const title = getDayTitle(day);
+                    const titleAtTop = day % 2 === 1; // Jours impairs en haut, pairs en bas
 
                     return (
-                        <div key={day} className="flex flex-col items-center">
-                            {/* NOUVEAU: Titre de ville au-dessus */}
-                            {title && (
-                                <div className="text-xs text-gray-600 font-medium mb-1 h-4 flex items-center">
-                                    {title}
-                                </div>
-                            )}
+                        <div key={day} className="flex flex-col items-center h-16">
+                            {/* NOUVEAU: Titre alterné - en haut pour jours impairs */}
+                            <div className="h-4 flex items-center justify-center">
+                                {title && titleAtTop && (
+                                    <div className="text-xs text-gray-600 font-medium">
+                                        {title}
+                                    </div>
+                                )}
+                            </div>
                             
-                            {/* Bouton du jour */}
+                            {/* Bouton du jour - RÉDUIT */}
                             <button
                                 ref={isCurrent ? dayRef : null}
                                 onClick={() => onDaySelect(day)}
-                                className={`flex flex-col items-center justify-center h-16 w-12 rounded transition-all duration-200 ${
+                                className={`flex flex-col items-center justify-center h-8 w-10 rounded transition-all duration-200 ${
                                     isCurrent 
                                         ? 'bg-amber-500 text-white shadow-lg' 
                                         : dayHasContent 
@@ -233,27 +236,29 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
                                 title={`Jour ${day}${title ? ` - ${title}` : ''}${indicators ? ` ${indicators}` : ''}`}
                             >
                                 {/* Numéro du jour */}
-                                <span className={`text-xs font-semibold ${
+                                <span className={`text-xs font-semibold leading-none ${
                                     isCurrent ? 'font-bold text-white' : 
                                     dayHasContent ? 'text-gray-700' : 'text-gray-400'
                                 }`}>
                                     {isDecade || day === 1 || day === maxDay ? day : ''}
                                 </span>
                                 
-                                {/* NOUVEAU: Indicateurs visuels */}
+                                {/* NOUVEAU: Indicateurs visuels compacts */}
                                 {indicators && (
-                                    <div className="text-xs leading-none mt-1">
+                                    <div className="text-xs leading-none">
                                         {indicators}
                                     </div>
                                 )}
-                                
-                                {/* Barre de jour */}
-                                <div className={`w-px h-full mt-1 ${
-                                    isDecade 
-                                        ? isCurrent ? 'bg-white h-8' : 'bg-amber-400 h-8'
-                                        : isCurrent ? 'bg-white h-4' : 'bg-gray-300 h-4'
-                                }`}></div>
                             </button>
+
+                            {/* NOUVEAU: Titre alterné - en bas pour jours pairs */}
+                            <div className="h-4 flex items-center justify-center">
+                                {title && !titleAtTop && (
+                                    <div className="text-xs text-gray-600 font-medium">
+                                        {title}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     );
                 })}
