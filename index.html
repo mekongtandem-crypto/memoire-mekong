@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.12a : Nouelle TimeLine (avec nom de ville et icones) </title>
+    <title>🐘 Mémoire du Mékong V0.5.12b : Nouvelle TimeLine (2 amméiorations, 3 modifs) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -150,16 +150,13 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
         return content;
     }, [mastodonPosts, maxDay, isPhotoIndexImported]);
 
-    // NOUVEAU: Fonction pour obtenir les indicateurs d'un jour
+    // NOUVEAU: Fonction pour obtenir les indicateurs d'un jour (📝 blog, 📸 photos jour)
     const getDayIndicators = (day) => {
         const dayContent = contentByDay[day] || {};
         const indicators = [];
         
         if (dayContent.hasPost) {
             indicators.push('📝');
-        }
-        if (dayContent.hasPostPhotos) {
-            indicators.push('📷');
         }
         if (dayContent.hasDayPhotos) {
             indicators.push('📸');
@@ -168,16 +165,19 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
         return indicators.join('');
     };
 
-    // NOUVEAU: Fonction pour obtenir le titre du jour
+    // NOUVEAU: Fonction pour obtenir le titre du jour depuis les répertoires photos
     const getDayTitle = (day) => {
-        const dayContent = contentByDay[day] || {};
-        if (dayContent.postTitle) {
-            // Extraire le nom de ville (généralement après "J123: ")
-            const cleanTitle = dayContent.postTitle
-                .replace(/^J\d+[\s:]*/, '') // Enlever "J123: "
-                .split(' ')[0] // Prendre le premier mot (ville)
-                .slice(0, 8); // Limiter à 8 caractères
-            return cleanTitle;
+        if (isPhotoIndexImported) {
+            const dayPhotos = PhotoData.getPhotosByDay(day);
+            if (dayPhotos.length > 0) {
+                // Prendre le premier répertoire du jour
+                const folderName = dayPhotos[0].folderName;
+                // Format attendu: "nnn.Titre" ou "nnn-nnn.Titre"
+                const titleMatch = folderName.match(/^\d+(?:-\d+)?\.(.+)$/);
+                if (titleMatch) {
+                    return titleMatch[1].slice(0, 8); // Limiter à 8 caractères
+                }
+            }
         }
         return null;
     };
@@ -262,7 +262,6 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
             {/* NOUVEAU: Légende des indicateurs */}
             <div className="flex justify-center mt-2 space-x-4 text-xs text-gray-600">
                 <span className="flex items-center">📝 Blog</span>
-                <span className="flex items-center">📷 Photos post</span>
                 <span className="flex items-center">📸 Photos jour</span>
             </div>
         </div>
