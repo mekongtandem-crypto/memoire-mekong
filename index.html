@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.12c : UX Nouvelle TimeLine (titres alternés) </title>
+    <title>🐘 Mémoire du Mékong V0.5.12d : UX Nouvelle TimeLine (titres alternés) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -175,7 +175,7 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
                 // Format attendu: "nnn.Titre" ou "nnn-nnn.Titre"
                 const titleMatch = folderName.match(/^\d+(?:-\d+)?\.(.+)$/);
                 if (titleMatch) {
-                    return titleMatch[1].slice(0, 8); // Limiter à 8 caractères
+                    return titleMatch[1]; // TITRE COMPLET - plus de limitation
                 }
             }
         }
@@ -262,12 +262,6 @@ const Timeline = ({ currentDay, maxDay, onDaySelect }) => {
                         </div>
                     );
                 })}
-            </div>
-            
-            {/* NOUVEAU: Légende des indicateurs */}
-            <div className="flex justify-center mt-2 space-x-4 text-xs text-gray-600">
-                <span className="flex items-center">📝 Blog</span>
-                <span className="flex items-center">📸 Photos jour</span>
             </div>
         </div>
     );
