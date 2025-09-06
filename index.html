@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.15 : 3 petites corrections </title>
+    <title>🐘 Mémoire du Mékong V0.6.1 : refonte Memorie page (étape 1) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2757,51 +2757,41 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// ===== MEMORIES PAGE - VERSION COMPLÈTE AVEC PHOTOS MASTODON =====
+// Page Memoire (V0.5.15 - ÉTAPE 1: Structure 5 niveaux + mémorisation jour)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
-    const [currentDay, setCurrentDay] = React.useState(1);
-    const [activeTab, setActiveTab] = React.useState('blog');
+    // État principal avec mémorisation du jour sélectionné
+    const [currentDay, setCurrentDay] = React.useState(() => {
+        return Storage.get('memories_current_day', 1);
+    });
     const [currentPost, setCurrentPost] = React.useState(null);
-    const [dayPhotos, setDayPhotos] = React.useState([]); // Photos du jour (Photos/)
-    const [mastodonPhotos, setMastodonPhotos] = React.useState([]); // NOUVEAU: Photos du post Mastodon
+    const [dayPhotos, setDayPhotos] = React.useState([]);
     const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
-    const [isLoadingMastodonPhotos, setIsLoadingMastodonPhotos] = React.useState(false); // NOUVEAU
     const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
-    const [photoSource, setPhotoSource] = React.useState('day'); // NOUVEAU: 'day' ou 'mastodon'
 
     const isMastodonImported = MastodonData.isImported();
     const mastodonStats = MastodonData.getStats();
     const isPhotoIndexImported = PhotoData.isImported();
 
+    // Mémoriser le jour sélectionné
+    React.useEffect(() => {
+        Storage.set('memories_current_day', currentDay);
+    }, [currentDay]);
+
+    // Charger les données pour le jour sélectionné
     React.useEffect(() => {
         const loadDataForDay = async () => {
-            let hasContent = false;
-            
-            // Charger le post Mastodon pour ce jour
+            // Charger le post du jour
             if (isMastodonImported) {
                 const post = MastodonData.getPostByDay(currentDay);
                 setCurrentPost(post);
-                if (post) {
-                    hasContent = true;
-                    // NOUVEAU: Charger les photos Mastodon si le post en a
-                    if (post.photoCount > 0) {
-                        await loadMastodonPhotosForPost(post);
-                    } else {
-                        setMastodonPhotos([]);
-                    }
-                } else {
-                    setMastodonPhotos([]);
-                }
             } else {
                 setCurrentPost(null);
-                setMastodonPhotos([]);
             }
             
-            // Charger les photos du jour (dossier Photos/)
+            // Charger les photos du jour
             if (isPhotoIndexImported) {
                 const photosInIndex = PhotoData.getPhotosByDay(currentDay);
                 if (photosInIndex.length > 0) {
-                    hasContent = true;
                     await loadPhotosForDay(currentDay);
                 } else {
                     setDayPhotos([]);
@@ -2809,42 +2799,10 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             } else {
                 setDayPhotos([]);
             }
-            
-            if (!hasContent) {
-                setDayPhotos([]);
-            }
         };
         loadDataForDay();
     }, [currentDay, isMastodonImported, isPhotoIndexImported]);
 
-    // NOUVEAU: Charger les photos Mastodon pour un post
-    const loadMastodonPhotosForPost = async (post) => {
-        if (!post || post.photoCount === 0) {
-            setMastodonPhotos([]);
-            return;
-        }
-
-        setIsLoadingMastodonPhotos(true);
-        setMastodonPhotos([]);
-
-        if (!GoogleDriveAPI.isSignedIn) {
-            console.warn('Non connecté à Google Drive - photos Mastodon non disponibles');
-            setIsLoadingMastodonPhotos(false);
-            return;
-        }
-
-        try {
-            const loadedPhotos = await GoogleDriveAPI.loadMastodonPhotosForPost(post);
-            setMastodonPhotos(loadedPhotos);
-        } catch (error) {
-            console.error('Erreur chargement photos Mastodon:', error);
-            setMastodonPhotos([]);
-        } finally {
-            setIsLoadingMastodonPhotos(false);
-        }
-    };
-
-    // Fonction existante pour charger les photos du jour
     const cleanThumbnailLink = (url) => {
         if (!url) return null;
         return url.split('=')[0];
@@ -2895,7 +2853,7 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                             webContentLink: fileData.webContentLink,
                             thumbnailLink: cleanThumbnailLink(fileData.thumbnailLink),
                             mimeType: fileData.mimeType || 'image/jpeg',
-                            source: 'day' // Identifier la source
+                            day: day
                         });
                     }
                 }
@@ -2905,283 +2863,197 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         setIsLoadingPhotos(false);
     };
 
-    const handleDaySelect = (day) => setCurrentDay(day);
-    
-    // NOUVEAU: Fonction de sélection aléatoire
-    const handleRandomSelection = () => {
-        // Obtenir tous les jours avec du contenu
-        const daysWithContent = [];
-        const mastodonPosts = MastodonData.getPosts();
-        
-        // Jours avec posts blog
-        mastodonPosts.forEach(post => {
-            if (!daysWithContent.includes(post.dayNumber)) {
-                daysWithContent.push(post.dayNumber);
-            }
-        });
-        
-        // Jours avec photos (si index importé)
-        if (isPhotoIndexImported) {
-            for (let day = 1; day <= (mastodonStats?.dayRange?.max || 275); day++) {
-                const dayPhotos = PhotoData.getPhotosByDay(day);
-                if (dayPhotos.length > 0 && !daysWithContent.includes(day)) {
-                    daysWithContent.push(day);
-                }
-            }
-        }
-        
-        if (daysWithContent.length === 0) {
-            console.log('🎲 Aucun contenu disponible pour le hasard');
-            return;
-        }
-        
-        // Tirer au sort un jour
-        const randomDay = daysWithContent[Math.floor(Math.random() * daysWithContent.length)];
-        
-        // Vérifier quel contenu est disponible pour ce jour
-        const post = MastodonData.getPostByDay(randomDay);
-        const dayPhotos = isPhotoIndexImported ? PhotoData.getPhotosByDay(randomDay) : [];
-        
-        const hasBlog = !!post;
-        const hasPhotos = dayPhotos.length > 0;
-        
-        // Tirer au sort le type de contenu parmi ceux disponibles
-        const availableTypes = [];
-        if (hasBlog && isMastodonImported) availableTypes.push('blog');
-        if (hasPhotos && isPhotoIndexImported) availableTypes.push('photos');
-        
-        const randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-        
-        // Appliquer la sélection
-        console.log(`🎲 Hasard: Jour ${randomDay} → ${randomType} (blog: ${hasBlog}, photos: ${hasPhotos})`);
-        
-        setCurrentDay(randomDay);
-        setActiveTab(randomType);
+    // Gestionnaires d'événements
+    const handleDaySelect = (day) => {
+        setCurrentDay(day);
     };
-    
+
     const createSessionFromPost = (post) => {
-        try {
-            const baseGame = getGameById(7);
-            if (!baseGame) {
-                console.error('❌ Jeu ID 7 non trouvé');
-                return;
-            }
-            
-            const game = { 
-                ...baseGame, 
-                title: post.title || `Jour ${post.dayNumber} - Souvenir du blog`
-            };
-            const postPreview = post.content.slice(0, 200) + (post.content.length > 200 ? '...' : '');
-            
-            console.log('🎮 Création session depuis post:', { game, postPreview: postPreview.slice(0, 50) + '...' });
-            
-            onCreateSession({ 
-                type: 'game', 
-                game: game, 
-                postContent: postPreview 
-            });
-        } catch (error) {
-            console.error('❌ Erreur createSessionFromPost:', error);
-        }
+        const game = getGameById(7);
+        const postPreview = post.content.slice(0, 200) + '...';
+        onCreateSession({ 
+            type: 'game', 
+            game: { ...game, title: post.title || `Jour ${post.dayNumber} - Souvenir` }, 
+            postContent: postPreview 
+        });
     };
-    
+
     const createSessionFromPhoto = (photo) => {
-        const isFromMastodon = photo.source === 'mastodon';
-        const game = { 
-            id: 1, 
-            title: `Souvenir photo ${isFromMastodon ? 'du post' : 'du jour'} ${currentDay}` 
-        };
-        // NOUVEAU: Juste l'image sans texte de commentaire
-        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]`;
+        const game = { id: 1, title: `Souvenir photo du jour ${photo.day}` };
+        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.filename}`;
         onCreateSession({ type: 'game', game: game, postContent: initialNoteContent });
     };
-    
-    // MODIFIÉ: Gestion de la sélection de photos avec source
-    const handlePhotoSelect = (index, source = 'day') => {
+
+    const handlePhotoSelect = (index) => {
         setSelectedPhotoIndex(index);
-        setPhotoSource(source);
     };
-    
+
     const handlePhotoNavigate = (direction) => {
-        const currentPhotos = photoSource === 'mastodon' ? mastodonPhotos : dayPhotos;
         if (direction === 'prev' && selectedPhotoIndex > 0) {
             setSelectedPhotoIndex(selectedPhotoIndex - 1);
-        } else if (direction === 'next' && selectedPhotoIndex < currentPhotos.length - 1) {
+        } else if (direction === 'next' && selectedPhotoIndex < dayPhotos.length - 1) {
             setSelectedPhotoIndex(selectedPhotoIndex + 1);
         }
     };
 
-    if (isCreatingSession) return <LoadingSpinner message="Création de session..." size="large" />;
+    // Obtenir le titre du jour (nom du dossier photo ou titre du post)
+    const getDayTitle = () => {
+        if (currentPost && currentPost.title) {
+            return `J${currentDay} ${currentPost.title}`;
+        }
+        
+        // Sinon, utiliser le nom du dossier photo
+        const photosInIndex = PhotoData.getPhotosByDay(currentDay);
+        if (photosInIndex.length > 0) {
+            return photosInIndex[0].folderName;
+        }
+        
+        return `Jour ${currentDay}`;
+    };
+
+    // Compter les photos du post (avec [IMAGE])
+    const getPostPhotosCount = () => {
+        if (!currentPost) return 0;
+        const imageMatches = currentPost.content.match(/\[IMAGE\]/g);
+        return imageMatches ? imageMatches.length : 0;
+    };
+
+    // Scroll vers une section
+    const scrollToSection = (sectionId) => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    if (isCreatingSession) {
+        return <LoadingSpinner message="Création de session..." size="large" />;
+    }
 
     return (
         <div className="space-y-6 fade-in">
-            {/* Timeline existante */}
+            {/* NIVEAU 1: Timeline */}
             <Timeline 
                 currentDay={currentDay} 
                 maxDay={mastodonStats?.dayRange?.max || 275} 
                 onDaySelect={handleDaySelect} 
             />
-            {/* NOUVEAU: Bouton Hasard */}
-            <div className="flex justify-center">
-                <button
-                    onClick={handleRandomSelection}
-                    className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium shadow-md transition-all hover:shadow-lg"
-                    title="Découvrir un souvenir au hasard"
-                >
-                    <Shuffle className="w-5 h-5" />
-                    <span>🎲 Souvenir au hasard</span>
-                </button>
+
+            {/* NIVEAU 2: Recherche + Boutons hasard (structure pour étape 2) */}
+            <div className="bg-gray-50 p-4 rounded-lg border">
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    {/* Champ recherche (placeholder pour étape 2) */}
+                    <div className="flex-1 w-full">
+                        <input 
+                            type="text" 
+                            placeholder="Rechercher dans les posts et noms de jours..."
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            disabled
+                        />
+                    </div>
+                    
+                    {/* Boutons hasard (placeholder pour étape 2) */}
+                    <div className="flex gap-2">
+                        <button 
+                            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg flex items-center space-x-2"
+                            title="Jour au hasard"
+                            disabled
+                        >
+                            <Shuffle className="w-4 h-4" />
+                            <span className="hidden sm:inline">Jour</span>
+                        </button>
+                        <button 
+                            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center space-x-2"
+                            title="Photo au hasard"
+                            disabled
+                        >
+                            <Camera className="w-4 h-4" />
+                            <span className="hidden sm:inline">Photo</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-			
-            {/* Tabs existants */}
-            <div className="flex justify-center border-b border-gray-200">
-                <button 
-                    onClick={() => setActiveTab('blog')} 
-                    className={`px-6 py-3 text-sm font-semibold ${
-                        activeTab === 'blog' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'
-                    }`} 
-                    disabled={!isMastodonImported}
-                >
-                    <BookOpen className="w-5 h-5 inline mr-2" />
-                    Blog
-                </button>
-                <button 
-                    onClick={() => setActiveTab('photos')} 
-                    className={`px-6 py-3 text-sm font-semibold ${
-                        activeTab === 'photos' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'
-                    }`} 
-                    disabled={!isPhotoIndexImported}
-                >
-                    <Camera className="w-5 h-5 inline mr-2" />
-                    Photos
-                </button>
+
+            {/* NIVEAU 3: Titre du jour + Détails */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <h2 className="text-2xl font-bold text-amber-900 mb-3">
+                    {getDayTitle()}
+                </h2>
+                
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                    {/* Détails post */}
+                    {currentPost && (
+                        <button 
+                            onClick={() => scrollToSection('post-section')}
+                            className="hover:text-amber-600 hover:underline flex items-center space-x-1"
+                        >
+                            <BookOpen className="w-4 h-4" />
+                            <span>
+                                1 post
+                                {getPostPhotosCount() > 0 && ` avec ${getPostPhotosCount()} photo${getPostPhotosCount() > 1 ? 's' : ''}`}
+                            </span>
+                        </button>
+                    )}
+                    
+                    {/* Détails photos du jour */}
+                    {dayPhotos.length > 0 && (
+                        <button 
+                            onClick={() => scrollToSection('photos-section')}
+                            className="hover:text-amber-600 hover:underline flex items-center space-x-1"
+                        >
+                            <Camera className="w-4 h-4" />
+                            <span>{dayPhotos.length} photo{dayPhotos.length > 1 ? 's' : ''} du jour</span>
+                        </button>
+                    )}
+                    
+                    {/* Si aucun contenu */}
+                    {!currentPost && dayPhotos.length === 0 && (
+                        <span className="text-gray-400 italic">Aucun contenu pour ce jour</span>
+                    )}
+                </div>
             </div>
-            
-            {/* Contenu principal */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 min-h-[300px]">
-                {activeTab === 'photos' ? (
-                    // Onglet Photos (existant)
-                    isLoadingPhotos ? (
+
+            {/* NIVEAU 4: Affichage du post avec ses photos */}
+            {currentPost && (
+                <div id="post-section" className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-xl font-semibold text-gray-900">
+                            {currentPost.title || `Post du jour ${currentPost.dayNumber}`}
+                        </h3>
+                        <button 
+                            onClick={() => createSessionFromPost(currentPost)} 
+                            className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Session</span>
+                        </button>
+                    </div>
+                    
+                    <div className="prose max-w-none">
+                        <MessageContent content={currentPost.content} />
+                    </div>
+                </div>
+            )}
+
+            {/* NIVEAU 5: Photos du jour */}
+            {(isLoadingPhotos || dayPhotos.length > 0) && (
+                <div id="photos-section" className="bg-white p-6 rounded-lg border border-gray-200">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                        Photos du jour {currentDay}
+                    </h3>
+                    
+                    {isLoadingPhotos ? (
                         <LoadingSpinner message="Chargement des photos..." />
                     ) : (
-                        <PhotoGrid photos={dayPhotos} onPhotoSelect={(index) => handlePhotoSelect(index, 'day')} />
-                    )
-                ) : (
-                    // Onglet Blog (modifié pour inclure les photos Mastodon)
-                    currentPost ? (
-                        <div>
-                            {/* En-tête du post avec compteurs */}
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex flex-col">
-                                    <h3 className="text-xl font-bold text-amber-900">
-                                        {currentPost.title || `Jour ${currentPost.dayNumber}`}
-                                    </h3>
-                                    
-                                    {/* NOUVEAU: Affichage du nombre de photos avec icônes distinctes */}
-                                    <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-                                        {currentPost.photoCount > 0 && (
-                                            <span className="flex items-center">
-                                                📷 {currentPost.photoCount} photo{currentPost.photoCount > 1 ? 's' : ''} du post
-                                            </span>
-                                        )}
-                                        {dayPhotos.length > 0 && (
-                                            <span className="flex items-center">
-                                                📸 {dayPhotos.length} photo{dayPhotos.length > 1 ? 's' : ''} du jour
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={() => createSessionFromPost(currentPost)} 
-                                    className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span>Session</span>
-                                </button>
-                            </div>
-                            
-                            {/* Contenu du post */}
-                            <div className="prose max-w-none mb-6">
-                                <p>{currentPost.content}</p>
-                            </div>
+                        <PhotoGrid photos={dayPhotos} onPhotoSelect={handlePhotoSelect} />
+                    )}
+                </div>
+            )}
 
-                            {/* NOUVEAU: Section photos du post Mastodon */}
-                            {currentPost.photoCount > 0 && (
-                                <div className="mb-6">
-                                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                                        📷 Photos du post
-                                    </h4>
-                                    {isLoadingMastodonPhotos ? (
-                                        <LoadingSpinner message="Chargement des photos du post..." />
-                                    ) : mastodonPhotos.length > 0 ? (
-                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                                            {mastodonPhotos.map((photo, index) => (
-                                                <button
-                                                    key={photo.id || index}
-                                                    onClick={() => handlePhotoSelect(index, 'mastodon')}
-                                                    className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500 group"
-                                                    title={photo.name}
-                                                >
-                                                    <img
-                                                        src={photo.thumbnailLink || photo.webContentLink}
-                                                        alt={photo.name}
-                                                        loading="lazy"
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                    />
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-6 bg-gray-50 rounded-lg">
-                                            <Camera className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-gray-500 text-sm">
-                                                Photos du post non disponibles
-                                                {!GoogleDriveAPI.isSignedIn && ' (connexion Google Drive requise)'}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Section photos du jour (existante, modifiée) */}
-                            {dayPhotos.length > 0 && (
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                                        📸 Photos du jour
-                                    </h4>
-                                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                                        {dayPhotos.map((photo, index) => (
-                                            <button
-                                                key={photo.filename}
-                                                onClick={() => handlePhotoSelect(index, 'day')}
-                                                className="aspect-square bg-gray-200 rounded-md overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500 group"
-                                            >
-                                                <img
-                                                    src={photo.thumbnailLink}
-                                                    alt={photo.filename}
-                                                    loading="lazy"
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        // Pas de post pour ce jour
-                        <div className="text-center py-12 text-gray-500">
-                            <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                            <p>Aucun post de blog pour ce jour.</p>
-                        </div>
-                    )
-                )}
-            </div>
-            
-            {/* MODIFIÉ: PhotoViewer avec source dynamique */}
+            {/* PhotoViewer */}
             {selectedPhotoIndex !== null && (
                 <PhotoViewer 
-                    photos={photoSource === 'mastodon' ? mastodonPhotos : dayPhotos} 
+                    photos={dayPhotos} 
                     selectedIndex={selectedPhotoIndex} 
                     onClose={() => setSelectedPhotoIndex(null)} 
                     onNavigate={handlePhotoNavigate} 
