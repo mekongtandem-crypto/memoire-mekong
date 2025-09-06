@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.1 : refonte Memorie page (étape 1) </title>
+    <title>🐘 Mémoire du Mékong V0.6.1b : refonte Memorie page (étape 1) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2896,25 +2896,26 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         }
     };
 
-    // Obtenir le titre du jour (nom du dossier photo ou titre du post)
+    // Obtenir le titre du jour (priorité : nom du dossier photo, sinon titre du post)
     const getDayTitle = () => {
-        if (currentPost && currentPost.title) {
-            return `J${currentDay} ${currentPost.title}`;
-        }
-        
-        // Sinon, utiliser le nom du dossier photo
+        // D'abord, chercher le nom du dossier photo
         const photosInIndex = PhotoData.getPhotosByDay(currentDay);
         if (photosInIndex.length > 0) {
             return photosInIndex[0].folderName;
         }
         
+        // Sinon, utiliser le titre du post s'il existe
+        if (currentPost && currentPost.title) {
+            return `J${currentDay} ${currentPost.title}`;
+        }
+        
         return `Jour ${currentDay}`;
     };
 
-    // Compter les photos du post (avec [IMAGE])
+    // Compter les photos du post (avec [IMAGE]...[/IMAGE])
     const getPostPhotosCount = () => {
         if (!currentPost) return 0;
-        const imageMatches = currentPost.content.match(/\[IMAGE\]/g);
+        const imageMatches = currentPost.content.match(/\[IMAGE\].*?\[\/IMAGE\]/g);
         return imageMatches ? imageMatches.length : 0;
     };
 
