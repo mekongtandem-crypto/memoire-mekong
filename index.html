@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.1b : refonte Memorie page (étape 1) </title>
+    <title>🐘 Mémoire du Mékong V0.6.2a : refonte Memorie page (étape 2) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2757,7 +2757,7 @@ const ChatPage = ({ currentUser, currentSession, onUpdateSession, onBackToSessio
 };
 
 	
-// Page Memoire (V0.5.15 - ÉTAPE 1: Structure 5 niveaux + mémorisation jour)
+// Page Memoire (V0.5.15 - ÉTAPE 1+2: Structure + recherche + hasard + centrage)
 const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     // État principal avec mémorisation du jour sélectionné
     const [currentDay, setCurrentDay] = React.useState(() => {
@@ -2767,6 +2767,12 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     const [dayPhotos, setDayPhotos] = React.useState([]);
     const [isLoadingPhotos, setIsLoadingPhotos] = React.useState(false);
     const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(null);
+
+    // États pour la recherche
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const [showSearchResults, setShowSearchResults] = React.useState(false);
+    const [searchResults, setSearchResults] = React.useState({ posts: [], photoDays: [] });
+    const [isSearching, setIsSearching] = React.useState(false);
 
     const isMastodonImported = MastodonData.isImported();
     const mastodonStats = MastodonData.getStats();
@@ -2863,9 +2869,61 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         setIsLoadingPhotos(false);
     };
 
+    // Gestionnaire de recherche
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) return;
+        
+        setIsSearching(true);
+        try {
+            const results = MastodonData.searchPostsAndPhotos(searchQuery);
+            setSearchResults(results);
+            setShowSearchResults(true);
+        } catch (error) {
+            console.error('Erreur recherche:', error);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // Bouton jour au hasard
+    const handleRandomDay = () => {
+        if (mastodonStats && mastodonStats.dayRange) {
+            const minDay = mastodonStats.dayRange.min;
+            const maxDay = mastodonStats.dayRange.max;
+            const randomDay = Math.floor(Math.random() * (maxDay - minDay + 1)) + minDay;
+            setCurrentDay(randomDay);
+            setShowSearchResults(false);
+        }
+    };
+
+    // Bouton photo au hasard
+    const handleRandomPhoto = async () => {
+        if (!isPhotoIndexImported) return;
+        
+        const photoIndex = PhotoData.getIndex();
+        if (!photoIndex || !photoIndex.allPhotos || photoIndex.allPhotos.length === 0) return;
+        
+        // Sélectionner une photo aléatoire
+        const randomPhoto = photoIndex.allPhotos[Math.floor(Math.random() * photoIndex.allPhotos.length)];
+        
+        // Naviguer vers le jour de cette photo
+        setCurrentDay(randomPhoto.day);
+        setShowSearchResults(false);
+        
+        // Attendre que les photos se chargent puis ouvrir le viewer
+        setTimeout(() => {
+            // Trouver l'index de cette photo dans les photos du jour
+            const photoIndex = dayPhotos.findIndex(p => p.filename === randomPhoto.filename);
+            if (photoIndex >= 0) {
+                setSelectedPhotoIndex(photoIndex);
+            }
+        }, 1000);
+    };
+
     // Gestionnaires d'événements
     const handleDaySelect = (day) => {
         setCurrentDay(day);
+        setShowSearchResults(false);
     };
 
     const createSessionFromPost = (post) => {
@@ -2927,6 +2985,13 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         }
     };
 
+    // Sélectionner un résultat de recherche
+    const selectSearchResult = (day) => {
+        setCurrentDay(day);
+        setShowSearchResults(false);
+        setSearchQuery('');
+    };
+
     if (isCreatingSession) {
         return <LoadingSpinner message="Création de session..." size="large" />;
     }
@@ -2940,33 +3005,48 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 onDaySelect={handleDaySelect} 
             />
 
-            {/* NIVEAU 2: Recherche + Boutons hasard (structure pour étape 2) */}
+            {/* NIVEAU 2: Recherche + Boutons hasard */}
             <div className="bg-gray-50 p-4 rounded-lg border">
                 <div className="flex flex-col sm:flex-row gap-3 items-center">
-                    {/* Champ recherche (placeholder pour étape 2) */}
-                    <div className="flex-1 w-full">
+                    {/* Champ recherche */}
+                    <div className="flex-1 w-full flex gap-2">
                         <input 
                             type="text" 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             placeholder="Rechercher dans les posts et noms de jours..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                            disabled
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         />
+                        <button 
+                            onClick={handleSearch}
+                            disabled={isSearching || !searchQuery.trim()}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-400 text-white rounded-lg flex items-center space-x-2"
+                        >
+                            {isSearching ? (
+                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                            ) : (
+                                <Search className="w-4 h-4" />
+                            )}
+                            <span className="hidden sm:inline">Rechercher</span>
+                        </button>
                     </div>
                     
-                    {/* Boutons hasard (placeholder pour étape 2) */}
+                    {/* Boutons hasard */}
                     <div className="flex gap-2">
                         <button 
+                            onClick={handleRandomDay}
                             className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg flex items-center space-x-2"
                             title="Jour au hasard"
-                            disabled
                         >
                             <Shuffle className="w-4 h-4" />
                             <span className="hidden sm:inline">Jour</span>
                         </button>
                         <button 
+                            onClick={handleRandomPhoto}
                             className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center space-x-2"
                             title="Photo au hasard"
-                            disabled
+                            disabled={!isPhotoIndexImported}
                         >
                             <Camera className="w-4 h-4" />
                             <span className="hidden sm:inline">Photo</span>
@@ -2975,42 +3055,125 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
                 </div>
             </div>
 
-            {/* NIVEAU 3: Titre du jour + Détails */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h2 className="text-2xl font-bold text-amber-900 mb-3">
-                    {getDayTitle()}
-                </h2>
-                
-                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                    {/* Détails post */}
-                    {currentPost && (
-                        <button 
-                            onClick={() => scrollToSection('post-section')}
-                            className="hover:text-amber-600 hover:underline flex items-center space-x-1"
-                        >
-                            <BookOpen className="w-4 h-4" />
-                            <span>
-                                1 post
-                                {getPostPhotosCount() > 0 && ` avec ${getPostPhotosCount()} photo${getPostPhotosCount() > 1 ? 's' : ''}`}
-                            </span>
-                        </button>
-                    )}
+            {/* Modal de résultats de recherche */}
+            {showSearchResults && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                        <div className="p-4 border-b flex justify-between items-center">
+                            <h3 className="text-lg font-semibold">
+                                Résultats pour "{searchQuery}"
+                            </h3>
+                            <button 
+                                onClick={() => setShowSearchResults(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div className="p-4 overflow-y-auto max-h-[60vh]">
+                            {/* Résultats posts */}
+                            {searchResults.posts.length > 0 && (
+                                <div className="mb-6">
+                                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                        <BookOpen className="w-4 h-4 mr-2" />
+                                        Posts trouvés ({searchResults.posts.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {searchResults.posts.map(post => (
+                                            <button
+                                                key={post.id}
+                                                onClick={() => selectSearchResult(post.dayNumber)}
+                                                className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-amber-50 hover:border-amber-300"
+                                            >
+                                                <div className="font-medium text-amber-900">
+                                                    J{post.dayNumber} - {post.title}
+                                                </div>
+                                                <div className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                                    {post.content.slice(0, 150)}...
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Résultats photos */}
+                            {searchResults.photoDays.length > 0 && (
+                                <div className="mb-6">
+                                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                        <Camera className="w-4 h-4 mr-2" />
+                                        Jours avec photos ({searchResults.photoDays.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {searchResults.photoDays.map(photoDay => (
+                                            <button
+                                                key={photoDay.day}
+                                                onClick={() => selectSearchResult(photoDay.day)}
+                                                className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-amber-50 hover:border-amber-300"
+                                            >
+                                                <div className="font-medium text-amber-900">
+                                                    {photoDay.folderName}
+                                                </div>
+                                                <div className="text-sm text-gray-600 mt-1">
+                                                    {photoDay.photoCount} photo{photoDay.photoCount > 1 ? 's' : ''}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Aucun résultat */}
+                            {searchResults.posts.length === 0 && searchResults.photoDays.length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                    <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                    <p>Aucun résultat trouvé pour "{searchQuery}"</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* NIVEAU 3: Titre du jour + Détails (CENTRÉ) */}
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-amber-900 mb-4">
+                        {getDayTitle()}
+                    </h2>
                     
-                    {/* Détails photos du jour */}
-                    {dayPhotos.length > 0 && (
-                        <button 
-                            onClick={() => scrollToSection('photos-section')}
-                            className="hover:text-amber-600 hover:underline flex items-center space-x-1"
-                        >
-                            <Camera className="w-4 h-4" />
-                            <span>{dayPhotos.length} photo{dayPhotos.length > 1 ? 's' : ''} du jour</span>
-                        </button>
-                    )}
-                    
-                    {/* Si aucun contenu */}
-                    {!currentPost && dayPhotos.length === 0 && (
-                        <span className="text-gray-400 italic">Aucun contenu pour ce jour</span>
-                    )}
+                    <div className="flex justify-center gap-6 text-sm text-gray-600">
+                        {/* Détails post */}
+                        {currentPost && (
+                            <button 
+                                onClick={() => scrollToSection('post-section')}
+                                className="hover:text-amber-600 hover:underline flex items-center space-x-1"
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                <span>
+                                    1 post
+                                    {getPostPhotosCount() > 0 && ` avec ${getPostPhotosCount()} photo${getPostPhotosCount() > 1 ? 's' : ''}`}
+                                </span>
+                            </button>
+                        )}
+                        
+                        {/* Détails photos du jour */}
+                        {dayPhotos.length > 0 && (
+                            <button 
+                                onClick={() => scrollToSection('photos-section')}
+                                className="hover:text-amber-600 hover:underline flex items-center space-x-1"
+                            >
+                                <Camera className="w-4 h-4" />
+                                <span>{dayPhotos.length} photo{dayPhotos.length > 1 ? 's' : ''} du jour</span>
+                            </button>
+                        )}
+                        
+                        {/* Si aucun contenu */}
+                        {!currentPost && dayPhotos.length === 0 && (
+                            <span className="text-gray-400 italic">Aucun contenu pour ce jour</span>
+                        )}
+                    </div>
                 </div>
             </div>
 
