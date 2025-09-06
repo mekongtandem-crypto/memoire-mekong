@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.6.2a : refonte Memorie page (étape 2) </title>
+    <title>🐘 Mémoire du Mékong V0.6.2b : refonte Memorie page (étape 2) </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -2875,7 +2875,42 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
         
         setIsSearching(true);
         try {
-            const results = MastodonData.searchPostsAndPhotos(searchQuery);
+            // Recherche dans les posts
+            const posts = MastodonData.getPosts();
+            const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
+            
+            const matchingPosts = posts.filter(post => 
+                searchTerms.every(term => 
+                    post.content.toLowerCase().includes(term) ||
+                    post.title.toLowerCase().includes(term)
+                )
+            );
+
+            // Recherche dans les noms de dossiers photo
+            const matchingPhotoDays = [];
+            const photoIndex = PhotoData.getIndex();
+            if (photoIndex && photoIndex.photosByDay) {
+                Object.keys(photoIndex.photosByDay).forEach(day => {
+                    const dayNumber = parseInt(day);
+                    const photos = photoIndex.photosByDay[day];
+                    if (photos.length > 0) {
+                        const folderName = photos[0].folderName.toLowerCase();
+                        if (searchTerms.every(term => folderName.includes(term))) {
+                            matchingPhotoDays.push({
+                                day: dayNumber,
+                                folderName: photos[0].folderName,
+                                photoCount: photos.length
+                            });
+                        }
+                    }
+                });
+            }
+
+            const results = { 
+                posts: matchingPosts, 
+                photoDays: matchingPhotoDays.sort((a, b) => a.day - b.day) 
+            };
+            
             setSearchResults(results);
             setShowSearchResults(true);
         } catch (error) {
