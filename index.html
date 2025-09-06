@@ -1972,15 +1972,15 @@ const ConnectionBanner = ({ connectionMode, googleAuth }) => {
         if (connectionMode === 'never-connected') {
             return {
                 icon: '☁️',
-                message: 'Connexion Google Drive recommandée pour synchroniser vos sessions',
+                message: 'Connectez vous à Google Drive pour synchroniser vos sessions',
                 buttonText: 'Se connecter',
                 style: 'bg-blue-50 border-blue-200 text-blue-800'
             };
         } else if (connectionMode === 'disconnected') {
             return {
                 icon: '⚠️',
-                message: 'Connexion Google Drive perdue - Reconnectez-vous pour synchroniser',
-                buttonText: 'Reconnecter',
+                message: 'Non connecté à Google Drive ',
+                buttonText: 'Se Connecter',
                 style: 'bg-amber-50 border-amber-200 text-amber-800'
             };
         }
