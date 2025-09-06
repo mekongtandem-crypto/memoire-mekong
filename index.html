@@ -1,7 +1,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐘 Mémoire du Mékong V0.5.14 : Revision page d'accueuil </title>
+    <title>🐘 Mémoire du Mékong V0.5.15 : 3 petites corrections </title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -281,7 +281,7 @@ const PhotoGrid = ({ photos, onPhotoSelect }) => {
     }
 
     return (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {photos.map((photo, index) => (
                 <button 
                     key={photo.filename + index} 
@@ -2960,13 +2960,29 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
     };
     
     const createSessionFromPost = (post) => {
-        const game = getGameById(7);
-        const postPreview = post.content.slice(0, 200) + '...';
-        onCreateSession({ 
-            type: 'game', 
-            game: { ...game, title: post.title || `Jour ${post.dayNumber} - Souvenir` }, 
-            postContent: postPreview 
-        });
+        try {
+            const baseGame = getGameById(7);
+            if (!baseGame) {
+                console.error('❌ Jeu ID 7 non trouvé');
+                return;
+            }
+            
+            const game = { 
+                ...baseGame, 
+                title: post.title || `Jour ${post.dayNumber} - Souvenir du blog`
+            };
+            const postPreview = post.content.slice(0, 200) + (post.content.length > 200 ? '...' : '');
+            
+            console.log('🎮 Création session depuis post:', { game, postPreview: postPreview.slice(0, 50) + '...' });
+            
+            onCreateSession({ 
+                type: 'game', 
+                game: game, 
+                postContent: postPreview 
+            });
+        } catch (error) {
+            console.error('❌ Erreur createSessionFromPost:', error);
+        }
     };
     
     const createSessionFromPhoto = (photo) => {
@@ -2975,7 +2991,8 @@ const MemoriesPage = ({ currentUser, onCreateSession, isCreatingSession }) => {
             id: 1, 
             title: `Souvenir photo ${isFromMastodon ? 'du post' : 'du jour'} ${currentDay}` 
         };
-        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]\n\nÀ propos de cette photo : ${photo.name || photo.filename}`;
+        // NOUVEAU: Juste l'image sans texte de commentaire
+        const initialNoteContent = `[IMAGE]${photo.webContentLink}[/IMAGE]`;
         onCreateSession({ type: 'game', game: game, postContent: initialNoteContent });
     };
     
